@@ -61,6 +61,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get student user data for email
+    const studentUser = await User.findById(linkedStudentId);
+    if (!studentUser) {
+      return NextResponse.json(
+        { error: 'Student user data not found' },
+        { status: 404 }
+      );
+    }
+
     // Get student progress
     const progress = await StudentProgress.findOne({ userId: linkedStudentId });
     
@@ -178,7 +187,7 @@ export async function GET(request: NextRequest) {
       student: {
         id: student.userId,
         name: student.fullName,
-        email: student.email,
+        email: studentUser.email,
         grade: student.classGrade,
         school: student.schoolName,
         profilePicture: student.profilePictureUrl

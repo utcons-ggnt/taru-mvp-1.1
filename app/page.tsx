@@ -85,7 +85,7 @@ export default function Home() {
         <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-center justify-center">
           <div className="bg-white bg-opacity-90 rounded-3xl px-8 py-6 text-center shadow-2xl border border-purple-300 animate-pulse max-w-xl">
             <h2 className="text-3xl md:text-4xl font-extrabold text-[#6a0dad] mb-2">🎉 Welcome to JioWorld!</h2>
-            <p className="text-gray-700 text-lg font-medium">You're all set to begin your journey 🚀</p>
+            <p className="text-gray-800 text-lg font-medium">You're all set to begin your journey 🚀</p>
           </div>
         </div>
       )}
@@ -127,7 +127,7 @@ export default function Home() {
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
               Choose Your Role
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-700">
               Select your role to get started with JioWorld Learning
             </p>
           </div>
@@ -142,7 +142,7 @@ export default function Home() {
               <h3 className="font-semibold text-gray-900 group-hover:text-purple-700">
                 {t.student}
               </h3>
-              <p className="text-sm text-gray-600 mt-1">Start Learning</p>
+              <p className="text-sm text-gray-700 mt-1">Start Learning</p>
             </Link>
 
             <Link
@@ -153,7 +153,7 @@ export default function Home() {
               <h3 className="font-semibold text-gray-900 group-hover:text-purple-700">
                 {t.teacher}
               </h3>
-              <p className="text-sm text-gray-600 mt-1">Teach & Guide</p>
+              <p className="text-sm text-gray-700 mt-1">Teach & Guide</p>
             </Link>
 
             <Link

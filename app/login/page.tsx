@@ -166,7 +166,7 @@ export default function LoginPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-4">
               {t.loginTitle}
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-700">
               Welcome back! Please sign in to your account
             </p>
           </div>
@@ -201,7 +201,7 @@ export default function LoginPage() {
           </form>
 
           <div className="text-center mt-6">
-            <span className="text-gray-600">{t.noAccount} </span>
+            <span className="text-gray-700">{t.noAccount} </span>
             <span
               onClick={() => router.push('/register')}
               className="text-purple-600 hover:text-purple-700 font-semibold cursor-pointer"

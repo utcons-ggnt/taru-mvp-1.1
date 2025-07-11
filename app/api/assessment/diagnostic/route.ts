@@ -83,6 +83,61 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function GET(request: NextRequest) {
+  try {
+    // Get token from HTTP-only cookie
+    const token = request.cookies.get('auth-token')?.value;
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authorization token required' },
+        { status: 401 }
+      );
+    }
+
+    // Verify token
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Invalid token' },
+        { status: 401 }
+      );
+    }
+
+    // Connect to database
+    await connectDB();
+
+    // Verify user is a student
+    const user = await User.findById(decoded.userId);
+    if (!user || user.role !== 'student') {
+      return NextResponse.json(
+        { error: 'Only students can access diagnostic assessment' },
+        { status: 403 }
+      );
+    }
+
+    // Get assessment data
+    const assessment = await Assessment.findOne({ userId: decoded.userId });
+    
+    if (!assessment) {
+      return NextResponse.json({ 
+        assessment: null 
+      });
+    }
+
+    return NextResponse.json({ 
+      assessment: assessment.toJSON() 
+    });
+
+  } catch (error) {
+    console.error('Get diagnostic assessment error:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error' 
+    }, { status: 500 });
+  }
+}
+
 function generateRecommendedModules(results: any): string[] {
   const recommendations: string[] = [];
   

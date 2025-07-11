@@ -17,6 +17,13 @@ const translations: Record<string, Record<string, string>> = {
     successTitle: 'Onboarding Complete!',
     successMessage: 'Your unique student ID is',
     continueToDashboard: 'Continue to Dashboard',
+    shareWithParent: 'Share with Parent',
+    copyCode: 'Copy Code',
+    copied: 'Copied!',
+    shareLink: 'Share Link',
+    shareViaWhatsApp: 'Share via WhatsApp',
+    shareViaEmail: 'Share via Email',
+    shareInstructions: 'Share this ID with your parent to link their account',
   },
   'हिन्दी': {
     onboardingTitle: 'छात्र ऑनबोर्डिंग',
@@ -28,6 +35,13 @@ const translations: Record<string, Record<string, string>> = {
     successTitle: 'ऑनबोर्डिंग पूरी!',
     successMessage: 'आपकी अद्वितीय छात्र आईडी है',
     continueToDashboard: 'डैशबोर्ड पर जाएं',
+    shareWithParent: 'अभिभावक के साथ साझा करें',
+    copyCode: 'कोड कॉपी करें',
+    copied: 'कॉपी किया गया!',
+    shareLink: 'लिंक साझा करें',
+    shareViaWhatsApp: 'WhatsApp के माध्यम से साझा करें',
+    shareViaEmail: 'ईमेल के माध्यम से साझा करें',
+    shareInstructions: 'अपने अभिभावक के साथ इस आईडी को साझा करें',
   },
   'मराठी': {
     onboardingTitle: 'विद्यार्थी ऑनबोर्डिंग',
@@ -39,6 +53,13 @@ const translations: Record<string, Record<string, string>> = {
     successTitle: 'ऑनबोर्डिंग पूर्ण!',
     successMessage: 'तुमची अद्वितीय विद्यार्थी आयडी आहे',
     continueToDashboard: 'डॅशबोर्डवर जा',
+    shareWithParent: 'पालकांसोबत सामायिक करा',
+    copyCode: 'कोड कॉपी करा',
+    copied: 'कॉपी केले!',
+    shareLink: 'लिंक सामायिक करा',
+    shareViaWhatsApp: 'WhatsApp द्वारे सामायिक करा',
+    shareViaEmail: 'ईमेल द्वारे सामायिक करा',
+    shareInstructions: 'त्यांचे खाते लिंक करण्यासाठी हे आयडी आपल्या पालकांसोबत सामायिक करा',
   },
 }
 
@@ -104,6 +125,7 @@ export default function StudentOnboarding() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [uniqueId, setUniqueId] = useState('');
   const [language, setLanguage] = useState('English (USA)');
+  const [copied, setCopied] = useState(false);
   const [formData, setFormData] = useState<StudentOnboardingData>({
     fullName: '',
     nickname: '',
@@ -143,6 +165,45 @@ export default function StudentOnboarding() {
     setLanguage(lang)
     localStorage.setItem('lang', lang)
   }
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(uniqueId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+    }
+  };
+
+  const shareViaWhatsApp = () => {
+    const message = `Hi! My JioWorld Learning student ID is: ${uniqueId}. Please use this ID to link your parent account.`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const shareViaEmail = () => {
+    const subject = 'My JioWorld Learning Student ID';
+    const body = `Hi! My JioWorld Learning student ID is: ${uniqueId}. Please use this ID to link your parent account.`;
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoUrl);
+  };
+
+  const shareViaLink = () => {
+    const shareUrl = `${window.location.origin}/register?role=parent&studentId=${uniqueId}`;
+    if (navigator.share) {
+      navigator.share({
+        title: 'JioWorld Learning Student ID',
+        text: `My student ID: ${uniqueId}`,
+        url: shareUrl
+      });
+    } else {
+      // Fallback to copying the link
+      navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   // Fetch existing user data on component mount
   useEffect(() => {
@@ -381,9 +442,53 @@ export default function StudentOnboarding() {
             <p className="text-gray-600 mb-4">
               {t.successMessage}
             </p>
-            <div className="bg-purple-100 border-2 border-purple-300 rounded-lg p-4 mb-6">
+            <div className="bg-purple-100 border-2 border-purple-300 rounded-lg p-4 mb-4">
               <p className="text-2xl font-bold text-purple-700">{uniqueId}</p>
             </div>
+            
+            {/* Share Instructions */}
+            <p className="text-sm text-gray-600 mb-4">
+              {t.shareInstructions}
+            </p>
+
+            {/* Share Buttons */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <button
+                onClick={copyToClipboard}
+                className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                <span className="text-lg">📋</span>
+                {copied ? t.copied : t.copyCode}
+              </button>
+              
+              <button
+                onClick={shareViaLink}
+                className="flex items-center justify-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                <span className="text-lg">🔗</span>
+                {t.shareLink}
+              </button>
+            </div>
+
+            {/* Social Share Buttons */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <button
+                onClick={shareViaWhatsApp}
+                className="flex items-center justify-center gap-2 bg-green-100 hover:bg-green-200 text-green-700 font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                <span className="text-lg">📱</span>
+                {t.shareViaWhatsApp}
+              </button>
+              
+              <button
+                onClick={shareViaEmail}
+                className="flex items-center justify-center gap-2 bg-red-100 hover:bg-red-200 text-red-700 font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                <span className="text-lg">📧</span>
+                {t.shareViaEmail}
+              </button>
+            </div>
+
             <button
               onClick={() => router.push('/dashboard/student')}
               className="w-full bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors"

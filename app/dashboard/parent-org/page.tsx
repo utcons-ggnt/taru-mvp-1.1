@@ -67,7 +67,7 @@ export default function ParentOrgDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -76,12 +76,12 @@ export default function ParentOrgDashboard() {
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                 Organisation Dashboard
               </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-700 dark:text-gray-400">
                 Welcome back, {user.name}!
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
+              <span className="text-sm text-gray-700 dark:text-gray-400">
                 {user.profile?.organisationName || 'Organisation not set'}
               </span>
               <button

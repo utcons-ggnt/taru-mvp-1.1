@@ -39,11 +39,17 @@ export default function RegisterPage() {
   const [availableStudents, setAvailableStudents] = useState<Array<{id: string, uniqueId: string, name: string, email: string, grade: string}>>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
 
-  // Handle role from URL parameter
+  // Handle role and studentId from URL parameters
   useEffect(() => {
     const roleParam = searchParams.get('role');
+    const studentIdParam = searchParams.get('studentId');
+    
     if (roleParam && roleOptions.some(option => option.value === roleParam)) {
       setFormData(prev => ({ ...prev, role: roleParam }));
+    }
+    
+    if (studentIdParam && roleParam === 'parent') {
+      setProfile(prev => ({ ...prev, studentId: studentIdParam }));
     }
   }, [searchParams]);
 
@@ -252,7 +258,9 @@ export default function RegisterPage() {
                 name="studentId"
                 value={profile.studentId}
                 onChange={handleProfileChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${
+                  searchParams.get('studentId') ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-300 dark:border-gray-600'
+                }`}
                 required
               >
                 <option value="">Select a student</option>
@@ -269,7 +277,11 @@ export default function RegisterPage() {
                 )}
               </select>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Select the student you want to link to your account using their unique student ID. Only students who have completed onboarding are shown.
+                {searchParams.get('studentId') ? (
+                  <span className="text-green-600 dark:text-green-400">✅ Student ID pre-filled from link</span>
+                ) : (
+                  'Select the student you want to link to your account using their unique student ID. Only students who have completed onboarding are shown.'
+                )}
               </p>
             </div>
           </>
@@ -356,7 +368,7 @@ export default function RegisterPage() {
             <span className="text-2xl">👋</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Create Your Account</h1>
-          <p className="text-gray-600">Join JioWorld Learning Platform</p>
+          <p className="text-gray-700">Join JioWorld Learning Platform</p>
               </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -458,7 +470,7 @@ export default function RegisterPage() {
                 type="submit"
                 disabled={isLoading}
             className="w-full bg-purple-600 text-white font-semibold py-3 rounded-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+              >
             {isLoading ? 'Creating Account...' : 'Create Account'}
               </button>
         </form>

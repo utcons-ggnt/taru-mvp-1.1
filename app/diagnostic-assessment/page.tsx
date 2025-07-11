@@ -406,10 +406,10 @@ export default function DiagnosticAssessment() {
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
               Question {currentQuestionIndex + 1} of {diagnosticQuestions.length}
             </span>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
               {Math.round(progress)}% Complete
             </span>
           </div>

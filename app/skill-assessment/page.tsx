@@ -716,10 +716,10 @@ export default function SkillAssessment() {
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
               Step {currentStep} of 4
             </span>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
               {Math.round((currentStep / 4) * 100)}% Complete
             </span>
           </div>

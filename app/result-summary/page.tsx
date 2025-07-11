@@ -113,7 +113,7 @@ export default function ResultSummary() {
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
             Your Learning Profile
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-400">
+          <p className="text-xl text-gray-700 dark:text-gray-400">
             Here's what we learned about you and your personalized learning recommendations
           </p>
         </div>
@@ -128,11 +128,11 @@ export default function ResultSummary() {
               </h2>
               <div className="space-y-3">
                 <div>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Language:</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Language:</span>
                   <p className="font-medium text-gray-900 dark:text-white">{assessment.languagePreference}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Voice Instructions:</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Voice Instructions:</span>
                   <p className="font-medium text-gray-900 dark:text-white">
                     {assessment.enableVoiceInstructions ? 'Enabled' : 'Disabled'}
                   </p>
@@ -164,7 +164,7 @@ export default function ResultSummary() {
               </h2>
               <div className="space-y-3">
                 <div>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Favorite Subjects:</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Favorite Subjects:</span>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {assessment.subjectsILike.slice(0, 5).map(subject => (
                       <span key={subject} className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded text-xs">
@@ -174,7 +174,7 @@ export default function ResultSummary() {
                   </div>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Career Interests:</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Career Interests:</span>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {assessment.currentCareerInterest.slice(0, 3).map(career => (
                       <span key={career} className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 rounded text-xs">
@@ -214,7 +214,7 @@ export default function ResultSummary() {
                             style={{ width: `${score}%` }}
                           />
                         </div>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">{score}%</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">{score}%</span>
                       </div>
                     );
                   })}

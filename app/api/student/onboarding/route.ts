@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Student from '@/models/Student';
+import StudentProgress from '@/models/StudentProgress';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -173,6 +174,21 @@ export async function POST(request: NextRequest) {
       const student = await Student.create({
         userId: decoded.userId,
         ...studentProfile
+      });
+
+      // Initialize student progress record
+      console.log('🔍 Initializing student progress...');
+      await StudentProgress.create({
+        userId: decoded.userId,
+        studentId: decoded.userId,
+        moduleProgress: [],
+        pathProgress: [],
+        totalXpEarned: 0,
+        totalModulesCompleted: 0,
+        totalTimeSpent: 0,
+        badgesEarned: [],
+        currentModule: null,
+        currentPath: null
       });
 
       console.log('🔍 Student onboarding completed successfully');
