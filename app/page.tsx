@@ -42,6 +42,7 @@ const translations: Record<string, Record<string, string>> = {
     subtitle: 'तंत्रज्ञानाद्वारे शिक्षणाला सक्षम करणे',
     getStarted: 'सुरु करा',
     login: 'लॉगिन',
+    student: 'विद्यार्थी',
     teacher: 'शिक्षक',
     parent: 'पालक',
     organization: 'संस्था',
