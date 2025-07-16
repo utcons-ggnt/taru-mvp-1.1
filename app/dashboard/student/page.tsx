@@ -13,6 +13,8 @@ import ProgressTab from './components/ProgressTab';
 import RewardsTab from './components/RewardsTab';
 import SettingsTab from './components/SettingsTab';
 import Image from 'next/image';
+import { useAutoDataSync } from '@/lib/DataSyncProvider';
+import { DataSyncEvents } from '@/lib/dataSync';
 
 interface StudentProfile {
   name: string;
@@ -90,10 +92,7 @@ export default function StudentDashboard() {
   const [user, setUser] = useState<StudentProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [dataLoading, setDataLoading] = useState(true);
   const [language, setLanguage] = useState('English (USA)');
-  const [assessmentData, setAssessmentData] = useState<DashboardData['assessment'] | null>(null);
   const router = useRouter();
   const logoutTriggered = useRef(false);
 
@@ -133,48 +132,36 @@ export default function StudentDashboard() {
     fetchUser();
   }, [router]);
 
-  // Fetch dashboard data
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!user) return;
-      
-      try {
-        setDataLoading(true);
-        const response = await fetch('/api/dashboard/student/overview');
-        if (response.ok) {
-          const data = await response.json();
-          setDashboardData(data);
-        } else {
-          console.error('Failed to fetch dashboard data');
-        }
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setDataLoading(false);
+  // Use data synchronization for dashboard data
+  const { data: dashboardData, isLoading: dataLoading } = useAutoDataSync(
+    DataSyncEvents.DASHBOARD_UPDATED,
+    async () => {
+      if (!user) throw new Error('User not available');
+      const response = await fetch('/api/dashboard/student/overview');
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data');
       }
-    };
+      return response.json();
+    },
+    user?.email, // Use email as userId
+    [user]
+  );
 
-    fetchDashboardData();
-  }, [user]);
-
-  // Fetch assessment data separately for diagnostic tab
-  useEffect(() => {
-    const fetchAssessmentData = async () => {
-      if (!user) return;
-      
-      try {
-        const response = await fetch('/api/assessment/diagnostic');
-        if (response.ok) {
-          const data = await response.json();
-          setAssessmentData(data.assessment);
-        }
-      } catch (error) {
-        console.error('Error fetching assessment data:', error);
+  // Use data synchronization for assessment data
+  const { data: assessmentData } = useAutoDataSync(
+    DataSyncEvents.ASSESSMENT_UPDATED,
+    async () => {
+      if (!user) throw new Error('User not available');
+      const response = await fetch('/api/assessment/diagnostic');
+      if (!response.ok) {
+        throw new Error('Failed to fetch assessment data');
       }
-    };
-
-    fetchAssessmentData();
-  }, [user]);
+      const data = await response.json();
+      return data.assessment;
+    },
+    user?.email,
+    [user]
+  );
 
   const handleLogout = async () => {
     try {
@@ -185,19 +172,19 @@ export default function StudentDashboard() {
     }
   };
 
-  // Subject to image mapping for module cards
-  const subjectImages: Record<string, string> = {
-    Mathematics: '/math.png',
-    Science: '/science.png',
-    Arts: '/arts.png',
-    Computer: '/computer.png',
-    English: '/english.png',
-    History: '/history.png',
-    Geography: '/geography.png',
-    Physics: '/physics.png',
-    Chemistry: '/chemistry.png',
-    Biology: '/biology.png',
-  };
+  // Subject to image mapping for module cards (unused since ModulesTab fetches its own data)
+  // const subjectImages: Record<string, string> = {
+  //   Mathematics: '/math.png',
+  //   Science: '/science.png',
+  //   Arts: '/arts.png',
+  //   Computer: '/computer.png',
+  //   English: '/english.png',
+  //   History: '/history.png',
+  //   Geography: '/geography.png',
+  //   Physics: '/physics.png',
+  //   Chemistry: '/chemistry.png',
+  //   Biology: '/biology.png',
+  // };
 
   // Subject to color mapping
   const subjectColors: Record<string, string> = {
@@ -216,44 +203,44 @@ export default function StudentDashboard() {
   // Dummy data for fallback
   const dummyStats = { xp: 2340, badges: 7, modules: 12 };
   const dummyProgressPercent = 68;
-  const dummyLearningModules = [
-    {
-      image: '/math.png',
-      title: 'Mathematics basics',
-      xp: 60,
-      time: '20 min',
-      progress: 60,
-      enroll: false,
-      moduleId: 'math-001',
-    },
-    {
-      image: '/science.png',
-      title: 'Science Experiments',
-      xp: 50,
-      time: '15 min',
-      progress: 45,
-      enroll: false,
-      moduleId: 'science-001',
-    },
-    {
-      image: '/arts.png',
-      title: 'Creative Arts',
-      xp: 75,
-      time: '40 min',
-      progress: 75,
-      enroll: false,
-      moduleId: 'arts-001',
-    },
-    {
-      image: '/computer.png',
-      title: 'Basic Computer',
-      xp: 80,
-      time: '30 min',
-      progress: 80,
-      enroll: false,
-      moduleId: 'computer-001',
-    },
-  ];
+  // const dummyLearningModules = [
+  //   {
+  //     image: '/math.png',
+  //     title: 'Mathematics basics',
+  //     xp: 60,
+  //     time: '20 min',
+  //     progress: 60,
+  //     enroll: false,
+  //     moduleId: 'math-001',
+  //   },
+  //   {
+  //     image: '/science.png',
+  //     title: 'Science Experiments',
+  //     xp: 50,
+  //     time: '15 min',
+  //     progress: 45,
+  //     enroll: false,
+  //     moduleId: 'science-001',
+  //   },
+  //   {
+  //     image: '/arts.png',
+  //     title: 'Creative Arts',
+  //     xp: 75,
+  //     time: '40 min',
+  //     progress: 75,
+  //     enroll: false,
+  //     moduleId: 'arts-001',
+  //   },
+  //   {
+  //     image: '/computer.png',
+  //     title: 'Basic Computer',
+  //     xp: 80,
+  //     time: '30 min',
+  //     progress: 80,
+  //     enroll: false,
+  //     moduleId: 'computer-001',
+  //   },
+  // ];
   const dummyCourses = [
     { title: 'Mathematics basics', lessonsCompleted: '06/10 (60%)', duration: '20 min', xp: '60+ XP', color: '#FFD600' },
     { title: 'Science Experiments', lessonsCompleted: '04/10 (40%)', duration: '15 min', xp: '50+ XP', color: '#00C49A' },
@@ -301,39 +288,99 @@ export default function StudentDashboard() {
     ? Math.round((dashboardData.overview.completedModules / Math.max(1, dashboardData.overview.totalModules)) * 100)
     : dummyProgressPercent;
 
-  // Map recommended modules to learning cards with real data, fallback to dummy
-  const learningModules = dashboardData?.recommendedModules && dashboardData.recommendedModules.length > 0
-    ? dashboardData.recommendedModules.map((mod) => ({
-        image: subjectImages[mod.subject] || '/math.png',
-        title: mod.name,
-        xp: mod.xpPoints,
-        time: mod.estimatedDuration ? `${mod.estimatedDuration} min` : '',
-        progress: 0, // Will be updated when we have progress data
-        enroll: false,
-        moduleId: mod.id,
-      }))
-    : dummyLearningModules;
+  // Map recommended modules to learning cards with real data, fallback to dummy (unused since ModulesTab fetches its own data)
+  // const learningModules = dashboardData?.recommendedModules && dashboardData.recommendedModules.length > 0
+  //   ? dashboardData.recommendedModules.map((mod) => ({
+  //       id: mod.id,
+  //       image: subjectImages[mod.subject] || '/math.png',
+  //       title: mod.name,
+  //       xp: mod.xpPoints,
+  //       time: mod.estimatedDuration ? `${mod.estimatedDuration} min` : '',
+  //       progress: 0, // Will be updated when we have progress data
+  //       enroll: false,
+  //       moduleId: mod.id,
+  //       videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Sample video URL
+  //       totalDuration: 180, // 3 minutes in seconds
+  //       questions: [
+  //         {
+  //           id: '1',
+  //           question: `What is the main topic of this ${mod.subject} lesson?`,
+  //           options: [
+  //             'Basic concepts',
+  //             'Advanced techniques',
+  //             'Problem solving',
+  //             'Review and practice'
+  //           ],
+  //           correctAnswer: 0,
+  //           explanation: 'This lesson covers the fundamental concepts of the topic.'
+  //         },
+  //         {
+  //           id: '2',
+  //           question: 'Which of the following best describes the learning objective?',
+  //           options: [
+  //             'Memorize formulas',
+  //             'Understand concepts',
+  //             'Complete exercises',
+  //             'Take tests'
+  //           ],
+  //           correctAnswer: 1,
+  //           explanation: 'The main goal is to understand the underlying concepts.'
+  //         }
+  //       ]
+  //     }))
+  //   : dummyLearningModules.map((mod, index) => ({
+  //       ...mod,
+  //       id: `dummy-${index}`,
+  //       videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  //       totalDuration: 180,
+  //       questions: [
+  //         {
+  //           id: '1',
+  //           question: 'What is the main topic of this lesson?',
+  //           options: [
+  //             'Basic concepts',
+  //             'Advanced techniques',
+  //             'Problem solving',
+  //             'Review and practice'
+  //           ],
+  //           correctAnswer: 0,
+  //           explanation: 'This lesson covers the fundamental concepts of the topic.'
+  //         },
+  //         {
+  //           id: '2',
+  //           question: 'Which of the following best describes the learning objective?',
+  //           options: [
+  //             'Memorize formulas',
+  //             'Understand concepts',
+  //             'Complete exercises',
+  //             'Take tests'
+  //           ],
+  //           correctAnswer: 1,
+  //           explanation: 'The main goal is to understand the underlying concepts.'
+  //         }
+  //       ]
+  //     }));
 
   // Map recent activity to courses with real module names, fallback to dummy
   const courses = dashboardData?.recentActivity && dashboardData.recentActivity.length > 0
-    ? dashboardData.recentActivity.map((activity) => {
-        const matchedModule = dashboardData.recommendedModules.find(m => m.id === activity.moduleId);
+    ? dashboardData.recentActivity.map((activity: { moduleId: string; progress: number }) => {
+        const matchedModule = dashboardData.recommendedModules.find((m: { id: string; name: string }) => m.id === activity.moduleId);
         return {
           title: matchedModule?.name || activity.moduleId,
-        lessonsCompleted: `${activity.progress || 0}%`,
-        duration: activity.xpEarned ? `${activity.xpEarned} XP` : '',
-        xp: activity.xpEarned ? `${activity.xpEarned} XP` : '',
+          lessonsCompleted: `${activity.progress || 0}%`,
+          duration: '',
+          xp: '',
           color: subjectColors[matchedModule?.subject || 'Mathematics'] || '#FFD600',
-          status: activity.status,
+          progress: activity.progress,
         };
       })
     : dummyCourses;
 
   // Map assessment data to tests, fallback to dummy
-  const tests: Test[] = assessmentData && assessmentData.diagnosticCompleted
+  const tests: Test[] = assessmentData?.diagnosticCompleted
     ? [{
         title: 'Learning Profile Assessment',
-        date: assessmentData.assessmentCompletedAt?.split('T')[0] || new Date().toISOString().split('T')[0],
+        date: assessmentData?.assessmentCompletedAt?.split('T')[0] || new Date().toISOString().split('T')[0],
         color: '#7C3AED',
         score: assessmentData.diagnosticScore || 0
       }]
@@ -352,7 +399,7 @@ export default function StudentDashboard() {
 
   // Map real badges data, fallback to dummy
   const badgesData = dashboardData?.progress?.badgesEarned && dashboardData.progress.badgesEarned.length > 0
-    ? dashboardData.progress.badgesEarned.map((badge) => ({
+    ? dashboardData.progress.badgesEarned.map((badge: DashboardData['progress']['badgesEarned'][number]) => ({
         name: badge.name,
         description: badge.description,
         icon: '/badge-default.png', // Use default icon since badge.icon doesn't exist in the model
@@ -467,7 +514,7 @@ export default function StudentDashboard() {
               <OverviewTab courses={courses} tests={tests} />
             )}
             {activeTab === 'modules' && (
-              <ModulesTab modules={learningModules} />
+              <ModulesTab />
             )}
             {activeTab === 'diagnostic' && (
               <DiagnosticTestTab />
