@@ -54,10 +54,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate role
-    const validRoles = ['student', 'teacher', 'parent_org', 'parent', 'admin'];
+    const validRoles = ['student', 'teacher', 'parent', 'organization', 'admin'];
     if (!validRoles.includes(role)) {
       return NextResponse.json(
-        { error: 'Invalid role. Must be one of: student, teacher, parent_org, parent, admin' },
+        { error: 'Invalid role. Must be one of: student, teacher, parent, organization, admin' },
         { status: 400 }
       );
     }
@@ -70,48 +70,75 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new user
+    // Create new user with role-specific profile mapping
+    let userProfile: Record<string, unknown> = {};
+    
+    // Map form data to profile based on role
+    if (role === 'student') {
+      userProfile = {
+        grade: profile?.grade || profile?.classGrade,
+        language: profile?.language,
+        location: profile?.location,
+        guardianName: profile?.guardianName,
+      };
+    } else if (role === 'teacher') {
+      userProfile = {
+        subjectSpecialization: profile?.subjectSpecialization || profile?.classGrade,
+        experienceYears: profile?.experienceYears || profile?.language,
+        location: profile?.location,
+      };
+    } else if (role === 'parent') {
+      userProfile = {
+        linkedStudentUniqueId: profile?.linkedStudentUniqueId || profile?.classGrade,
+        location: profile?.location,
+        guardianName: profile?.guardianName,
+      };
+      
+      // Verify student exists if linking
+      if (userProfile.linkedStudentUniqueId) {
+        // Find student by unique ID
+        const student = await Student.findOne({ 
+          uniqueId: userProfile.linkedStudentUniqueId,
+          onboardingCompleted: true 
+        });
+        
+        if (!student) {
+          return NextResponse.json(
+            { error: 'Invalid student unique ID. Please ensure the student has completed onboarding first.' },
+            { status: 400 }
+          );
+        }
+        
+        // Check if student is already linked to another parent
+        const existingParent = await User.findOne({ 
+          role: 'parent', 
+          'profile.linkedStudentId': student.userId 
+        });
+        if (existingParent) {
+          return NextResponse.json(
+            { error: 'This student is already linked to another parent account' },
+            { status: 400 }
+          );
+        }
+        
+        // Add the found student's userId
+        userProfile.linkedStudentId = student.userId;
+      }
+    } else if (role === 'organization') {
+      userProfile = {
+        organizationType: profile?.organizationType || profile?.classGrade,
+        industry: profile?.industry || profile?.language,
+        location: profile?.location,
+      };
+    }
+
     const userData: UserData = {
       name,
       email: email.toLowerCase(),
       password,
       role,
-      profile: profile || {}
+      profile: userProfile
     };
-
-    // Verify student exists if linking
-    if (role === 'parent' && profile?.linkedStudentUniqueId) {
-      // Find student by unique ID
-      const student = await Student.findOne({ 
-        uniqueId: profile.linkedStudentUniqueId,
-        onboardingCompleted: true 
-      });
-      
-      if (!student) {
-        return NextResponse.json(
-          { error: 'Invalid student unique ID. Please ensure the student has completed onboarding first.' },
-          { status: 400 }
-        );
-      }
-      
-      // Check if student is already linked to another parent
-      const existingParent = await User.findOne({ 
-        role: 'parent', 
-        'profile.linkedStudentId': student.userId 
-      });
-      if (existingParent) {
-        return NextResponse.json(
-          { error: 'This student is already linked to another parent account' },
-          { status: 400 }
-        );
-      }
-      
-      // Use the found student's userId
-      userData.profile = {
-        ...userData.profile,
-        linkedStudentId: student.userId
-      };
-    }
 
     const user = new User(userData);
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface Question {
   id: number;
@@ -410,98 +411,120 @@ export default function DiagnosticAssessment() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
-              Question {currentQuestionIndex + 1} of {diagnosticQuestions.length}
-            </span>
-            <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
-              {Math.round(progress)}% Complete
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-            <div
-              className="bg-blue-600 h-3 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+    <main className="min-h-screen flex flex-col md:flex-row overflow-hidden">
+      {/* 🟪 Left Section - Deep Purple Gradient */}
+      <section className="w-full md:w-1/2 bg-gradient-to-br from-[#7F00FF] to-[#E100FF] px-6 py-8 text-white flex flex-col justify-between relative">
+        <Image src="/jio-logo.png" alt="Jio Logo" width={48} height={48} className="absolute top-4 left-4 w-12 h-12 object-contain" />
+        <div className="mt-16">
+          <h2 className="text-3xl md:text-4xl font-bold leading-tight">
+            Let&apos;s understand <br />
+            your current skills <br />
+            and <span className="text-yellow-300 font-extrabold">Learning<br />Preferences.</span>
+          </h2>
         </div>
+        <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8" />
+      </section>
 
-        {/* Question Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              Diagnostic Assessment
-            </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              Let&apos;s understand your current skills and learning preferences
-            </p>
-          </div>
+      {/* ⬜ Right Section - White with Grid */}
+      <section className="w-full md:w-1/2 bg-white px-6 py-8 flex flex-col justify-center relative" style={{
+        backgroundImage: `
+          linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px)
+        `,
+        backgroundSize: '20px 20px'
+      }}>
+        <div className="max-w-md mx-auto w-full">
+          {/* Assessment Form Container */}
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+            {/* Progress Bar */}
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  Question {currentQuestionIndex + 1} of {diagnosticQuestions.length}
+                </span>
+                <span className="text-sm font-medium text-gray-700">
+                  {Math.round(progress)}% Complete
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-[#7F00FF] h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
 
-          {/* Category Badge */}
-          <div className="text-center mb-6">
-            <span className="inline-block px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full font-medium">
-              {currentQuestion.category}
-            </span>
-          </div>
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                Diagnostic Assessment
+              </h1>
+              <p className="text-gray-600 text-sm">
+                Let&apos;s understand your current skills and learning preferences
+              </p>
+            </div>
 
-          {/* Question */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
-              {currentQuestion.question}
-            </h2>
+            {/* Category Badge */}
+            <div className="text-center mb-6">
+              <span className="inline-block px-4 py-2 bg-purple-100 text-purple-800 rounded-full font-medium text-sm">
+                {currentQuestion.category}
+              </span>
+            </div>
 
-            {/* Answer Options */}
-            <div className="space-y-4">
-              {currentQuestion.options.map(option => (
-                <button
-                  key={option.id}
-                  onClick={() => handleAnswer(option.id)}
-                  className={`w-full p-4 border-2 rounded-lg text-left transition-all ${
-                    answers[currentQuestion.id] === option.id
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                  }`}
-                >
-                  <span className="text-lg text-gray-900 dark:text-white">{option.text}</span>
-                </button>
-              ))}
+            {/* Question */}
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4 text-center">
+                {currentQuestion.question}
+              </h2>
+
+              {/* Answer Options */}
+              <div className="space-y-3">
+                {currentQuestion.options.map(option => (
+                  <button
+                    key={option.id}
+                    onClick={() => handleAnswer(option.id)}
+                    className={`w-full p-3 border-2 rounded-lg text-left transition-all duration-200 ${
+                      answers[currentQuestion.id] === option.id
+                        ? 'border-[#7F00FF] bg-purple-50'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <span className="text-base text-gray-900">{option.text}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-between">
+              <button
+                onClick={handlePrevious}
+                disabled={currentQuestionIndex === 0}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Previous
+              </button>
+
+              <button
+                onClick={handleNext}
+                disabled={!answers[currentQuestion.id]}
+                className="px-4 py-2 bg-[#7F00FF] text-white rounded-lg font-medium transition-all duration-200 hover:bg-[#6B00E6] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {currentQuestionIndex === diagnosticQuestions.length - 1 ? 'Finish' : 'Next'}
+              </button>
+            </div>
+
+            {/* Skip Option */}
+            <div className="text-center mt-4">
+              <button
+                onClick={handleSkip}
+                className="text-gray-500 hover:text-gray-700 underline text-sm"
+              >
+                Skip this assessment for now
+              </button>
             </div>
           </div>
-
-          {/* Navigation Buttons */}
-          <div className="flex justify-between">
-            <button
-              onClick={handlePrevious}
-              disabled={currentQuestionIndex === 0}
-              className="px-6 py-3 bg-gray-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
-            >
-              Previous
-            </button>
-
-            <button
-              onClick={handleNext}
-              disabled={!answers[currentQuestion.id]}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium transition-colors hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {currentQuestionIndex === diagnosticQuestions.length - 1 ? 'Finish' : 'Next'}
-            </button>
-          </div>
-
-          {/* Skip Option */}
-          <div className="text-center mt-6">
-            <button
-              onClick={handleSkip}
-              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
-            >
-              Skip this assessment for now
-            </button>
-          </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 } 

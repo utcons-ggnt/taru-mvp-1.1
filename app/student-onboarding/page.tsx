@@ -804,25 +804,31 @@ export default function StudentOnboarding() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
-      {/* 🟪 Left Panel */}
-      <div className="w-full md:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-6 py-8 text-white flex flex-col justify-between relative">
-        <Image src="/jio-logo.png" alt="Jio Logo" width={56} height={56} className="absolute top-4 left-4 w-14 h-14 object-contain" />
-        <div className="mt-20 md:mt-32">
-          <h2 className="text-3xl md:text-4xl font-bold leading-snug md:leading-snug px-2 md:px-10">
+    <main className="min-h-screen flex flex-col md:flex-row overflow-hidden">
+      {/* 🟪 Left Section - Deep Purple Gradient */}
+      <section className="w-full md:w-1/2 bg-gradient-to-br from-[#7F00FF] to-[#E100FF] px-6 py-8 text-white flex flex-col justify-between relative">
+        <Image src="/jio-logo.png" alt="Jio Logo" width={48} height={48} className="absolute top-4 left-4 w-12 h-12 object-contain" />
+        <div className="mt-16">
+          <h2 className="text-3xl md:text-4xl font-bold leading-tight">
             Complete your <br />
             student profile <br />
             and <span className="text-yellow-300 font-extrabold">Unlock your<br />Learning Journey.</span>
           </h2>
         </div>
-        <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
-      </div>
+        <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8" />
+      </section>
 
-      {/* ⬜ Right Panel */}
-      <div className="w-full md:w-1/2 bg-white px-4 sm:px-8 py-10 flex flex-col justify-center relative">
+      {/* ⬜ Right Section - White with Grid */}
+      <section className="w-full md:w-1/2 bg-white px-6 py-8 flex flex-col justify-center relative" style={{
+        backgroundImage: `
+          linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px)
+        `,
+        backgroundSize: '20px 20px'
+      }}>
         {/* Language Selector */}
-        <div className="absolute top-6 right-6 sm:top-6 sm:right-8 flex items-center gap-2 text-sm text-gray-700 z-20">
-          <span role="img" aria-label="language" className="text-base sm:text-lg">🌐</span>
+        <div className="absolute top-6 right-6 flex items-center gap-2 text-sm text-gray-700 z-20">
+          <span role="img" aria-label="language" className="text-base">🌐</span>
           <select
             value={language}
             onChange={(e) => handleLanguageChange(e.target.value)}
@@ -837,58 +843,61 @@ export default function StudentOnboarding() {
         </div>
 
         <div className="max-w-md mx-auto w-full">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              {t.onboardingTitle}
-            </h1>
-            <p className="text-gray-600">
-              {t.subtitle}
-            </p>
-            <div className="flex justify-center mt-4">
-              {[1, 2, 3, 4].map((step) => (
-                <div
-                  key={step}
-                  className={`w-3 h-3 rounded-full mx-1 ${
-                    step === currentStep ? 'bg-purple-600' : 
-                    step < currentStep ? 'bg-green-500' : 'bg-gray-300'
-                  }`}
-                />
-              ))}
+          {/* Onboarding Form Container */}
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                {t.onboardingTitle}
+              </h1>
+              <p className="text-gray-600 text-sm">
+                {t.subtitle}
+              </p>
+              <div className="flex justify-center mt-4">
+                {[1, 2, 3, 4].map((step) => (
+                  <div
+                    key={step}
+                    className={`w-3 h-3 rounded-full mx-1 ${
+                      step === currentStep ? 'bg-[#7F00FF]' : 
+                      step < currentStep ? 'bg-green-500' : 'bg-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-6">
-            {renderCurrentStep()}
+            <div className="space-y-6">
+              {renderCurrentStep()}
 
-            <div className="flex justify-between pt-4">
-              <button
-                onClick={handlePrevious}
-                disabled={currentStep === 1}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {t.previous}
-              </button>
-              
-              {currentStep < 4 ? (
+              <div className="flex justify-between pt-4">
                 <button
-                  onClick={handleNext}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  onClick={handlePrevious}
+                  disabled={currentStep === 1}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
-                  {t.next}
+                  {t.previous}
                 </button>
-              ) : (
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                >
-                  {isSubmitting ? t.submitting : t.submit}
-                </button>
-              )}
+                
+                {currentStep < 4 ? (
+                  <button
+                    onClick={handleNext}
+                    className="px-6 py-2 bg-[#7F00FF] text-white rounded-lg hover:bg-[#6B00E6] transition-all duration-200"
+                  >
+                    {t.next}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="px-6 py-2 bg-[#7F00FF] text-white rounded-lg hover:bg-[#6B00E6] disabled:opacity-50 transition-all duration-200"
+                  >
+                    {isSubmitting ? t.submitting : t.submit}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </main>
   );
 } 

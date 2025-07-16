@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface SkillAssessmentData {
   languagePreference: string;
@@ -729,23 +730,64 @@ export default function SkillAssessment() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-6 flex flex-col justify-center sm:py-12">
-      <div className="relative py-3 sm:max-w-xl sm:mx-auto">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-300 to-purple-300 dark:from-blue-700 dark:to-purple-700 transform -skew-y-6 sm:skew-y-0 sm:-rotate-6 sm:rounded-3xl"></div>
-        <div className="relative px-4 py-10 bg-white dark:bg-gray-800 shadow-lg sm:rounded-3xl sm:p-20">
-          <div className="max-w-md mx-auto">
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              <div className="py-8 text-base leading-6 space-y-4 text-gray-700 dark:text-gray-300 sm:text-lg sm:leading-7">
+    <main className="min-h-screen flex flex-col md:flex-row overflow-hidden">
+      {/* 🟪 Left Section - Deep Purple Gradient */}
+      <section className="w-full md:w-1/2 bg-gradient-to-br from-[#7F00FF] to-[#E100FF] px-6 py-8 text-white flex flex-col justify-between relative">
+        <Image src="/jio-logo.png" alt="Jio Logo" width={48} height={48} className="absolute top-4 left-4 w-12 h-12 object-contain" />
+        <div className="mt-16">
+          <h2 className="text-3xl md:text-4xl font-bold leading-tight">
+            Let&apos;s discover <br />
+            your unique skills <br />
+            and <span className="text-yellow-300 font-extrabold">Learning<br />Preferences.</span>
+          </h2>
+        </div>
+        <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8" />
+      </section>
+
+      {/* ⬜ Right Section - White with Grid */}
+      <section className="w-full md:w-1/2 bg-white px-6 py-8 flex flex-col justify-center relative" style={{
+        backgroundImage: `
+          linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px)
+        `,
+        backgroundSize: '20px 20px'
+      }}>
+        <div className="max-w-md mx-auto w-full">
+          {/* Assessment Form Container */}
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                Skill Assessment
+              </h1>
+              <p className="text-gray-600 text-sm">
+                Let&apos;s discover your unique skills and learning preferences
+              </p>
+              <div className="flex justify-center mt-4">
+                {[1, 2, 3, 4].map((step) => (
+                  <div
+                    key={step}
+                    className={`w-3 h-3 rounded-full mx-1 ${
+                      step === currentStep ? 'bg-[#7F00FF]' : 
+                      step < currentStep ? 'bg-green-500' : 'bg-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="text-base leading-6 space-y-4 text-gray-700">
                 {currentStep === 1 && renderStep1()}
                 {currentStep === 2 && renderStep2()}
                 {currentStep === 3 && renderStep3()}
                 {currentStep === 4 && renderStep4()}
               </div>
-              <div className="flex justify-between">
+              
+              <div className="flex justify-between pt-4">
                 {currentStep > 1 && (
                   <button
                     onClick={handlePrevious}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium transition-all duration-200 hover:bg-gray-50"
                   >
                     Previous
                   </button>
@@ -753,7 +795,7 @@ export default function SkillAssessment() {
                 {currentStep < 4 && (
                   <button
                     onClick={handleNext}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    className="px-4 py-2 bg-[#7F00FF] text-white rounded-lg font-medium transition-all duration-200 hover:bg-[#6B00E6]"
                   >
                     Next
                   </button>
@@ -762,7 +804,7 @@ export default function SkillAssessment() {
                   <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    className="px-4 py-2 bg-[#7F00FF] text-white rounded-lg font-medium transition-all duration-200 hover:bg-[#6B00E6] disabled:opacity-50"
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Assessment'}
                   </button>
@@ -771,7 +813,7 @@ export default function SkillAssessment() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

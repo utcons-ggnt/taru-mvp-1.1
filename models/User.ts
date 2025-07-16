@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-export type UserRole = 'student' | 'teacher' | 'parent_org' | 'parent' | 'admin';
+export type UserRole = 'student' | 'teacher' | 'parent' | 'organization' | 'admin';
 
 export interface IUser extends mongoose.Document {
   name: string;
@@ -18,17 +18,24 @@ export interface IUser extends mongoose.Document {
 const profileSchema = new mongoose.Schema({
   // Student profile fields
   grade: { type: String },
+  language: { type: String },
+  location: { type: String },
   interests: [{ type: String }],
+  
   // Teacher profile fields
   subjectSpecialization: { type: String },
-  experienceYears: { type: Number },
-  // Parent Org profile fields
-  organisationName: { type: String },
-  address: { type: String },
-  contactNumber: { type: String },
+  experienceYears: { type: String },
+  
   // Parent profile fields
   linkedStudentId: { type: String },
-  // Common fields can be added here
+  linkedStudentUniqueId: { type: String },
+  
+  // Organization profile fields
+  organizationType: { type: String },
+  industry: { type: String },
+  
+  // Common fields
+  guardianName: { type: String },
 }, { _id: false });
 
 const userSchema = new mongoose.Schema<IUser>({
@@ -53,7 +60,7 @@ const userSchema = new mongoose.Schema<IUser>({
   },
   role: {
     type: String,
-    enum: ['student', 'teacher', 'parent_org', 'parent', 'admin'],
+    enum: ['student', 'teacher', 'parent', 'organization', 'admin'],
     required: true,
     default: 'student',
   },

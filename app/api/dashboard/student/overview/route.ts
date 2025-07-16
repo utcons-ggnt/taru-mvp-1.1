@@ -129,7 +129,8 @@ export async function GET(request: NextRequest) {
         averageScore,
         studentName: student?.fullName || user.name,
         grade: student?.classGrade || user.profile?.grade || 'Not set',
-        school: student?.schoolName || 'Not set'
+        school: student?.schoolName || 'Not set',
+        studentKey: student?.uniqueId || 'Not available'
       },
       recentActivity,
       notifications,

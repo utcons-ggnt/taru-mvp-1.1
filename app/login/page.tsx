@@ -130,29 +130,35 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-purple-700 to-purple-500 flex flex-col md:flex-row overflow-hidden">
-      {/* 🟪 Purple Section */}
-      <section className="w-full md:w-3/5 lg:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-2 sm:px-3 md:px-4 lg:px-6 py-3 sm:py-4 md:py-6 lg:py-8 text-white flex flex-col justify-between relative">
-        <Image src="/jio-logo.png" alt="Jio Logo" width={56} height={56} className="absolute top-4 left-4 w-14 h-14 object-contain" />
-        <div className="mt-8 sm:mt-12 md:mt-16 lg:mt-20">
-          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold leading-tight px-1 sm:px-2 md:px-4 lg:px-6 xl:px-8">
+    <main className="min-h-screen flex flex-col md:flex-row overflow-hidden">
+      {/* 🟪 Left Section - Deep Purple Gradient */}
+      <section className="w-full md:w-1/2 bg-gradient-to-br from-[#7F00FF] to-[#E100FF] px-6 py-8 text-white flex flex-col justify-between relative">
+        <Image src="/jio-logo.png" alt="Jio Logo" width={48} height={48} className="absolute top-4 left-4 w-12 h-12 object-contain" />
+        <div className="mt-16">
+          <h2 className="text-3xl md:text-4xl font-bold leading-tight">
             {t.welcomeBack} <br />
             <span className="text-yellow-300 font-extrabold">{t.jioWorldLearning}</span><br />
             {t.continueJourney}
           </h2>
         </div>
-        <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
+        <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8" />
       </section>
 
-      {/* ⬜ White Section */}
-      <section className="w-full md:w-2/5 lg:w-1/2 bg-white px-2 sm:px-3 md:px-4 lg:px-6 py-3 sm:py-4 md:py-6 lg:py-8 flex flex-col justify-center relative rounded-2xl sm:rounded-3xl md:rounded-3xl shadow-xl md:shadow-2xl md:ml-1 lg:ml-2 xl:ml-4 md:mr-1 lg:mr-2 xl:mr-4 md:my-1 lg:my-2 xl:my-4">
+      {/* ⬜ Right Section - White with Grid */}
+      <section className="w-full md:w-1/2 bg-white px-6 py-8 flex flex-col justify-center relative" style={{
+        backgroundImage: `
+          linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px)
+        `,
+        backgroundSize: '20px 20px'
+      }}>
         {/* Language Selector */}
-        <div className="absolute top-1 right-1 sm:top-2 sm:right-2 md:top-3 md:right-3 lg:top-4 lg:right-4 flex items-center gap-1 text-xs text-gray-700 z-20">
-          <span role="img" aria-label="language" className="text-xs">🌐</span>
+        <div className="absolute top-6 right-6 flex items-center gap-2 text-sm text-gray-700 z-20">
+          <span role="img" aria-label="language" className="text-base">🌐</span>
           <select
             value={language}
             onChange={(e) => handleLanguageChange(e.target.value)}
-            className="border border-gray-300 px-1 py-1 rounded-md text-xs bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+            className="border border-gray-300 px-3 py-1.5 rounded-md text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
           >
             {languages.map((lang) => (
               <option key={lang} value={lang}>
@@ -162,57 +168,55 @@ export default function LoginPage() {
           </select>
         </div>
 
-        <div className="max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto w-full">
-          <div className="text-center mb-3 sm:mb-4 md:mb-6 lg:mb-8">
-            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">
+        <div className="max-w-md mx-auto w-full">
+          {/* Login Form Container */}
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
               {t.loginTitle}
             </h2>
-            <p className="text-sm sm:text-base md:text-lg text-gray-700">
-              Welcome back! Please sign in to your account
-            </p>
-          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-1 sm:space-y-2 md:space-y-3 lg:space-y-4">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t.enterEmail}
-              required
-              className="w-full px-2 py-1 sm:py-2 md:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base md:text-lg bg-transparent"
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t.enterPassword}
-              required
-              className="w-full px-2 py-1 sm:py-2 md:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base md:text-lg bg-transparent"
-            />
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t.enterEmail}
+                required
+                className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black"
+              />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={t.enterPassword}
+                required
+                className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black"
+              />
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-2 py-1 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-purple-600 text-white font-semibold py-2 sm:py-3 md:py-4 px-2 sm:px-3 md:px-4 lg:px-6 rounded-lg hover:bg-purple-700 transition-colors text-center block text-sm sm:text-base md:text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? t.loggingIn : t.login}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#7F00FF] text-white font-semibold py-3 px-6 rounded-full hover:bg-[#6B00E6] focus:ring-4 focus:ring-purple-200 transition-all duration-200 text-base"
+              >
+                {loading ? t.loggingIn : t.login}
+              </button>
+            </form>
 
-          <div className="text-center mt-3 sm:mt-4 md:mt-6 lg:mt-8">
-            <span className="text-gray-600 text-sm sm:text-base md:text-lg">{t.noAccount} </span>
-            <span
-              onClick={() => router.push('/')}
-              className="text-purple-600 hover:text-purple-700 font-semibold cursor-pointer text-sm sm:text-base md:text-lg"
-            >
-              {t.registerHere}
-            </span>
+            <div className="text-center mt-6">
+              <span className="text-gray-600 text-sm">{t.noAccount} </span>
+              <span
+                onClick={() => router.push('/')}
+                className="text-[#7F00FF] hover:text-[#6B00E6] font-semibold cursor-pointer text-sm"
+              >
+                {t.registerHere}
+              </span>
+            </div>
           </div>
         </div>
       </section>

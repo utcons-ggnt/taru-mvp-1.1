@@ -43,6 +43,7 @@ interface DashboardData {
     studentName: string;
     grade: string;
     school: string;
+    studentKey: string;
   };
   recentActivity: Array<{
     moduleId: string;
@@ -285,6 +286,7 @@ export default function StudentDashboard() {
     grade: '7',
     school: 'Jio World School',
     language: 'English (USA)',
+    studentKey: 'STU12345',
   };
 
   // Calculate real statistics from dashboard data, fallback to dummy
@@ -366,6 +368,7 @@ export default function StudentDashboard() {
         grade: dashboardData.overview.grade || dummyProfile.grade,
         school: dashboardData.overview.school || dummyProfile.school,
         language: language,
+        studentKey: dashboardData.overview.studentKey || 'Not available',
       }
     : dummyProfile;
 
