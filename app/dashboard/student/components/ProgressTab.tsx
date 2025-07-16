@@ -1,6 +1,14 @@
 import React from 'react';
 
-export default function ProgressTab({ progress }: { progress: any }) {
+interface Progress {
+  completedModules: number;
+  totalModules: number;
+  progressHistory: unknown[];
+  recentScores: unknown[];
+  // Add other properties as needed
+}
+
+export default function ProgressTab({ progress }: { progress: Progress }) {
   const percent = Math.round((progress.completedModules / progress.totalModules) * 100);
   return (
     <div className="bg-white rounded-xl shadow p-6 max-w-2xl mx-auto">
@@ -15,19 +23,18 @@ export default function ProgressTab({ progress }: { progress: any }) {
       <div className="mt-6">
         <div className="font-semibold text-gray-900 mb-2">Progress History</div>
         <div className="flex gap-2 items-end h-24">
-          {progress.progressHistory.map((val: number, idx: number) => (
-            <div key={idx} className="w-6 bg-purple-300 rounded-t" style={{ height: `${val}%` }}>
-              <div className="text-xs text-center text-purple-900">{val}</div>
-            </div>
+          {progress.progressHistory.map((val, idx) => (
+            <div key={idx} className="h-2 w-6 rounded bg-purple-400 mr-1" style={{ height: `${val as number * 2}px` }} />
           ))}
         </div>
       </div>
       <div className="mt-6">
         <div className="font-semibold text-gray-900 mb-2">Recent Test Scores</div>
         <div className="flex gap-2 items-end h-20">
-          {progress.recentScores.map((score: number, idx: number) => (
-            <div key={idx} className="w-8 bg-green-300 rounded-t" style={{ height: `${score}%` }}>
-              <div className="text-xs text-center text-green-900">{score}</div>
+          {progress.recentScores.map((score, idx) => (
+            <div key={idx} className="flex items-center space-x-2">
+              <span className="text-xs text-gray-500">Test {idx + 1}</span>
+              <span className="text-sm font-medium text-purple-700">{score as number}%</span>
             </div>
           ))}
         </div>

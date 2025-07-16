@@ -1,6 +1,41 @@
 import React, { useState, useEffect } from 'react';
 
-const steps = [
+interface Answer {
+  [key: number]: string | number;
+}
+
+interface DiagnosticResults {
+  learningStyle: string;
+  categoryScores: {
+    visual: number;
+    auditory: number;
+    kinesthetic: number;
+    logical: number;
+    creative: number;
+  };
+  overallScore: number;
+}
+
+interface Field {
+  label: string;
+  type: 'number' | 'choice';
+  value?: number | string;
+  options?: string[];
+}
+
+interface Step {
+  type: 'start' | 'form' | 'shapes' | 'icons' | 'results';
+  icon: string;
+  title: string;
+  subtitle?: string;
+  fields?: Field[];
+  suggestions?: Array<{ title: string; xp: number }>;
+  button?: string;
+  sequence?: string[];
+  options?: Array<{ icon: string; label: string }>;
+}
+
+const steps: Step[] = [
   {
     title: "Let's discover how you love to learn!",
     subtitle: "Answer my magical questions and I'll find the perfect learning adventure for you!",
@@ -76,7 +111,7 @@ const steps = [
     title: ",You're a Visual Superstar! 🏆",
     subtitle: 'You learn best with fun visuals and bright colors!',
     icon: '🎉',
-    type: 'result',
+    type: 'results',
     suggestions: [
       { title: 'The Water Cycle', xp: 75 },
       { title: 'Shapes Adventure', xp: 50 },
@@ -88,9 +123,9 @@ const steps = [
 
 export default function DiagnosticTestTab() {
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<any>({});
+  const [answers, setAnswers] = useState<Answer>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<DiagnosticResults | null>(null);
   const current = steps[step];
 
   // Check if diagnostic is already completed
@@ -113,14 +148,14 @@ export default function DiagnosticTestTab() {
     checkDiagnosticStatus();
   }, []);
 
-  const handleAnswer = (questionIndex: number, answer: any) => {
-    setAnswers((prev: any) => ({
+  const handleAnswer = (questionIndex: number, answer: string | number) => {
+    setAnswers((prev: Answer) => ({
       ...prev,
       [questionIndex]: answer
     }));
   };
 
-  const calculateResults = () => {
+  const calculateResults = (): DiagnosticResults => {
     // Simple scoring algorithm based on answers
     let visualScore = 0;
     let auditoryScore = 0;
@@ -129,7 +164,7 @@ export default function DiagnosticTestTab() {
     let creativeScore = 0;
 
     // Analyze answers and calculate scores
-    Object.values(answers).forEach((answer: any) => {
+    Object.values(answers).forEach((answer: string | number) => {
       if (typeof answer === 'string') {
         if (answer.includes('visual') || answer.includes('picture') || answer.includes('color')) {
           visualScore += 20;
@@ -247,25 +282,33 @@ export default function DiagnosticTestTab() {
           <h1 className="text-3xl font-bold mb-2 text-center">{current.title}</h1>
           <p className="text-gray-900 mb-6 text-center">{current.subtitle}</p>
           <div className="flex gap-6 mb-8">
-            {current.fields?.map((field: any, index: number) => (
+            {current.fields?.map((field: Field, index: number) => (
               <div key={index} className="bg-gray-50 rounded-xl p-6 flex flex-col items-center min-w-[160px]">
                 <div className="text-sm font-semibold mb-2 text-gray-900">{field.label}</div>
                 {field.type === 'number' && (
                   <div className="flex items-center gap-2">
                     <button 
                       className="bg-purple-100 text-purple-600 rounded-full w-8 h-8"
-                      onClick={() => handleAnswer(index, Math.max(1, (answers[index] || field.value) - 1))}
+                      onClick={() => {
+                        const currentValue = typeof answers[index] === 'number' ? answers[index] as number : 
+                                           typeof field.value === 'number' ? field.value : 0;
+                        handleAnswer(index, Math.max(1, currentValue - 1));
+                      }}
                     >-</button>
                     <span className="text-2xl font-bold">{answers[index] || field.value}</span>
                     <button 
                       className="bg-purple-100 text-purple-600 rounded-full w-8 h-8"
-                      onClick={() => handleAnswer(index, Math.min(99, (answers[index] || field.value) + 1))}
+                      onClick={() => {
+                        const currentValue = typeof answers[index] === 'number' ? answers[index] as number : 
+                                           typeof field.value === 'number' ? field.value : 0;
+                        handleAnswer(index, Math.min(99, currentValue + 1));
+                      }}
                     >+</button>
                   </div>
                 )}
                 {field.type === 'choice' && (
                   <div className="flex gap-2 flex-wrap">
-                    {field.options.map((option: string) => (
+                    {field.options?.map((option: string) => (
                       <button 
                         key={option} 
                         className={`px-4 py-1 rounded-full border-2 font-semibold text-sm ${
@@ -283,145 +326,64 @@ export default function DiagnosticTestTab() {
               </div>
             ))}
           </div>
-          <div className="flex gap-4">
-            <button 
-              className="border-2 border-purple-600 text-purple-600 px-8 py-2 rounded-full font-semibold text-lg" 
-              onClick={() => setStep(step - 1)}
-            >
-              Previous
-            </button>
-            <button 
-              className="bg-purple-600 text-white px-8 py-2 rounded-full font-semibold text-lg" 
-              onClick={handleNext}
-            >
-              Next
-            </button>
-          </div>
+          <button 
+            className="bg-purple-600 text-white px-8 py-3 rounded-full font-semibold text-lg shadow hover:bg-purple-700" 
+            onClick={handleNext}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Processing...' : 'Next Step'}
+          </button>
         </div>
       );
     }
 
-    if (current.type === 'shapes') {
+    if (current.type === 'results' && results) {
       return (
         <div className="flex flex-col items-center mt-10">
           <span className="text-6xl mb-4">{current.icon}</span>
-          <h1 className="text-3xl font-bold mb-6 text-center">{current.title}</h1>
-          <div className="flex gap-2 mb-8">
-            {current.sequence?.map((s, i) => (
-              <span key={i} className="text-4xl">{s}</span>
-            ))}
-          </div>
-          <div className="flex gap-6 mb-8">
-            {current?.options?.map((opt: any, i: number) => (
-              <button key={i} className="flex flex-col items-center bg-gray-50 rounded-xl p-6 min-w-[120px] border-2 border-transparent hover:border-purple-500">
-                <span className="text-4xl mb-2">{opt.icon}</span>
-                <span className="font-semibold text-gray-800">{opt.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-4">
-            <button className="border-2 border-purple-600 text-purple-600 px-8 py-2 rounded-full font-semibold text-lg" onClick={() => setStep(step - 1)}>Previous</button>
-            <button className="bg-purple-600 text-white px-8 py-2 rounded-full font-semibold text-lg" onClick={() => setStep(step + 1)}>Next</button>
-          </div>
-        </div>
-      );
-    }
-
-    if (current.type === 'icons') {
-      return (
-        <div className="flex flex-col items-center mt-10">
-          <span className="text-6xl mb-4">{current.icon}</span>
-          <h1 className="text-3xl font-bold mb-6 text-center">{current.title}</h1>
-          <div className="flex gap-6 mb-8">
-            {current?.options?.map((opt: any, i: number) => (
-              <button 
-                key={i} 
-                className={`flex flex-col items-center bg-gray-50 rounded-xl p-6 min-w-[120px] border-2 ${
-                  answers[step] === opt.label 
-                    ? 'border-purple-500 bg-purple-50' 
-                    : 'border-transparent hover:border-purple-500'
-                }`}
-                onClick={() => handleAnswer(step, opt.label)}
-              >
-                <span className="text-4xl mb-2">{opt.icon}</span>
-                <span className="font-semibold text-gray-800">{opt.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-4">
-            <button 
-              className="border-2 border-purple-600 text-purple-600 px-8 py-2 rounded-full font-semibold text-lg" 
-              onClick={() => setStep(step - 1)}
-            >
-              Previous
-            </button>
-            <button 
-              className="bg-purple-600 text-white px-8 py-2 rounded-full font-semibold text-lg" 
-              onClick={handleNext}
-              disabled={!answers[step]}
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    if (current.type === 'result') {
-      const learningStyle = results?.learningStyle || 'visual';
-      const styleMessages = {
-        visual: 'You learn best with fun visuals and bright colors!',
-        auditory: 'You learn best by listening and discussing!',
-        kinesthetic: 'You learn best by doing and moving around!',
-        logical: 'You learn best with patterns and logic!',
-        creative: 'You learn best with creative expression!'
-      };
-
-      return (
-        <div className="flex flex-col items-center mt-10">
-          <div className="w-full max-w-2xl bg-gradient-to-r from-purple-600 to-purple-400 rounded-2xl p-8 mb-8 flex flex-col items-center">
-            <span className="text-4xl mb-2">🎉</span>
-            <h1 className="text-2xl font-bold text-white mb-2 text-center">
-              You're a {learningStyle.charAt(0).toUpperCase() + learningStyle.slice(1)} Superstar! 🏆
-            </h1>
-            <p className="text-purple-100 mb-4 text-center">
-              {styleMessages[learningStyle as keyof typeof styleMessages]}
+          <h1 className="text-3xl font-bold mb-2 text-center">{current.title}</h1>
+          <p className="text-gray-900 mb-6 text-center">{current.subtitle}</p>
+          
+          {/* Learning Style Result */}
+          <div className="bg-purple-50 rounded-xl p-6 mb-6 text-center">
+            <h3 className="text-xl font-semibold mb-2">Your Learning Style</h3>
+            <p className="text-2xl font-bold text-purple-600 capitalize">{results.learningStyle}</p>
+            <p className="text-sm text-gray-600 mt-2">
+              You learn best through {results.learningStyle} activities
             </p>
-            <button 
-              className="bg-white text-purple-700 px-8 py-2 rounded-full font-semibold text-lg shadow hover:bg-purple-100"
-              onClick={() => {
-                setStep(0);
-                setAnswers({});
-                setResults(null);
-              }}
-            >
-              Try Again with Me!
-            </button>
           </div>
-          <div className="w-full max-w-2xl">
-            <div className="font-semibold text-gray-800 mb-2">Your Learning Profile</div>
-            <div className="bg-white rounded-xl shadow p-6 mb-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-gray-600">Learning Style</div>
-                  <div className="font-semibold">{learningStyle.charAt(0).toUpperCase() + learningStyle.slice(1)}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-600">Overall Score</div>
-                  <div className="font-semibold">{results?.overallScore || 0}/100</div>
-                </div>
+
+          {/* Category Scores */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            {Object.entries(results.categoryScores).map(([category, score]) => (
+              <div key={category} className="bg-white rounded-lg p-4 text-center border">
+                <div className="text-lg font-semibold capitalize">{category}</div>
+                <div className="text-2xl font-bold text-purple-600">{score}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Suggestions */}
+          {current.suggestions && (
+            <div className="bg-gray-50 rounded-xl p-6 mb-6">
+              <h3 className="text-lg font-semibold mb-4 text-center">Recommended for You</h3>
+              <div className="space-y-3">
+                {current.suggestions.map((suggestion, index) => (
+                  <div key={index} className="flex justify-between items-center bg-white rounded-lg p-3">
+                    <span className="font-medium">{suggestion.title}</span>
+                    <span className="text-purple-600 font-semibold">{suggestion.xp} XP</span>
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="font-semibold text-gray-800 mb-2">Recommended Learning Paths</div>
-            <div className="flex gap-6">
-              {current?.suggestions?.map((s: any, i: number) => (
-                <div key={i} className="bg-white rounded-xl shadow p-4 flex flex-col items-center min-w-[160px]">
-                  <div className="font-semibold mb-2">{s.title}</div>
-                  <div className="bg-purple-600 text-white px-4 py-1 rounded-full text-xs font-bold">{s.xp}+ XP</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
+
+          <button 
+            className="bg-purple-600 text-white px-8 py-3 rounded-full font-semibold text-lg shadow hover:bg-purple-700" 
+            onClick={() => window.location.reload()}
+          >
+            {current.button}
+          </button>
         </div>
       );
     }
@@ -439,7 +401,7 @@ export default function DiagnosticTestTab() {
   }
 
   return (
-    <div>
+    <div className="bg-white rounded-xl shadow-lg p-8">
       {renderStepper()}
       {renderContent()}
     </div>

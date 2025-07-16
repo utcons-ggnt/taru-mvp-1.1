@@ -1,12 +1,10 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
-interface ParentProfile {
-  name: string;
-  email: string;
-}
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+
 interface ChildProfile {
   name: string;
   grade: string;
@@ -15,18 +13,18 @@ interface ChildProfile {
   email?: string;
 }
 
+interface RecentActivity {
+  progress: number;
+  [key: string]: unknown;
+}
+
 export default function ParentDashboard() {
-  // Dummy data
-  const dummyParent: ParentProfile = {
-    name: 'Amit Sharma',
-    email: 'amit.sharma@email.com',
-  };
   const dummyChild: ChildProfile = {
-    name: 'Riya Sharma',
-    grade: '5th Grade',
+    name: 'Sarah Doe',
+    grade: 'Grade 8',
     avatar: '/landingPage.png',
-    school: 'Jio World School',
-    email: 'riya.sharma@email.com',
+    school: 'Springfield Middle School',
+    email: 'sarah.doe@example.com',
   };
   const dummyStats = [
     { label: 'Ready Program', value: '45%', icon: '📚' },
@@ -35,7 +33,6 @@ export default function ParentDashboard() {
   ];
   const dummyAnalytics = [30, 60, 40, 80, 50, 70, 20];
 
-  const [user, setUser] = useState<ParentProfile | null>(null);
   const [child, setChild] = useState<ChildProfile | null>(null);
   const [stats, setStats] = useState(dummyStats);
   const [analytics, setAnalytics] = useState(dummyAnalytics);
@@ -75,7 +72,6 @@ export default function ParentDashboard() {
             router.push('/login');
             return;
           }
-          setUser({ name: userData.user.name, email: userData.user.email });
         } else {
           console.log('🔍 Failed to fetch user data, redirecting to login');
           router.push('/login');
@@ -119,7 +115,7 @@ export default function ParentDashboard() {
           // Set analytics if available - convert recent activity to analytics data
           if (dashData.recentActivity && Array.isArray(dashData.recentActivity)) {
             console.log('🔍 Setting analytics from recent activity:', dashData.recentActivity);
-            const activityAnalytics = dashData.recentActivity.map((activity: any) => 
+            const activityAnalytics = dashData.recentActivity.map((activity: RecentActivity) => 
               Math.round((activity.progress || 0) * 100)
             );
             // Pad with zeros if less than 7 days
@@ -141,7 +137,6 @@ export default function ParentDashboard() {
         }
       } catch (error) {
         console.error('🔍 Error fetching parent dashboard data:', error);
-        setUser(dummyParent);
         setChild(dummyChild);
         setStats(dummyStats);
         setAnalytics(dummyAnalytics);
@@ -150,7 +145,8 @@ export default function ParentDashboard() {
       }
     };
     fetchUserAndDashboard();
-  }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]); // dummyAnalytics, dummyChild, dummyStats are constants
 
   if (isLoading) {
     return (
@@ -166,7 +162,7 @@ export default function ParentDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2">
-            <img src="/jio-logo.png" alt="Logo" className="w-8 h-8" />
+            <Image src="/jio-logo.png" alt="Logo" width={32} height={32} className="w-8 h-8" />
             <span className="font-semibold text-gray-700 text-lg">
               Parent <span className="text-purple-600">Dashboard</span>
             </span>
@@ -190,9 +186,10 @@ export default function ParentDashboard() {
         </div>
         {/* Your Children Card */}
         <div className="bg-gray-50 rounded-xl p-4 flex items-center gap-6 mb-8 shadow-sm">
-          <img 
+          <Image 
             src={child?.avatar || '/landingPage.png'} 
             alt="Child Avatar" 
+            width={80} height={80}
             className="w-20 h-20 rounded-full object-cover border-2 border-purple-500" 
             onError={(e) => {
               e.currentTarget.src = '/landingPage.png';
@@ -228,10 +225,6 @@ export default function ParentDashboard() {
           <div className="flex justify-between w-full mt-2 text-xs text-gray-400">
             <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
           </div>
-          {/* Floating Add Button */}
-          <button className="absolute bottom-4 right-4 bg-purple-600 hover:bg-purple-700 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg text-2xl">
-            +
-          </button>
         </div>
       </div>
     </div>

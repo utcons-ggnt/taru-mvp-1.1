@@ -1,6 +1,7 @@
 import React from 'react';
+import Image from 'next/image';
 
-export default function TopBar({ user, language, onLanguageChange }: { user: any, language: string, onLanguageChange: (lang: string) => void }) {
+export default function TopBar({ user, language, onLanguageChange }: { user: { name?: string } | null, language: string, onLanguageChange: (lang: string) => void }) {
   return (
     <div className="flex items-center justify-between w-full px-6 py-4 bg-white border-b border-gray-200">
       {/* Search Bar */}
@@ -30,7 +31,7 @@ export default function TopBar({ user, language, onLanguageChange }: { user: any
         </button>
         {/* User Avatar */}
         <div className="flex items-center gap-2">
-          <img src="/avatar.png" alt="User Avatar" className="w-8 h-8 rounded-full border border-gray-300" />
+          <Image src="/avatar.png" alt="User Avatar" width={32} height={32} className="w-8 h-8 rounded-full border border-gray-300" />
           <span className="font-semibold text-gray-900 text-sm">{user?.name || 'Aanya'}</span>
         </div>
       </div>

@@ -2,59 +2,17 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import StatsCards from './components/StatsCards';
 import ProgressTrain from './components/ProgressTrain';
-import LearningCard from './components/LearningCard';
 import OverviewTab from './components/OverviewTab';
 import ModulesTab from './components/ModulesTab';
 import DiagnosticTestTab from './components/DiagnosticTestTab';
 import ProgressTab from './components/ProgressTab';
 import RewardsTab from './components/RewardsTab';
 import SettingsTab from './components/SettingsTab';
-
-const languages = ['English (USA)', 'हिन्दी', 'मराठी']
-
-const translations: Record<string, Record<string, string>> = {
-  'English (USA)': {
-    dashboardTitle: 'Student Dashboard',
-    welcomeBack: 'Welcome back',
-    readyToLearn: 'Ready to learn?',
-    overview: 'Overview',
-    assignments: 'Assignments',
-    results: 'Test Results',
-    notifications: 'Notifications',
-    logout: 'Logout',
-    grade: 'Grade',
-    notSet: 'Not set',
-  },
-  'हिन्दी': {
-    dashboardTitle: 'छात्र डैशबोर्ड',
-    welcomeBack: 'वापस आने पर स्वागत है',
-    readyToLearn: 'सीखने के लिए तैयार?',
-    overview: 'अवलोकन',
-    assignments: 'कार्य',
-    results: 'परीक्षा परिणाम',
-    notifications: 'सूचनाएं',
-    logout: 'लॉगआउट',
-    grade: 'ग्रेड',
-    notSet: 'सेट नहीं',
-  },
-  'मराठी': {
-    dashboardTitle: 'विद्यार्थी डॅशबोर्ड',
-    welcomeBack: 'परत येण्याबद्दल स्वागत आहे',
-    readyToLearn: 'शिकण्यासाठी तयार?',
-    overview: 'आढावा',
-    assignments: 'कार्ये',
-    results: 'चाचणी निकाल',
-    notifications: 'सूचना',
-    logout: 'लॉगआउट',
-    grade: 'ग्रेड',
-    notSet: 'सेट नाही',
-  },
-}
+import Image from 'next/image';
 
 interface StudentProfile {
   name: string;
@@ -64,24 +22,6 @@ interface StudentProfile {
     grade?: string;
     school?: string;
   };
-}
-
-interface TestResult {
-  id: string;
-  testName: string;
-  score: number;
-  totalQuestions: number;
-  date: string;
-  subject: string;
-}
-
-interface Assignment {
-  id: string;
-  title: string;
-  subject: string;
-  dueDate: string;
-  status: 'pending' | 'completed' | 'overdue';
-  description: string;
 }
 
 interface Notification {
@@ -128,13 +68,21 @@ interface DashboardData {
       description: string;
       earnedAt: string;
     }>;
-    currentModule: any;
+    currentModule: unknown;
   };
   assessment?: {
     diagnosticCompleted: boolean;
     diagnosticScore: number;
     assessmentCompletedAt: string;
   };
+}
+
+// Define Test type
+interface Test {
+  title: string;
+  date: string;
+  color: string;
+  score?: number;
 }
 
 export default function StudentDashboard() {
@@ -144,11 +92,9 @@ export default function StudentDashboard() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [language, setLanguage] = useState('English (USA)');
-  const [assessmentData, setAssessmentData] = useState<any>(null);
+  const [assessmentData, setAssessmentData] = useState<DashboardData['assessment'] | null>(null);
   const router = useRouter();
   const logoutTriggered = useRef(false);
-
-  const t = translations[language]
 
   useEffect(() => {
     const savedLang = localStorage.getItem('lang')
@@ -369,20 +315,20 @@ export default function StudentDashboard() {
   // Map recent activity to courses with real module names, fallback to dummy
   const courses = dashboardData?.recentActivity && dashboardData.recentActivity.length > 0
     ? dashboardData.recentActivity.map((activity) => {
-        const module = dashboardData.recommendedModules.find(m => m.id === activity.moduleId);
+        const matchedModule = dashboardData.recommendedModules.find(m => m.id === activity.moduleId);
         return {
-          title: module?.name || activity.moduleId,
+          title: matchedModule?.name || activity.moduleId,
         lessonsCompleted: `${activity.progress || 0}%`,
         duration: activity.xpEarned ? `${activity.xpEarned} XP` : '',
         xp: activity.xpEarned ? `${activity.xpEarned} XP` : '',
-          color: subjectColors[module?.subject || 'Mathematics'] || '#FFD600',
+          color: subjectColors[matchedModule?.subject || 'Mathematics'] || '#FFD600',
           status: activity.status,
         };
       })
     : dummyCourses;
 
   // Map assessment data to tests, fallback to dummy
-  const tests = assessmentData?.diagnosticCompleted 
+  const tests: Test[] = assessmentData && assessmentData.diagnosticCompleted
     ? [{
         title: 'Learning Profile Assessment',
         date: assessmentData.assessmentCompletedAt?.split('T')[0] || new Date().toISOString().split('T')[0],
@@ -448,6 +394,7 @@ export default function StudentDashboard() {
       .filter(score => score > 0);
   }
 
+  // Fix React Hook dependency
   useEffect(() => {
     if (activeTab === 'logout' && !logoutTriggered.current) {
       logoutTriggered.current = true;
@@ -456,20 +403,21 @@ export default function StudentDashboard() {
     if (activeTab !== 'logout') {
       logoutTriggered.current = false;
     }
-  }, [activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]); // handleLogout is stable
 
   if (isLoading || dataLoading) {
     return (
       <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
         <div className="w-full md:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-6 py-8 text-white flex flex-col justify-between relative">
-          <img src="/jio-logo.png" alt="Jio Logo" className="absolute top-4 left-4 w-14 h-14 object-contain" />
+          <Image src="/jio-logo.png" alt="Jio Logo" width={56} height={56} className="absolute top-4 left-4 w-14 h-14 object-contain" />
           <div className="mt-20 md:mt-32">
             <h2 className="text-3xl md:text-4xl font-bold leading-snug md:leading-snug px-2 md:px-10">
               Loading your <br />
               student dashboard...
             </h2>
           </div>
-          <img src="/landingPage.png" alt="Mascot" className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
+          <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
         </div>
         <div className="w-full md:w-1/2 bg-white px-4 sm:px-8 py-10 flex flex-col justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
@@ -494,7 +442,7 @@ export default function StudentDashboard() {
           {/* Welcome Section */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
             <div className="flex items-center gap-4 mb-4 md:mb-0">
-              <img src="/avatar.png" alt="User Avatar" className="w-16 h-16 rounded-full border-2 border-purple-400" />
+              <Image src="/avatar.png" alt="User Avatar" width={64} height={64} className="w-16 h-16 rounded-full border-2 border-purple-400" />
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Welcome back, {dashboardData.overview.studentName || user.name}!</h2>
                 <p className="text-gray-700 text-sm">Ready for another fun quest? 🚀</p>
@@ -505,7 +453,7 @@ export default function StudentDashboard() {
           {/* Progress Bar */}
           <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
             <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-gray-900">Today's progress</span>
+              <span className="font-semibold text-gray-900">Today&apos;s progress</span>
               <span className="text-sm text-gray-700">{progressPercent}% Complete - Keep going! 🚀</span>
             </div>
             <ProgressTrain percent={progressPercent} />

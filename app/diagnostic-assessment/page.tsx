@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Question {
@@ -138,9 +138,9 @@ const diagnosticQuestions: Question[] = [
     options: [
       { id: 'very-interested', text: 'Very interested - I love learning about this', score: 5 },
       { id: 'interested', text: 'Interested - I like learning about this', score: 4 },
-      { id: 'somewhat', text: 'Somewhat interested - It\'s okay', score: 3 },
-      { id: 'not-interested', text: 'Not very interested - I don\'t care much', score: 2 },
-      { id: 'boring', text: 'Boring - I don\'t like this', score: 1 }
+      { id: 'somewhat', text: 'Somewhat interested - It&apos;s okay', score: 3 },
+      { id: 'not-interested', text: 'Not very interested - I don&apos;t care much', score: 2 },
+      { id: 'boring', text: 'Boring - I don&apos;t like this', score: 1 }
     ],
     type: 'multiple-choice'
   },
@@ -207,12 +207,20 @@ const diagnosticQuestions: Question[] = [
   }
 ];
 
+interface AssessmentResults {
+  overallScore: number;
+  skillLevel: string;
+  categoryScores: { [category: string]: number };
+  learningStyle: string;
+  // Add other properties as needed
+}
+
 export default function DiagnosticAssessment() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<{[key: number]: string}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [assessmentResults, setAssessmentResults] = useState<any>(null);
+  const [assessmentResults, setAssessmentResults] = useState<unknown>(null);
   const router = useRouter();
 
   const currentQuestion = diagnosticQuestions[currentQuestionIndex];
@@ -324,6 +332,7 @@ export default function DiagnosticAssessment() {
   };
 
   if (showResults && assessmentResults) {
+    const results: AssessmentResults = assessmentResults as AssessmentResults;
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -340,13 +349,13 @@ export default function DiagnosticAssessment() {
             {/* Overall Score */}
             <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-white text-center mb-8">
               <h2 className="text-2xl font-bold mb-2">Overall Score</h2>
-              <div className="text-6xl font-bold mb-2">{assessmentResults.overallScore}%</div>
-              <p className="text-lg">Skill Level: {assessmentResults.skillLevel.charAt(0).toUpperCase() + assessmentResults.skillLevel.slice(1)}</p>
+              <div className="text-6xl font-bold mb-2">{results.overallScore}%</div>
+              <p className="text-lg">Skill Level: {results.skillLevel.charAt(0).toUpperCase() + results.skillLevel.slice(1)}</p>
             </div>
 
             {/* Category Scores */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              {Object.entries(assessmentResults.categoryScores).map(([category, score]) => (
+              {Object.entries(results.categoryScores).map(([category, score]) => (
                 <div key={category} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{category}</h3>
                   <div className="flex items-center space-x-4">
@@ -354,11 +363,11 @@ export default function DiagnosticAssessment() {
                       <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-3">
                         <div
                           className="bg-blue-600 h-3 rounded-full transition-all duration-500"
-                          style={{ width: `${score}%` }}
+                          style={{ width: `${score as number}%` }}
                         />
                       </div>
                     </div>
-                    <span className="text-2xl font-bold text-gray-900 dark:text-white">{score}%</span>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">{score as number}%</span>
                   </div>
                 </div>
               ))}
@@ -370,10 +379,10 @@ export default function DiagnosticAssessment() {
               <p className="text-gray-700 dark:text-gray-300">
                 Based on your responses, you learn best through{' '}
                 <span className="font-semibold">
-                  {assessmentResults.learningStyle === 'reading-writing' && 'reading and writing activities'}
-                  {assessmentResults.learningStyle === 'logical-mathematical' && 'logical thinking and problem-solving'}
-                  {assessmentResults.learningStyle === 'visual-spatial' && 'visual and hands-on activities'}
-                  {assessmentResults.learningStyle === 'balanced' && 'a balanced mix of different approaches'}
+                  {results.learningStyle === 'reading-writing' && 'reading and writing activities'}
+                  {results.learningStyle === 'logical-mathematical' && 'logical thinking and problem-solving'}
+                  {results.learningStyle === 'visual-spatial' && 'visual and hands-on activities'}
+                  {results.learningStyle === 'balanced' && 'a balanced mix of different approaches'}
                 </span>
               </p>
             </div>
@@ -428,7 +437,7 @@ export default function DiagnosticAssessment() {
               Diagnostic Assessment
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-400">
-              Let's understand your current skills and learning preferences
+              Let&apos;s understand your current skills and learning preferences
             </p>
           </div>
 

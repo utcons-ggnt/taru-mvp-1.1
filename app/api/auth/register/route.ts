@@ -1,14 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Student from '@/models/Student';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+interface UserData {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+  profile: Record<string, unknown>;
+}
 
 export async function POST(request: NextRequest) {
   try {
     // Connect to MongoDB
     try {
       await connectDB();
-    } catch (dbError: any) {
+    } catch (dbError: unknown) {
       console.error('Database connection error:', dbError);
       return NextResponse.json(
         { error: 'Database connection failed. Please check your MongoDB Atlas connection.' },
@@ -60,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new user
-    const userData: any = {
+    const userData: UserData = {
       name,
       email: email.toLowerCase(),
       password,
@@ -110,8 +121,6 @@ export async function POST(request: NextRequest) {
     const userResponse = user.toJSON();
 
     // Generate JWT token
-    const jwt = require('jsonwebtoken');
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
     const token = jwt.sign(
       {
         userId: user._id,
@@ -141,10 +150,10 @@ export async function POST(request: NextRequest) {
     });
     return response;
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Registration error:', error);
     
-    if (error.code === 11000) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
       return NextResponse.json(
         { error: 'User with this email already exists' },
         { status: 409 }

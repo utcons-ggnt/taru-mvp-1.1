@@ -7,6 +7,28 @@ import StudentProgress from '@/models/StudentProgress';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+interface DecodedToken {
+  userId: string;
+  [key: string]: unknown;
+}
+
+interface PathProgress {
+  pathId: string;
+  status: string;
+  progress: number;
+  milestoneProgress?: Array<{
+    milestoneId: string;
+    status: string;
+    progress: number;
+  }>;
+}
+
+interface Milestone {
+  milestoneId: string;
+  toObject?: () => Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Get token from HTTP-only cookie
@@ -19,10 +41,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify token
-    let decoded: any;
+    let decoded: DecodedToken;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
+      decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+    } catch {
       return NextResponse.json(
         { error: 'Invalid token' },
         { status: 401 }
@@ -49,14 +71,14 @@ export async function GET(request: NextRequest) {
 
     // Update path progress with student data
     const pathsWithProgress = learningPaths.map(path => {
-      const pathProgress = progress?.pathProgress?.find((pp: any) => pp.pathId === path.pathId);
+      const pathProgress = progress?.pathProgress?.find((pp: PathProgress) => pp.pathId === path.pathId);
       
       if (pathProgress) {
         // Update milestone status based on progress
-        const updatedMilestones = path.milestones.map((milestone: any) => {
-          const milestoneProgress = pathProgress.milestoneProgress?.find((mp: any) => mp.milestoneId === milestone.milestoneId);
+        const updatedMilestones = path.milestones.map((milestone: Milestone) => {
+          const milestoneProgress = pathProgress.milestoneProgress?.find((mp: { milestoneId: string }) => mp.milestoneId === milestone.milestoneId);
           return {
-            ...milestone.toObject(),
+            ...(milestone.toObject ? milestone.toObject() : milestone),
             status: milestoneProgress?.status || 'locked',
             progress: milestoneProgress?.progress || 0
           };

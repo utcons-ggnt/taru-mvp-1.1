@@ -7,6 +7,25 @@ import StudentProgress from '@/models/StudentProgress';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+interface DecodedToken {
+  userId: string;
+  [key: string]: unknown;
+}
+
+interface ModuleProgress {
+  moduleId: string;
+  status: string;
+  progress: number;
+  xpEarned: number;
+  contentProgress?: Array<{
+    contentId: string;
+    status: string;
+    score: number;
+    timeSpent: number;
+  }>;
+  [key: string]: unknown;
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -24,10 +43,10 @@ export async function POST(
     }
 
     // Verify token
-    let decoded: any;
+    let decoded: DecodedToken;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
+      decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+    } catch {
       return NextResponse.json(
         { error: 'Invalid token' },
         { status: 401 }
@@ -47,8 +66,8 @@ export async function POST(
     }
 
     // Get module
-    const module = await Module.findOne({ moduleId: id, isActive: true });
-    if (!module) {
+    const foundModule = await Module.findOne({ moduleId: id, isActive: true });
+    if (!foundModule) {
       return NextResponse.json(
         { error: 'Module not found' },
         { status: 404 }
@@ -72,7 +91,7 @@ export async function POST(
     }
 
     // Check if module is already in progress
-    let moduleProgress = progress.moduleProgress.find((mp: any) => mp.moduleId === id);
+    let moduleProgress = progress.moduleProgress.find((mp: ModuleProgress) => mp.moduleId === id);
     
     if (!moduleProgress) {
       // Add new module progress

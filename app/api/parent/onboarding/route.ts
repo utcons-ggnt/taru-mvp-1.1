@@ -6,6 +6,11 @@ import Parent from '@/models/Parent';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+interface DecodedToken {
+  userId: string;
+  [key: string]: unknown;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get token from HTTP-only cookie
@@ -18,10 +23,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify token
-    let decoded: any;
+    let decoded: DecodedToken;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
+      decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+    } catch {
       return NextResponse.json(
         { error: 'Invalid token' },
         { status: 401 }

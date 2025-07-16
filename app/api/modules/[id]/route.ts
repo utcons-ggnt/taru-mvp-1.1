@@ -7,6 +7,31 @@ import StudentProgress from '@/models/StudentProgress';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+interface DecodedToken {
+  userId: string;
+  [key: string]: unknown;
+}
+
+interface ModuleProgress {
+  moduleId: string;
+  status: string;
+  progress: number;
+  xpEarned: number;
+  contentProgress?: Array<{
+    contentId: string;
+    status: string;
+    score: number;
+    timeSpent: number;
+  }>;
+  [key: string]: unknown;
+}
+
+interface Badge {
+  name: string;
+  description: string;
+  [key: string]: unknown;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -24,10 +49,10 @@ export async function GET(
     }
 
     // Verify token
-    let decoded: any;
+    let decoded: DecodedToken;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
+      decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+    } catch {
       return NextResponse.json(
         { error: 'Invalid token' },
         { status: 401 }
@@ -47,8 +72,8 @@ export async function GET(
     }
 
     // Get module
-    const module = await Module.findOne({ moduleId: id, isActive: true });
-    if (!module) {
+    const foundModule = await Module.findOne({ moduleId: id, isActive: true });
+    if (!foundModule) {
       return NextResponse.json(
         { error: 'Module not found' },
         { status: 404 }
@@ -57,10 +82,10 @@ export async function GET(
 
     // Get student progress for this module
     const progress = await StudentProgress.findOne({ userId: decoded.userId });
-    const moduleProgress = progress?.moduleProgress?.find((mp: any) => mp.moduleId === id);
+    const moduleProgress = progress?.moduleProgress?.find((mp: ModuleProgress) => mp.moduleId === id);
 
     return NextResponse.json({
-      module: module.toJSON(),
+      module: foundModule.toJSON(),
       progress: moduleProgress || {
         status: 'not-started',
         progress: 0,
@@ -94,10 +119,10 @@ export async function PUT(
     }
 
     // Verify token
-    let decoded: any;
+    let decoded: DecodedToken;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
+      decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+    } catch {
       return NextResponse.json(
         { error: 'Invalid token' },
         { status: 401 }
@@ -117,8 +142,8 @@ export async function PUT(
     }
 
     // Get module
-    const module = await Module.findOne({ moduleId: id, isActive: true });
-    if (!module) {
+    const foundModule = await Module.findOne({ moduleId: id, isActive: true });
+    if (!foundModule) {
       return NextResponse.json(
         { error: 'Module not found' },
         { status: 404 }
@@ -141,7 +166,7 @@ export async function PUT(
     }
 
     // Find or create module progress
-    let moduleProgress = progress.moduleProgress.find((mp: any) => mp.moduleId === id);
+    let moduleProgress = progress.moduleProgress.find((mp: ModuleProgress) => mp.moduleId === id);
     if (!moduleProgress) {
       moduleProgress = {
         moduleId: id,
@@ -165,7 +190,7 @@ export async function PUT(
         }
         
         // Update content progress
-        let contentProgress = moduleProgress.contentProgress.find((cp: any) => cp.contentId === contentId);
+        let contentProgress = moduleProgress.contentProgress?.find((cp: { contentId: string; status: string; score: number; timeSpent: number }) => cp.contentId === contentId);
         if (!contentProgress) {
           contentProgress = {
             contentId,
@@ -173,6 +198,9 @@ export async function PUT(
             score: score || 0,
             timeSpent: timeSpent || 0
           };
+          if (!moduleProgress.contentProgress) {
+            moduleProgress.contentProgress = [];
+          }
           moduleProgress.contentProgress.push(contentProgress);
         } else {
           contentProgress.status = 'completed';
@@ -185,17 +213,17 @@ export async function PUT(
         moduleProgress.status = 'completed';
         moduleProgress.completedAt = new Date();
         moduleProgress.progress = 100;
-        moduleProgress.xpEarned = module.xpPoints;
+        moduleProgress.xpEarned = foundModule.xpPoints;
         
         // Update overall statistics
-        progress.totalXpEarned += module.xpPoints;
+        progress.totalXpEarned += foundModule.xpPoints;
         progress.totalModulesCompleted += 1;
         progress.totalTimeSpent += timeSpent || 0;
         
         // Check for badges
-        if (module.badges && module.badges.length > 0) {
-          module.badges.forEach((badge: any) => {
-            const existingBadge = progress.badgesEarned.find((b: any) => b.badgeId === badge.name);
+        if (foundModule.badges && foundModule.badges.length > 0) {
+          foundModule.badges.forEach((badge: Badge) => {
+            const existingBadge = progress.badgesEarned.find((b: { badgeId: string; name: string; description: string; earnedAt: Date }) => b.badgeId === badge.name);
             if (!existingBadge) {
               progress.badgesEarned.push({
                 badgeId: badge.name,

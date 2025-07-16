@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 const translations: Record<string, Record<string, string>> = {
   'English (USA)': {
@@ -115,7 +116,7 @@ export default function ParentOnboarding() {
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [availableStudents, setAvailableStudents] = useState<Array<{id: string, name: string, email: string}>>([]);
+  const [availableStudents, setAvailableStudents] = useState<Array<{id: string; name: string; email: string}>>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const router = useRouter();
 
@@ -212,7 +213,7 @@ export default function ParentOnboarding() {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const handleInputChange = (field: keyof ParentOnboardingData, value: any) => {
+  const handleInputChange = (field: keyof ParentOnboardingData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field as string]) {
@@ -246,7 +247,7 @@ export default function ParentOnboarding() {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to submit onboarding data');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Onboarding submission error:', error);
       alert('Failed to submit onboarding data. Please try again.');
     } finally {
@@ -258,14 +259,14 @@ export default function ParentOnboarding() {
     return (
       <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
         <div className="w-full md:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-6 py-8 text-white flex flex-col justify-between relative">
-          <img src="/jio-logo.png" alt="Jio Logo" className="absolute top-4 left-4 w-14 h-14 object-contain" />
+          <Image src="/jio-logo.png" alt="Jio Logo" width={56} height={56} className="absolute top-4 left-4 w-14 h-14 object-contain" />
           <div className="mt-20 md:mt-32">
             <h2 className="text-3xl md:text-4xl font-bold leading-snug md:leading-snug px-2 md:px-10">
               🎉 Welcome to JioWorld! <br />
               Your onboarding is complete!
             </h2>
           </div>
-          <img src="/landingPage.png" alt="Mascot" className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
+          <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
         </div>
         <div className="w-full md:w-1/2 bg-white px-4 sm:px-8 py-10 flex flex-col justify-center">
           <div className="max-w-md mx-auto w-full text-center">
@@ -537,7 +538,7 @@ export default function ParentOnboarding() {
       <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
         <h3 className="text-lg font-semibold text-purple-800 mb-2">Data Access Consent</h3>
         <p className="text-sm text-purple-700 mb-3">
-          By accepting this consent, you agree to access your child's learning data 
+          By accepting this consent, you agree to access your child&apos;s learning data 
           to monitor their progress and provide support in their educational journey.
         </p>
         <label className="flex items-center space-x-2">
@@ -547,7 +548,7 @@ export default function ParentOnboarding() {
             onChange={(e) => handleInputChange('consentToAccessChildData', e.target.checked)}
             className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
           />
-          <span className="text-sm text-purple-700">I consent to access my child's learning data *</span>
+          <span className="text-sm text-purple-700">I consent to access my child&apos;s learning data *</span>
         </label>
         {errors.consentToAccessChildData && <p className="text-red-500 text-sm mt-1">{errors.consentToAccessChildData}</p>}
       </div>
@@ -564,7 +565,7 @@ export default function ParentOnboarding() {
             onChange={(e) => handleInputChange('agreeToTerms', e.target.checked)}
             className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
           />
-          <span className="text-sm text-gray-700">I agree to platform terms & policies *</span>
+          <span className="text-sm text-gray-700">I agree to platform terms &amp; policies *</span>
         </label>
         {errors.agreeToTerms && <p className="text-red-500 text-sm mt-1">{errors.agreeToTerms}</p>}
       </div>
@@ -585,15 +586,15 @@ export default function ParentOnboarding() {
     <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
       {/* 🟪 Left Panel */}
       <div className="w-full md:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-6 py-8 text-white flex flex-col justify-between relative">
-        <img src="/jio-logo.png" alt="Jio Logo" className="absolute top-4 left-4 w-14 h-14 object-contain" />
+        <Image src="/jio-logo.png" alt="Jio Logo" width={56} height={56} className="absolute top-4 left-4 w-14 h-14 object-contain" />
         <div className="mt-20 md:mt-32">
           <h2 className="text-3xl md:text-4xl font-bold leading-snug md:leading-snug px-2 md:px-10">
             Complete your <br />
             parent profile <br />
-            and <span className="text-yellow-300 font-extrabold">Monitor your<br />Child's Progress.</span>
+            and <span className="text-yellow-300 font-extrabold">Monitor your<br />Child&apos;s Progress.</span>
           </h2>
         </div>
-        <img src="/landingPage.png" alt="Mascot" className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
+        <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
       </div>
 
       {/* ⬜ Right Panel */}

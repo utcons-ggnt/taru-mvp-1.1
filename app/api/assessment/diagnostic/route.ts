@@ -6,6 +6,16 @@ import Assessment from '@/models/Assessment';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+interface DecodedToken {
+  userId: string;
+  [key: string]: unknown;
+}
+
+interface GenerateResultsParams {
+  categoryScores: Record<string, number>;
+  learningStyle: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get token from HTTP-only cookie
@@ -18,10 +28,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify token
-    let decoded: any;
+    let decoded: DecodedToken;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
+      decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+    } catch {
       return NextResponse.json(
         { error: 'Invalid token' },
         { status: 401 }
@@ -95,10 +105,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify token
-    let decoded: any;
+    let decoded: DecodedToken;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
+      decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+    } catch {
       return NextResponse.json(
         { error: 'Invalid token' },
         { status: 401 }
@@ -138,11 +148,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateRecommendedModules(results: any): string[] {
+function generateRecommendedModules(results: GenerateResultsParams): string[] {
   const recommendations: string[] = [];
   
   // Add recommendations based on skill levels
-  Object.entries(results.categoryScores).forEach(([category, score]: [string, any]) => {
+  Object.entries(results.categoryScores).forEach(([category, score]: [string, number]) => {
     if (score >= 80) {
       // High skill level - recommend advanced modules
       recommendations.push(`${category.toLowerCase()}-advanced`);

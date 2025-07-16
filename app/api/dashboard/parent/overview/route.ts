@@ -9,6 +9,25 @@ import Module from '@/models/Module';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+interface DecodedToken {
+  userId: string;
+  [key: string]: unknown;
+}
+
+interface ModuleProgress {
+  moduleId: string;
+  status: string;
+  progress: number;
+  xpEarned: number;
+  startedAt: Date;
+}
+
+interface SubjectStats {
+  total: number;
+  completed: number;
+  xpEarned: number;
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Get token from HTTP-only cookie
@@ -21,10 +40,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify token
-    let decoded: any;
+    let decoded: DecodedToken;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
+      decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+    } catch {
       return NextResponse.json(
         { error: 'Invalid token' },
         { status: 401 }
@@ -81,8 +100,8 @@ export async function GET(request: NextRequest) {
 
     // Calculate statistics
     const totalModules = progress?.moduleProgress?.length || 0;
-    const completedModules = progress?.moduleProgress?.filter((mp: any) => mp.status === 'completed').length || 0;
-    const inProgressModules = progress?.moduleProgress?.filter((mp: any) => mp.status === 'in-progress').length || 0;
+    const completedModules = progress?.moduleProgress?.filter((mp: ModuleProgress) => mp.status === 'completed').length || 0;
+    const inProgressModules = progress?.moduleProgress?.filter((mp: ModuleProgress) => mp.status === 'in-progress').length || 0;
     const totalXp = progress?.totalXpEarned || 0;
     const averageScore = assessment?.diagnosticScore || 0;
 
@@ -90,7 +109,7 @@ export async function GET(request: NextRequest) {
     const completionRate = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
 
     // Get recent activity (last 5 modules)
-    const recentActivity = progress?.moduleProgress?.slice(-5).map((mp: any) => ({
+    const recentActivity = progress?.moduleProgress?.slice(-5).map((mp: ModuleProgress) => ({
       moduleId: mp.moduleId,
       status: mp.status,
       progress: mp.progress,
@@ -149,29 +168,36 @@ export async function GET(request: NextRequest) {
     }
 
     // Get progress reports by subject
-    const progressReports: any[] = [];
+    const progressReports: Array<{
+      subject: string;
+      currentGrade: string;
+      improvement: number;
+      attendance: number;
+      assignmentsCompleted: number;
+      totalAssignments: number;
+    }> = [];
     if (progress?.moduleProgress) {
-      const subjectStats: any = {};
+      const subjectStats: Record<string, SubjectStats> = {};
       
-      progress.moduleProgress.forEach((mp: any) => {
-        const module = activeModules.find(m => m.moduleId === mp.moduleId);
-        if (module) {
-          if (!subjectStats[module.subject]) {
-            subjectStats[module.subject] = {
+      progress.moduleProgress.forEach((mp: ModuleProgress) => {
+        const foundModule = activeModules.find(m => m.moduleId === mp.moduleId);
+        if (foundModule) {
+          if (!subjectStats[foundModule.subject]) {
+            subjectStats[foundModule.subject] = {
               total: 0,
               completed: 0,
               xpEarned: 0
             };
           }
-          subjectStats[module.subject].total++;
+          subjectStats[foundModule.subject].total++;
           if (mp.status === 'completed') {
-            subjectStats[module.subject].completed++;
+            subjectStats[foundModule.subject].completed++;
           }
-          subjectStats[module.subject].xpEarned += mp.xpEarned || 0;
+          subjectStats[foundModule.subject].xpEarned += mp.xpEarned || 0;
         }
       });
 
-      Object.entries(subjectStats).forEach(([subject, stats]: [string, any]) => {
+      Object.entries(subjectStats).forEach(([subject, stats]: [string, SubjectStats]) => {
         progressReports.push({
           subject,
           currentGrade: getGradeFromScore((stats.completed / stats.total) * 100),
@@ -205,13 +231,13 @@ export async function GET(request: NextRequest) {
       testResults,
       notifications,
       progressReports,
-      recommendedModules: activeModules.slice(0, 3).map(module => ({
-        id: module.moduleId,
-        name: module.name,
-        subject: module.subject,
-        description: module.description,
-        xpPoints: module.xpPoints,
-        estimatedDuration: module.estimatedDuration
+      recommendedModules: activeModules.slice(0, 3).map(foundModule => ({
+        id: foundModule.moduleId,
+        name: foundModule.name,
+        subject: foundModule.subject,
+        description: foundModule.description,
+        xpPoints: foundModule.xpPoints,
+        estimatedDuration: foundModule.estimatedDuration
       })),
       progress: {
         badgesEarned: progress?.badgesEarned || [],
@@ -219,7 +245,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get parent overview error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },

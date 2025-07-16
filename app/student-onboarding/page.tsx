@@ -95,11 +95,6 @@ interface StudentOnboardingData {
   termsAndConditionsAccepted: boolean;
 }
 
-const classGrades = [
-  'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6',
-  'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'
-];
-
 const languageOptions = [
   'English', 'Hindi', 'Spanish', 'French', 'German', 'Chinese', 'Arabic', 'Other'
 ];
@@ -322,7 +317,7 @@ export default function StudentOnboarding() {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const handleInputChange = (field: keyof StudentOnboardingData, value: any) => {
+  const handleInputChange = (field: keyof StudentOnboardingData, value: string | number | boolean | File | null | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field as string]) {
@@ -359,7 +354,7 @@ export default function StudentOnboarding() {
       const formDataToSend = new FormData();
       
       // Append all form data
-      Object.entries(formData).forEach(([key, value]) => {
+      for (const [key, value] of Object.entries(formData)) {
         if (key === 'profilePicture' && value instanceof File) {
           formDataToSend.append(key, value);
         } else if (Array.isArray(value)) {
@@ -367,10 +362,10 @@ export default function StudentOnboarding() {
         } else {
           formDataToSend.append(key, String(value));
         }
-      });
+      }
 
       console.log('🔍 FormData entries:');
-      for (let [key, value] of formDataToSend.entries()) {
+      for (const [key, value] of formDataToSend.entries()) {
         console.log(`🔍 ${key}:`, value);
       }
 
@@ -392,10 +387,10 @@ export default function StudentOnboarding() {
         console.error('🔍 Error response:', errorData);
         throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('🔍 Onboarding submission error:', error);
-      console.error('🔍 Error message:', error.message);
-      alert(`Failed to submit onboarding data: ${error.message}`);
+      console.error('🔍 Error message:', error instanceof Error ? error.message : 'Unknown error');
+      alert(`Failed to submit onboarding data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -405,13 +400,13 @@ export default function StudentOnboarding() {
     return (
       <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
         <div className="w-full md:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-6 py-8 text-white flex flex-col justify-between relative">
-          <img src="/jio-logo.png" alt="Jio Logo" className="absolute top-4 left-4 w-14 h-14 object-contain" />
+          <Image src="/jio-logo.png" alt="Jio Logo" width={56} height={56} className="absolute top-4 left-4 w-14 h-14 object-contain" />
           <div className="mt-20 md:mt-32">
             <h2 className="text-3xl md:text-4xl font-bold leading-snug md:leading-snug px-2 md:px-10">
               Loading your profile...
             </h2>
           </div>
-          <img src="/landingPage.png" alt="Mascot" className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
+          <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
         </div>
         <div className="w-full md:w-1/2 bg-white px-4 sm:px-8 py-10 flex flex-col justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
@@ -424,14 +419,14 @@ export default function StudentOnboarding() {
     return (
       <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
         <div className="w-full md:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-6 py-8 text-white flex flex-col justify-between relative">
-          <img src="/jio-logo.png" alt="Jio Logo" className="absolute top-4 left-4 w-14 h-14 object-contain" />
+          <Image src="/jio-logo.png" alt="Jio Logo" width={56} height={56} className="absolute top-4 left-4 w-14 h-14 object-contain" />
           <div className="mt-20 md:mt-32">
             <h2 className="text-3xl md:text-4xl font-bold leading-snug md:leading-snug px-2 md:px-10">
               🎉 Welcome to JioWorld! <br />
               Your onboarding is complete!
             </h2>
           </div>
-          <img src="/landingPage.png" alt="Mascot" className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
+          <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
         </div>
         <div className="w-full md:w-1/2 bg-white px-4 sm:px-8 py-10 flex flex-col justify-center">
           <div className="max-w-md mx-auto w-full text-center">
@@ -812,7 +807,7 @@ export default function StudentOnboarding() {
     <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
       {/* 🟪 Left Panel */}
       <div className="w-full md:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-6 py-8 text-white flex flex-col justify-between relative">
-        <img src="/jio-logo.png" alt="Jio Logo" className="absolute top-4 left-4 w-14 h-14 object-contain" />
+        <Image src="/jio-logo.png" alt="Jio Logo" width={56} height={56} className="absolute top-4 left-4 w-14 h-14 object-contain" />
         <div className="mt-20 md:mt-32">
           <h2 className="text-3xl md:text-4xl font-bold leading-snug md:leading-snug px-2 md:px-10">
             Complete your <br />
@@ -820,7 +815,7 @@ export default function StudentOnboarding() {
             and <span className="text-yellow-300 font-extrabold">Unlock your<br />Learning Journey.</span>
           </h2>
         </div>
-        <img src="/landingPage.png" alt="Mascot" className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
+        <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
       </div>
 
       {/* ⬜ Right Panel */}

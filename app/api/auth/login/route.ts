@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     // Connect to MongoDB
     try {
       await connectDB();
-    } catch (dbError: any) {
+    } catch (dbError: unknown) {
       console.error('Database connection error:', dbError);
       return NextResponse.json(
         { error: 'Database connection failed. Please check your MongoDB Atlas connection.' },
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     return response;
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Login error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },

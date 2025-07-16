@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface SkillAssessmentData {
@@ -107,6 +107,12 @@ const admiredPeople = [
   { id: 'teacher', label: 'My Teacher', icon: '👩‍🏫', description: 'Someone who inspires me' }
 ];
 
+// Add type definitions for SpeechRecognition and SpeechRecognitionEvent if missing
+// @ts-expect-error: SpeechRecognition is not available in all browsers
+type SpeechRecognition = typeof window.SpeechRecognition;
+// @ts-expect-error: SpeechRecognitionEvent is not available in all browsers
+type SpeechRecognitionEvent = typeof window.SpeechRecognitionEvent;
+
 export default function SkillAssessment() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<SkillAssessmentData>({
@@ -199,12 +205,12 @@ export default function SkillAssessment() {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const handleInputChange = (field: keyof SkillAssessmentData, value: any) => {
+  const handleInputChange = (field: keyof SkillAssessmentData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field as string]) {
+    if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
-        delete newErrors[field as string];
+        delete newErrors[field];
         return newErrors;
       });
     }
@@ -218,11 +224,18 @@ export default function SkillAssessment() {
         : [...currentValues, value];
       return { ...prev, [field]: newValues };
     });
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
-  const startSpeechRecognition = (field: keyof SkillAssessmentData) => {
+  const startSpeechRecognition = (field: string) => {
     if ('webkitSpeechRecognition' in window) {
-      const recognition = new (window as any).webkitSpeechRecognition();
+      const recognition = new (window as unknown as typeof window & { webkitSpeechRecognition: new () => SpeechRecognition }).webkitSpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
       recognition.lang = 'en-US';
@@ -231,13 +244,18 @@ export default function SkillAssessment() {
         setIsListening(true);
       };
 
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        handleInputChange(field, transcript);
+      recognition.onresult = (event: unknown) => {
+        const transcript = (event as SpeechRecognitionEvent).results[0][0].transcript;
+        handleInputChange(field as keyof SkillAssessmentData, transcript);
       };
 
       recognition.onend = () => {
         setIsListening(false);
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+        alert('Speech recognition error. Please try again.');
       };
 
       recognition.start();
@@ -280,7 +298,7 @@ export default function SkillAssessment() {
           Skill & Interest Form
         </h2>
         <p className="text-lg text-gray-600 dark:text-gray-400">
-          Let's get to know you better! This will help us create your perfect learning experience.
+          Let&apos;s get to know you better! This will help us create your perfect learning experience.
         </p>
       </div>
 
@@ -496,14 +514,14 @@ export default function SkillAssessment() {
           Your Strengths & Goals
         </h2>
         <p className="text-lg text-gray-600 dark:text-gray-400">
-          Help us understand what you're good at and what you want to improve!
+          Help us understand what you&apos;re good at and what you want to improve!
         </p>
       </div>
 
       {/* Things I'm Confident Doing */}
       <div>
         <label className="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Things I'm Confident Doing
+          Things I&apos;m Confident Doing
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {confidentActivities.map(activity => (
@@ -653,7 +671,7 @@ export default function SkillAssessment() {
       {/* What I'm Most Proud Of */}
       <div>
         <label className="block text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          What I'm Most Proud Of
+          What I&apos;m Most Proud Of
         </label>
         <div className="relative">
           <textarea
@@ -663,7 +681,7 @@ export default function SkillAssessment() {
               errors.whatImMostProudOf ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
             } bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
             rows={4}
-            placeholder="Tell us about something you're really proud of..."
+            placeholder="Tell us about something you&apos;re really proud of..."
           />
           <button
             onClick={() => startSpeechRecognition('whatImMostProudOf')}
@@ -692,7 +710,7 @@ export default function SkillAssessment() {
               errors.ifICouldFixOneProblem ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
             } bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
             rows={4}
-            placeholder="What problem in the world would you like to solve?"
+            placeholder="If you could fix one problem in the world, what would it be? (Use your own words, it&apos;s your dream!)"
           />
           <button
             onClick={() => startSpeechRecognition('ifICouldFixOneProblem')}
@@ -711,70 +729,49 @@ export default function SkillAssessment() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
-              Step {currentStep} of 4
-            </span>
-            <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
-              {Math.round((currentStep / 4) * 100)}% Complete
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / 4) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Form Content */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
-          {currentStep === 1 && renderStep1()}
-          {currentStep === 2 && renderStep2()}
-          {currentStep === 3 && renderStep3()}
-          {currentStep === 4 && renderStep4()}
-
-          {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8">
-            <button
-              onClick={handlePrevious}
-              disabled={currentStep === 1}
-              className="px-6 py-3 bg-gray-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
-            >
-              Previous
-            </button>
-
-            {currentStep < 4 ? (
-              <button
-                onClick={handleNext}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium transition-colors hover:bg-blue-700"
-              >
-                Next
-              </button>
-            ) : (
-              <div className="flex space-x-4">
-                <button
-                  onClick={() => router.push('/diagnostic-assessment')}
-                  className="px-6 py-3 bg-gray-500 text-white rounded-lg font-medium transition-colors hover:bg-gray-600"
-                >
-                  Skip for Now
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium transition-colors hover:bg-green-700 disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Saving...' : 'Save & Continue'}
-                </button>
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-6 flex flex-col justify-center sm:py-12">
+      <div className="relative py-3 sm:max-w-xl sm:mx-auto">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-300 to-purple-300 dark:from-blue-700 dark:to-purple-700 transform -skew-y-6 sm:skew-y-0 sm:-rotate-6 sm:rounded-3xl"></div>
+        <div className="relative px-4 py-10 bg-white dark:bg-gray-800 shadow-lg sm:rounded-3xl sm:p-20">
+          <div className="max-w-md mx-auto">
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              <div className="py-8 text-base leading-6 space-y-4 text-gray-700 dark:text-gray-300 sm:text-lg sm:leading-7">
+                {currentStep === 1 && renderStep1()}
+                {currentStep === 2 && renderStep2()}
+                {currentStep === 3 && renderStep3()}
+                {currentStep === 4 && renderStep4()}
               </div>
-            )}
+              <div className="flex justify-between">
+                {currentStep > 1 && (
+                  <button
+                    onClick={handlePrevious}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
+                  >
+                    Previous
+                  </button>
+                )}
+                {currentStep < 4 && (
+                  <button
+                    onClick={handleNext}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Next
+                  </button>
+                )}
+                {currentStep === 4 && (
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit Assessment'}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
-} 
+}

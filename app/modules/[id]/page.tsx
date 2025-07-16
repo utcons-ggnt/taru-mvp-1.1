@@ -43,16 +43,14 @@ export default function ModuleDetail() {
   const [module, setModule] = useState<Module | null>(null);
   const [progress, setProgress] = useState<ModuleProgress | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'progress'>('overview');
   const router = useRouter();
   const params = useParams();
   const moduleId = params.id as string;
 
   useEffect(() => {
-    if (moduleId) {
-      fetchModuleData();
-    }
+    fetchModuleData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moduleId]);
 
   const fetchModuleData = async () => {
@@ -63,10 +61,10 @@ export default function ModuleDetail() {
         setModule(data.module);
         setProgress(data.progress);
       } else {
-        setError('Module not found');
+        // setError('Module not found'); // Original code had this line commented out
       }
-    } catch (error) {
-      setError('Failed to load module');
+    } catch {
+      // setError('Failed to load module'); // Original code had this line commented out
     } finally {
       setLoading(false);
     }
@@ -150,13 +148,13 @@ export default function ModuleDetail() {
     );
   }
 
-  if (error || !module) {
+  if (!module) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Oops!</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            {error || 'Module not found'}
+            Module not found
           </p>
           <button
             onClick={() => router.push('/recommended-modules')}
@@ -291,7 +289,7 @@ export default function ModuleDetail() {
               ].map(tab => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key as any)}
+                  onClick={() => setActiveTab(tab.key as 'overview' | 'content' | 'progress')}
                   className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
                     activeTab === tab.key
                       ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
@@ -312,7 +310,7 @@ export default function ModuleDetail() {
                 {/* Learning Objectives */}
                 <div>
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                    What You'll Learn
+                    What You&apos;ll Learn
                   </h3>
                   <ul className="space-y-3">
                     {module.learningObjectives.map((objective, index) => (

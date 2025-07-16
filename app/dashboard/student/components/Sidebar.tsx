@@ -1,5 +1,5 @@
 import React from 'react';
-import Link from 'next/link';
+import Image from 'next/image';
 
 const navItems = [
   { id: 'overview', label: 'Overview', icon: '📊' },
@@ -15,7 +15,7 @@ export default function Sidebar({ activeTab, onTabChange }: { activeTab: string,
     <aside className="flex flex-col h-full w-64 bg-white border-r border-gray-300 py-6 px-4 justify-between">
       <div>
         <div className="flex items-center mb-10">
-          <img src="/jio-logo.png" alt="Jio Logo" className="w-12 h-12 mr-2" />
+          <Image src="/jio-logo.png" alt="Jio Logo" width={48} height={48} className="w-12 h-12 mr-2" />
         </div>
         <nav className="flex flex-col gap-1">
           {navItems.map(item => (
@@ -38,7 +38,7 @@ export default function Sidebar({ activeTab, onTabChange }: { activeTab: string,
       </div>
       <div className="mt-10">
         <div className="bg-purple-100 rounded-xl p-4 flex flex-col items-center">
-          <img src="/ai-buddy.png" alt="AI Buddy" className="w-16 h-16 rounded-full mb-2" />
+          <Image src="/ai-buddy.png" alt="AI Buddy" width={64} height={64} className="w-16 h-16 rounded-full mb-2" />
           <div className="text-sm font-semibold text-gray-900">Ask <span className="text-purple-600">AI Buddy</span></div>
         </div>
       </div>

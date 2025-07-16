@@ -6,6 +6,11 @@ import Student from '@/models/Student';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+interface DecodedToken {
+  userId: string;
+  [key: string]: unknown;
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Connect to database
@@ -13,16 +18,16 @@ export async function GET(request: NextRequest) {
 
     // Check if user is authenticated (optional for registration flow)
     let isAuthenticated = false;
-    let userId = null;
+    let userId: string | null = null;
 
     const authHeader = request.headers.get('authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
       try {
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        const decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
         userId = decoded.userId;
         isAuthenticated = true;
-      } catch (error) {
+      } catch {
         // Token is invalid, but we'll still return students for registration
       }
     }
@@ -83,7 +88,7 @@ export async function GET(request: NextRequest) {
       { status: 200 }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get available students error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },

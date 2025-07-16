@@ -38,7 +38,7 @@ export default function OverviewTab({ courses, tests }: { courses: Course[]; tes
           </div>
         </div>
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Course You're taking</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">Course You&apos;re taking</h3>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-gray-900 font-bold">

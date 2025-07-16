@@ -7,6 +7,11 @@ import StudentProgress from '@/models/StudentProgress';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+interface DecodedToken {
+  userId: string;
+  [key: string]: unknown;
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🔍 Starting student onboarding...');
@@ -25,9 +30,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify token
-    let decoded: any;
+    let decoded: DecodedToken;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
       console.log('🔍 Token verified, userId:', decoded.userId);
     } catch (error) {
       console.error('🔍 Token verification failed:', error);

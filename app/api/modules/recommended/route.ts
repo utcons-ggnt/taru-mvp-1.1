@@ -8,6 +8,17 @@ import StudentProgress from '@/models/StudentProgress';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+interface DecodedToken {
+  userId: string;
+  [key: string]: unknown;
+}
+
+interface ModuleProgress {
+  moduleId: string;
+  status: string;
+  [key: string]: unknown;
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Get token from HTTP-only cookie
@@ -20,10 +31,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify token
-    let decoded: any;
+    let decoded: DecodedToken;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
+      decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+    } catch {
       return NextResponse.json(
         { error: 'Invalid token' },
         { status: 401 }
@@ -89,8 +100,8 @@ export async function GET(request: NextRequest) {
     // Remove modules the student has already completed
     if (progress && progress.moduleProgress) {
       const completedModuleIds = progress.moduleProgress
-        .filter((mp: any) => mp.status === 'completed')
-        .map((mp: any) => mp.moduleId);
+        .filter((mp: ModuleProgress) => mp.status === 'completed')
+        .map((mp: ModuleProgress) => mp.moduleId);
       
       recommendedModules = recommendedModules.filter(module =>
         !completedModuleIds.includes(module.moduleId)

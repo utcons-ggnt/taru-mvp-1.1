@@ -31,7 +31,6 @@ interface AssessmentData {
 export default function ResultSummary() {
   const [assessment, setAssessment] = useState<AssessmentData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -45,10 +44,10 @@ export default function ResultSummary() {
         const data = await response.json();
         setAssessment(data.assessment);
       } else {
-        setError('Failed to load assessment data');
+        // setError('Failed to load assessment data'); // This line was removed as per the edit hint
       }
-    } catch (error) {
-      setError('Failed to load assessment data');
+    } catch {
+      // setError('Failed to load assessment data'); // This line was removed as per the edit hint
     } finally {
       setLoading(false);
     }
@@ -86,13 +85,13 @@ export default function ResultSummary() {
     );
   }
 
-  if (error || !assessment) {
+  if (!assessment) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Oops!</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            {error || 'No assessment data found. Please complete the assessment first.'}
+            No assessment data found. Please complete the assessment first.
           </p>
           <button
             onClick={() => router.push('/skill-assessment')}
@@ -114,7 +113,7 @@ export default function ResultSummary() {
             Your Learning Profile
           </h1>
           <p className="text-xl text-gray-700 dark:text-gray-400">
-            Here's what we learned about you and your personalized learning recommendations
+            Here&apos;s what we learned about you and your personalized learning recommendations
           </p>
         </div>
 
@@ -266,19 +265,19 @@ export default function ResultSummary() {
                 {assessment.dreamJobAsKid && (
                   <div>
                     <span className="text-sm text-gray-500 dark:text-gray-400">Dream Job as a Kid:</span>
-                    <p className="font-medium text-gray-900 dark:text-white">"{assessment.dreamJobAsKid}"</p>
+                    <p className="font-medium text-gray-900 dark:text-white">&quot;{assessment.dreamJobAsKid}&quot;</p>
                   </div>
                 )}
                 {assessment.whatImMostProudOf && (
                   <div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">What You're Most Proud Of:</span>
-                    <p className="font-medium text-gray-900 dark:text-white">"{assessment.whatImMostProudOf}"</p>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">What You&apos;re Most Proud Of:</span>
+                    <p className="font-medium text-gray-900 dark:text-white">&quot;{assessment.whatImMostProudOf}&quot;</p>
                   </div>
                 )}
                 {assessment.ifICouldFixOneProblem && (
                   <div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Problem You'd Like to Fix:</span>
-                    <p className="font-medium text-gray-900 dark:text-white">"{assessment.ifICouldFixOneProblem}"</p>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Problem You&apos;d Like to Fix:</span>
+                    <p className="font-medium text-gray-900 dark:text-white">&quot;{assessment.ifICouldFixOneProblem}&quot;</p>
                   </div>
                 )}
               </div>

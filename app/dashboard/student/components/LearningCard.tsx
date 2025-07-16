@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 
 interface LearningCardProps {
   image: string;
@@ -12,7 +13,7 @@ interface LearningCardProps {
 export default function LearningCard({ image, title, xp, time, progress, enroll }: LearningCardProps) {
   return (
     <div className="bg-white rounded-2xl shadow-md p-4 w-72 flex flex-col items-center">
-      <img src={image} alt={title} className="w-32 h-24 object-cover rounded-xl mb-3" />
+      <Image src={image} alt={title} width={128} height={96} className="w-32 h-24 object-cover rounded-xl mb-3" />
       <div className="w-full flex justify-between items-center mb-2">
         <h3 className="font-bold text-lg text-gray-900">{title}</h3>
         <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold">{xp}+ XP</span>

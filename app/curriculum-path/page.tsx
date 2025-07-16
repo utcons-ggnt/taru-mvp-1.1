@@ -29,10 +29,10 @@ interface LearningPath {
 
 export default function CurriculumPath() {
   const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
+  const [selectedPath, setSelectedPath] = useState<LearningPath | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPath, setSelectedPath] = useState<LearningPath | null>(null);
-  const [activeCategory, setActiveCategory] = useState<'all' | 'academic' | 'vocational' | 'life-skills'>('all');
   const router = useRouter();
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function CurriculumPath() {
       } else {
         setError('Failed to load learning paths');
       }
-    } catch (error) {
+    } catch {
       setError('Failed to load learning paths');
     } finally {
       setLoading(false);
@@ -103,10 +103,6 @@ export default function CurriculumPath() {
     router.push(`/learning-path/${pathId}`);
   };
 
-  const handleModuleClick = (moduleId: string) => {
-    router.push(`/modules/${moduleId}`);
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
@@ -159,7 +155,7 @@ export default function CurriculumPath() {
             ].map(category => (
               <button
                 key={category.key}
-                onClick={() => setActiveCategory(category.key as any)}
+                onClick={() => setActiveCategory(category.key)}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
                   activeCategory === category.key
                     ? 'bg-blue-600 text-white'
@@ -242,49 +238,59 @@ export default function CurriculumPath() {
           {/* Selected Path Details */}
           <div className="lg:col-span-2">
             {selectedPath ? (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
                 <div className="mb-6">
                   <div className="flex items-center space-x-3 mb-4">
                     <span className="text-3xl">{getCategoryIcon(selectedPath.category)}</span>
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                      <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
                         {selectedPath.name}
                       </h2>
-                      <p className="text-gray-500 dark:text-gray-400">
-                        {selectedPath.category.charAt(0).toUpperCase() + selectedPath.category.slice(1)} Path
+                      <p className="text-lg text-gray-600 dark:text-gray-400">
+                        {selectedPath.description}
                       </p>
                     </div>
                   </div>
 
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    {selectedPath.description}
-                  </p>
-
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                       <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                         {selectedPath.totalModules}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Modules</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Total Modules</div>
                     </div>
-                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                       <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                         {formatDuration(selectedPath.totalDuration)}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Duration</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Total Duration</div>
                     </div>
-                    <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+                    <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
                       <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                         {selectedPath.totalXpPoints}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">XP Points</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Total XP</div>
                     </div>
                   </div>
+
+                  {selectedPath.targetGrade && (
+                    <div className="mb-4">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Target Grade:</span>
+                      <p className="text-lg text-gray-900 dark:text-white">{selectedPath.targetGrade}</p>
+                    </div>
+                  )}
+
+                  {selectedPath.careerGoal && (
+                    <div className="mb-6">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Career Goal:</span>
+                      <p className="text-lg text-gray-900 dark:text-white">{selectedPath.careerGoal}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Milestones */}
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                     Learning Milestones
                   </h3>
                   
@@ -292,23 +298,25 @@ export default function CurriculumPath() {
                     {selectedPath.milestones.map((milestone, index) => (
                       <div
                         key={milestone.milestoneId}
-                        className={`border-2 rounded-lg p-4 transition-all ${
+                        className={`border-2 rounded-lg p-6 transition-all duration-300 ${
                           milestone.status === 'completed'
                             ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                             : milestone.status === 'in-progress'
                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                             : milestone.status === 'available'
                             ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'
-                            : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700'
+                            : 'border-gray-300 bg-gray-50 dark:bg-gray-700 dark:border-gray-600'
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center space-x-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${getStatusColor(milestone.status)}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
+                              getStatusColor(milestone.status)
+                            }`}>
                               {index + 1}
                             </div>
                             <div>
-                              <h4 className="font-semibold text-gray-900 dark:text-white">
+                              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
                                 {milestone.name}
                               </h4>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -316,96 +324,78 @@ export default function CurriculumPath() {
                               </p>
                             </div>
                           </div>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            milestone.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200' :
-                            milestone.status === 'in-progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200' :
-                            milestone.status === 'available' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200' :
-                            'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                          }`}>
-                            {getStatusText(milestone.status)}
-                          </span>
+                          <div className="text-right">
+                            <div className={`text-sm font-medium ${
+                              milestone.status === 'completed' ? 'text-green-600 dark:text-green-400' :
+                              milestone.status === 'in-progress' ? 'text-blue-600 dark:text-blue-400' :
+                              milestone.status === 'available' ? 'text-yellow-600 dark:text-yellow-400' :
+                              'text-gray-500 dark:text-gray-400'
+                            }`}>
+                              {getStatusText(milestone.status)}
+                            </div>
+                            {milestone.status !== 'locked' && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {milestone.progress}% complete
+                              </div>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Progress Bar */}
-                        {milestone.status !== 'locked' && (
-                          <div className="mb-3">
-                            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
-                              <span>Progress</span>
-                              <span>{milestone.progress}%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full transition-all duration-300 ${
-                                  milestone.status === 'completed' ? 'bg-green-500' :
-                                  milestone.status === 'in-progress' ? 'bg-blue-500' :
-                                  'bg-yellow-500'
-                                }`}
-                                style={{ width: `${milestone.progress}%` }}
-                              />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600 dark:text-gray-400">Estimated Time:</span>
+                            <p className="font-medium text-gray-900 dark:text-white">
+                              {formatDuration(milestone.estimatedTime)}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600 dark:text-gray-400">Modules:</span>
+                            <p className="font-medium text-gray-900 dark:text-white">
+                              {milestone.modules.length} modules
+                            </p>
+                          </div>
+                        </div>
+
+                        {milestone.prerequisites.length > 0 && (
+                          <div className="mt-4">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Prerequisites:</span>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {milestone.prerequisites.map((prereq, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded text-xs"
+                                >
+                                  {prereq}
+                                </span>
+                              ))}
                             </div>
                           </div>
                         )}
 
-                        {/* Module List */}
-                        <div className="space-y-2">
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Modules ({milestone.modules.length}):
-                          </span>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {milestone.modules.map(moduleId => (
-                              <button
-                                key={moduleId}
-                                onClick={() => handleModuleClick(moduleId)}
-                                className="text-left p-2 bg-white dark:bg-gray-600 rounded border border-gray-200 dark:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors"
-                              >
-                                <span className="text-sm text-gray-900 dark:text-white">
-                                  {moduleId}
-                                </span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between mt-3 text-sm text-gray-500 dark:text-gray-400">
-                          <span>⏱️ {formatDuration(milestone.estimatedTime)}</span>
-                          {milestone.prerequisites.length > 0 && (
-                            <span>🔗 {milestone.prerequisites.length} prerequisites</span>
-                          )}
-                        </div>
+                        {milestone.status === 'available' && (
+                          <button
+                            onClick={() => handleStartPath(selectedPath.pathId)}
+                            className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium transition-colors hover:bg-blue-700"
+                          >
+                            Start This Milestone
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center">
-                <div className="text-6xl mb-4">🎯</div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
+                <div className="text-6xl mb-4">📚</div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                   Select a Learning Path
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Choose a path from the list to see detailed milestones and progress
+                  Choose a learning path from the list to view detailed information and milestones.
                 </p>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="mt-8 text-center">
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => router.push('/recommended-modules')}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium transition-colors hover:bg-blue-700"
-            >
-              View Recommended Modules
-            </button>
-            <button
-              onClick={() => router.push('/dashboard/student')}
-              className="px-6 py-3 bg-gray-600 text-white rounded-lg font-medium transition-colors hover:bg-gray-700"
-            >
-              Back to Dashboard
-            </button>
           </div>
         </div>
       </div>
