@@ -80,6 +80,8 @@ export async function POST(request: NextRequest) {
       const deviceId = formData.get('deviceId') as string;
       const consentForDataUsage = formData.get('consentForDataUsage') === 'true';
       const termsAndConditionsAccepted = formData.get('termsAndConditionsAccepted') === 'true';
+      // Accept uniqueId from form data if provided
+      const uniqueId = formData.get('uniqueId') as string | null;
 
       console.log('🔍 Form data extracted successfully');
       console.log('🔍 Required fields check:', {
@@ -149,7 +151,8 @@ export async function POST(request: NextRequest) {
         onboardingCompleted: true,
         onboardingCompletedAt: new Date(),
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        ...(uniqueId ? { uniqueId } : {})
       };
 
       console.log('🔍 Updating user profile...');

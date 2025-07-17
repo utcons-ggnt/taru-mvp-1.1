@@ -83,10 +83,11 @@ export default function ParentDashboard() {
         if (dashRes.ok) {
           const dashData = await dashRes.json();
           console.log('🔍 Dashboard data:', dashData);
-          
-          // Set child info if available
+
+          // Use studentDashboard block for student-related data
+          const sd = dashData.studentDashboard || {};
+          // Set child info if available (from parent-specific field)
           if (dashData.student) {
-            console.log('🔍 Setting child data:', dashData.student);
             setChild({
               name: dashData.student.name || dummyChild.name,
               grade: dashData.student.grade || dummyChild.grade,
@@ -95,48 +96,39 @@ export default function ParentDashboard() {
               email: dashData.student.email || dummyChild.email,
             });
           } else {
-            console.log('🔍 No student data found, using dummy data');
             setChild(dummyChild);
           }
-          
-          // Set stats if available
-          if (dashData.overview) {
-            console.log('🔍 Setting stats from overview:', dashData.overview);
+
+          // Set stats from studentDashboard.overview
+          if (sd.overview) {
             setStats([
-              { label: 'Ready Program', value: `${dashData.overview.completionRate || 0}%`, icon: '📚' },
-              { label: 'AI Smart Assist', value: `${dashData.overview.averageScore || 0}%`, icon: '🤖' },
-              { label: 'Range Analytics', value: `${dashData.overview.totalXp || 0} XP`, icon: '📊' },
+              { label: 'Ready Program', value: `${sd.overview.completedModules || 0}/${sd.overview.totalModules || 0}`, icon: '📚' },
+              { label: 'AI Smart Assist', value: `${sd.overview.averageScore || 0}%`, icon: '🤖' },
+              { label: 'Range Analytics', value: `${sd.overview.totalXp || 0} XP`, icon: '📊' },
             ]);
           } else {
-            console.log('🔍 No overview data found, using dummy stats');
             setStats(dummyStats);
           }
-          
-          // Set analytics if available - convert recent activity to analytics data
-          if (dashData.recentActivity && Array.isArray(dashData.recentActivity)) {
-            console.log('🔍 Setting analytics from recent activity:', dashData.recentActivity);
-            const activityAnalytics = dashData.recentActivity.map((activity: RecentActivity) => 
+
+          // Set analytics from studentDashboard.recentActivity
+          if (sd.recentActivity && Array.isArray(sd.recentActivity)) {
+            const activityAnalytics = sd.recentActivity.map((activity: RecentActivity) => 
               Math.round((activity.progress || 0) * 100)
             );
-            // Pad with zeros if less than 7 days
             while (activityAnalytics.length < 7) {
               activityAnalytics.push(0);
             }
             setAnalytics(activityAnalytics.slice(0, 7));
           } else {
-            console.log('🔍 No recent activity found, using dummy analytics');
             setAnalytics(dummyAnalytics);
           }
         } else {
-          console.log('🔍 Failed to fetch dashboard data, using dummy data');
-          const errorText = await dashRes.text();
-          console.error('🔍 Dashboard error:', errorText);
           setChild(dummyChild);
           setStats(dummyStats);
           setAnalytics(dummyAnalytics);
         }
-      } catch (error) {
-        console.error('🔍 Error fetching parent dashboard data:', error);
+      } catch {
+        // Handle error silently and use dummy data
         setChild(dummyChild);
         setStats(dummyStats);
         setAnalytics(dummyAnalytics);
@@ -145,8 +137,7 @@ export default function ParentDashboard() {
       }
     };
     fetchUserAndDashboard();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]); // dummyAnalytics, dummyChild, dummyStats are constants
+  }, [router]);
 
   if (isLoading) {
     return (

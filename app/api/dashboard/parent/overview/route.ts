@@ -210,6 +210,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
+      // Parent-specific fields
       student: {
         id: student.userId,
         name: student.fullName,
@@ -218,30 +219,37 @@ export async function GET(request: NextRequest) {
         school: student.schoolName,
         profilePicture: student.profilePictureUrl
       },
-      overview: {
-        totalModules,
-        completedModules,
-        inProgressModules,
-        completionRate,
-        totalXp,
-        averageScore,
-        totalTimeSpent: progress?.totalTimeSpent || 0
-      },
-      recentActivity,
       testResults,
-      notifications,
       progressReports,
-      recommendedModules: activeModules.slice(0, 3).map(foundModule => ({
-        id: foundModule.moduleId,
-        name: foundModule.name,
-        subject: foundModule.subject,
-        description: foundModule.description,
-        xpPoints: foundModule.xpPoints,
-        estimatedDuration: foundModule.estimatedDuration
-      })),
-      progress: {
-        badgesEarned: progress?.badgesEarned || [],
-        currentModule: progress?.currentModule || null
+      completionRate,
+      // Student dashboard parity block
+      studentDashboard: {
+        overview: {
+          totalModules,
+          completedModules,
+          inProgressModules,
+          totalXp,
+          averageScore,
+          studentName: student.fullName || studentUser.name,
+          grade: student.classGrade || studentUser.profile?.grade || 'Not set',
+          school: student.schoolName || 'Not set',
+          studentKey: student.uniqueId || 'Not available'
+        },
+        recentActivity,
+        notifications,
+        recommendedModules: activeModules.slice(0, 3).map(foundModule => ({
+          id: foundModule.moduleId,
+          name: foundModule.name,
+          subject: foundModule.subject,
+          description: foundModule.description,
+          xpPoints: foundModule.xpPoints,
+          estimatedDuration: foundModule.estimatedDuration
+        })),
+        progress: {
+          totalTimeSpent: progress?.totalTimeSpent || 0,
+          badgesEarned: progress?.badgesEarned || [],
+          currentModule: progress?.currentModule || null
+        }
       }
     });
 

@@ -63,11 +63,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate student linking for parent role
-    if (role === 'parent' && !profile?.linkedStudentUniqueId) {
-      return NextResponse.json(
-        { error: 'Student Unique ID is required for parent registration' },
-        { status: 400 }
-      );
+    if (role === 'parent') {
+      const studentId = profile?.linkedStudentUniqueId;
+      
+      if (!studentId) {
+        return NextResponse.json(
+          { error: 'Student Unique ID is required for parent registration' },
+          { status:400}
+        );
+      }
+      
+      // Validate student ID format
+      if (!studentId.startsWith('STU')) {
+        return NextResponse.json(
+          { error: 'Invalid student ID format. Student ID must start with "STU"' },
+          { status:400}
+        );
+      }
+      
+      if (studentId.length < 8) {
+        return NextResponse.json(
+          { error: 'Invalid student ID format. Student ID must be at least 8aracters long' },
+          { status:400}
+        );
+      }
     }
 
     // Create new user with role-specific profile mapping

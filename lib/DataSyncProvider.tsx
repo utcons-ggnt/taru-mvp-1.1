@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import dataSync, { DataSyncEvents, type SyncData } from './dataSync';
 
 // Context interface
@@ -149,7 +149,7 @@ export function useAutoDataSync<T = Record<string, unknown>>(
   const [error, setError] = useState<string | null>(null);
 
   // Fetch data function
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -174,7 +174,7 @@ export function useAutoDataSync<T = Record<string, unknown>>(
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [eventType, userId, fetchFunction, getCachedData, updateData]);
 
   // Subscribe to data updates
   useEffect(() => {
@@ -189,7 +189,7 @@ export function useAutoDataSync<T = Record<string, unknown>>(
   // Fetch data on mount and when dependencies change
   useEffect(() => {
     fetchData();
-  }, dependencies);
+  }, [fetchData, ...dependencies]);
 
   return {
     data,

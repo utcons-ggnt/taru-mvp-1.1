@@ -46,6 +46,7 @@ export default function Home() {
   }
 
   const handleRoleChange = (role: string) => {
+    console.log('Role changed to:', role);
     setSelectedRole(role)
     setFormData({
       fullName: '',
@@ -85,6 +86,21 @@ export default function Home() {
       return
     }
 
+    // Validate student ID format for parent registration
+    if (selectedRole === 'parent') {
+      const studentId = formData.classGrade.trim()
+      if (!studentId.startsWith('STU')) {
+        setError('Student ID must start with "STU (e.g., STUabc123def)')
+        setIsLoading(false)
+        return
+      }
+      if (studentId.length < 8) {
+        setError('Student ID must be at least 8 characters long')
+        setIsLoading(false)
+        return
+      }
+    }
+
     // Prepare profile data based on role
     let profileData: Record<string, string> = {}
     if (selectedRole === 'student') {
@@ -102,7 +118,7 @@ export default function Home() {
       }
     } else if (selectedRole === 'parent') {
       profileData = {
-        linkedStudentUniqueId: formData.classGrade,
+        linkedStudentUniqueId: formData.classGrade.trim(),
         location: formData.location,
         guardianName: formData.guardianName,
       }
@@ -238,40 +254,40 @@ export default function Home() {
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button 
                   onClick={() => handleRoleChange('student')}
-                  className={`flex-1 px-3 py-2 rounded-md font-medium text-xs transition-all duration-200 ${
+                  className={`flex-1 px-3 py-2 rounded-md font-medium text-xs transition-all duration-200 border-2 ${
                     selectedRole === 'student' 
-                      ? 'bg-white text-gray-900 shadow-sm font-semibold' 
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-white text-gray-900 shadow-sm font-semibold border-purple-500' 
+                      : 'text-gray-600 hover:text-gray-900 border-transparent'
                   }`}
                 >
                   Student
                 </button>
                 <button 
                   onClick={() => handleRoleChange('teacher')}
-                  className={`flex-1 px-3 py-2 rounded-md font-medium text-xs transition-all duration-200 ${
+                  className={`flex-1 px-3 py-2 rounded-md font-medium text-xs transition-all duration-200 border-2 ${
                     selectedRole === 'teacher' 
-                      ? 'bg-white text-gray-900 shadow-sm font-semibold' 
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-white text-gray-900 shadow-sm font-semibold border-purple-500' 
+                      : 'text-gray-600 hover:text-gray-900 border-transparent'
                   }`}
                 >
                   Teacher
                 </button>
                 <button 
                   onClick={() => handleRoleChange('parent')}
-                  className={`flex-1 px-3 py-2 rounded-md font-medium text-xs transition-all duration-200 ${
+                  className={`flex-1 px-3 py-2 rounded-md font-medium text-xs transition-all duration-200 border-2 ${
                     selectedRole === 'parent' 
-                      ? 'bg-white text-gray-900 shadow-sm font-semibold' 
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-white text-gray-900 shadow-sm font-semibold border-purple-500' 
+                      : 'text-gray-600 hover:text-gray-900 border-transparent'
                   }`}
                 >
                   Parent
                 </button>
                 <button 
                   onClick={() => handleRoleChange('organization')}
-                  className={`flex-1 px-3 py-2 rounded-md font-medium text-xs transition-all duration-200 ${
+                  className={`flex-1 px-3 py-2 rounded-md font-medium text-xs transition-all duration-200 border-2 ${
                     selectedRole === 'organization' 
-                      ? 'bg-white text-gray-900 shadow-sm font-semibold' 
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-white text-gray-900 shadow-sm font-semibold border-purple-500' 
+                      : 'text-gray-600 hover:text-gray-900 border-transparent'
                   }`}
                 >
                   Organisation
@@ -318,12 +334,17 @@ export default function Home() {
                     placeholder={
                       selectedRole === 'student' ? 'Class/Grade' : 
                       selectedRole === 'teacher' ? 'Subject' : 
-                      selectedRole === 'parent' ? 'Student ID' : 
+                      selectedRole === 'parent' ? 'Student ID (e.g., STUabc123def)' : 
                       'Organization Type'
                     }
-                    className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black"
+                    className="w-full px-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black"
                     required
                   />
+                  {selectedRole === 'parent' && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter the student ID provided by your child
+                    </p>
+                  )}
                 </div>
                 <div>
                   <input
@@ -337,7 +358,7 @@ export default function Home() {
                       selectedRole === 'parent' ? 'Location' : 
                       'Industry'
                     }
-                    className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black"
+                    className="w-full px-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black"
                     required
                   />
                 </div>

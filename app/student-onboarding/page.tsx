@@ -93,6 +93,9 @@ interface StudentOnboardingData {
   // Consent
   consentForDataUsage: boolean;
   termsAndConditionsAccepted: boolean;
+  
+  // Student ID
+  uniqueId: string;
 }
 
 const languageOptions = [
@@ -141,7 +144,8 @@ export default function StudentOnboarding() {
     location: '',
     deviceId: 'device_' + Math.random().toString(36).substr(2, 9),
     consentForDataUsage: false,
-    termsAndConditionsAccepted: false
+    termsAndConditionsAccepted: false,
+    uniqueId: '' // Initialize uniqueId
   });
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
@@ -349,12 +353,23 @@ export default function StudentOnboarding() {
 
     setIsSubmitting(true);
     try {
-      console.log('🔍 Submitting form data:', formData);
+      // Generate unique student ID
+      const timestamp = Date.now().toString(36);
+      const randomStr = Math.random().toString(36).substring(2, 5).toUpperCase();
+      const generatedUniqueId = `STU${timestamp}${randomStr}`;
+      
+      // Update form data with generated unique ID
+      const formDataWithUniqueId = {
+        ...formData,
+        uniqueId: generatedUniqueId
+      };
+      
+      console.log('🔍 Submitting form data:', formDataWithUniqueId);
       
       const formDataToSend = new FormData();
       
-      // Append all form data
-      for (const [key, value] of Object.entries(formData)) {
+      // Append all form data including uniqueId
+      for (const [key, value] of Object.entries(formDataWithUniqueId)) {
         if (key === 'profilePicture' && value instanceof File) {
           formDataToSend.append(key, value);
         } else if (Array.isArray(value)) {
@@ -380,7 +395,7 @@ export default function StudentOnboarding() {
       if (response.ok) {
         const result = await response.json();
         console.log('🔍 Success result:', result);
-        setUniqueId(result.uniqueId);
+        setUniqueId(result.uniqueId || generatedUniqueId);
         setIsSuccess(true);
       } else {
         const errorData = await response.json();
