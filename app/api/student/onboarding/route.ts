@@ -111,18 +111,8 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      // Handle profile picture upload
-      let profilePictureUrl = null;
-      const profilePicture = formData.get('profilePicture') as File;
-      
-      if (profilePicture) {
-        // In a real application, you would upload to a cloud storage service
-        // For now, we'll store the file info
-        profilePictureUrl = `/uploads/profile-pictures/${Date.now()}-${profilePicture.name}`;
-        
-        // TODO: Implement actual file upload to cloud storage
-        // Example: Upload to AWS S3, Google Cloud Storage, etc.
-      }
+      // Handle profile picture - no default, will be blank if not provided
+      const profilePictureUrl = null;
 
       // Create student profile data
       const studentProfile = {

@@ -6,6 +6,7 @@ import Student from '@/models/Student';
 import StudentProgress from '@/models/StudentProgress';
 import Assessment from '@/models/Assessment';
 import Module from '@/models/Module';
+import { sanitizeProfilePictureUrl } from '@/lib/utils';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -217,7 +218,7 @@ export async function GET(request: NextRequest) {
         email: studentUser.email,
         grade: student.classGrade,
         school: student.schoolName,
-        profilePicture: student.profilePictureUrl
+        profilePicture: sanitizeProfilePictureUrl(student.profilePictureUrl)
       },
       testResults,
       progressReports,

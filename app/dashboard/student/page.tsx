@@ -492,7 +492,6 @@ export default function StudentDashboard() {
           {/* Welcome Section */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
             <div className="flex items-center gap-4 mb-4 md:mb-0">
-              <Image src="/avatar.png" alt="User Avatar" width={64} height={64} className="w-16 h-16 rounded-full border-2 border-purple-400" />
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Welcome back, {dashboardData.overview.studentName || user.name}!</h2>
                 <p className="text-gray-700 text-sm">Ready for another fun quest? 🚀</p>

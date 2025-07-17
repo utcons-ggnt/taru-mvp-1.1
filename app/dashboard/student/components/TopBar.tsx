@@ -31,7 +31,6 @@ export default function TopBar({ user, language, onLanguageChange }: { user: { n
         </button>
         {/* User Avatar */}
         <div className="flex items-center gap-2">
-          <Image src="/avatar.png" alt="User Avatar" width={32} height={32} className="w-8 h-8 rounded-full border border-gray-300" />
           <span className="font-semibold text-gray-900 text-sm">{user?.name || 'Aanya'}</span>
         </div>
       </div>

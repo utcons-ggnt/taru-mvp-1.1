@@ -73,7 +73,6 @@ interface StudentOnboardingData {
   classGrade: string;
   schoolName: string;
   schoolId: string;
-  profilePicture: File | null;
   
   // Preferences
   languagePreference: string;
@@ -133,7 +132,6 @@ export default function StudentOnboarding() {
     classGrade: '',
     schoolName: 'Demo School', // Auto-filled based on entity
     schoolId: '',
-    profilePicture: null,
     languagePreference: '',
     learningModePreference: [],
     interestsOutsideClass: [],
@@ -321,7 +319,7 @@ export default function StudentOnboarding() {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const handleInputChange = (field: keyof StudentOnboardingData, value: string | number | boolean | File | null | string[]) => {
+  const handleInputChange = (field: keyof StudentOnboardingData, value: string | number | boolean | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field as string]) {
@@ -335,16 +333,10 @@ export default function StudentOnboarding() {
 
   const handleMultiSelect = (field: keyof StudentOnboardingData, value: string) => {
     const currentValues = formData[field] as string[];
-    const newValues = currentValues.includes(value)
-      ? currentValues.filter(v => v !== value)
-      : [...currentValues, value];
-    handleInputChange(field, newValues);
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleInputChange('profilePicture', file);
+    if (currentValues.includes(value)) {
+      handleInputChange(field, currentValues.filter(v => v !== value));
+    } else {
+      handleInputChange(field, [...currentValues, value]);
     }
   };
 
@@ -370,9 +362,7 @@ export default function StudentOnboarding() {
       
       // Append all form data including uniqueId
       for (const [key, value] of Object.entries(formDataWithUniqueId)) {
-        if (key === 'profilePicture' && value instanceof File) {
-          formDataToSend.append(key, value);
-        } else if (Array.isArray(value)) {
+        if (Array.isArray(value)) {
           formDataToSend.append(key, JSON.stringify(value));
         } else {
           formDataToSend.append(key, String(value));
@@ -616,18 +606,6 @@ export default function StudentOnboarding() {
           placeholder="Enter your school ID"
         />
         {errors.schoolId && <p className="text-red-500 text-sm mt-1">{errors.schoolId}</p>}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Profile Picture
-        </label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileUpload}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
-        />
       </div>
     </div>
   );

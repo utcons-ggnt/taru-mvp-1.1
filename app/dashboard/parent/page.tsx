@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { isValidProfilePictureUrl } from '@/lib/utils';
 
 interface ChildProfile {
   name: string;
@@ -37,7 +38,23 @@ export default function ParentDashboard() {
   const [stats, setStats] = useState(dummyStats);
   const [analytics, setAnalytics] = useState(dummyAnalytics);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [language, setLanguage] = useState('English (USA)');
   const router = useRouter();
+
+  // Parent-specific navigation items
+  const navItems = [
+    { id: 'overview', label: 'Overview', icon: '📊' },
+    { id: 'child-progress', label: 'Child Progress', icon: '📈' },
+    { id: 'reports', label: 'Reports', icon: '📋' },
+    { id: 'messages', label: 'Messages', icon: '💬' },
+    { id: 'settings', label: 'Settings', icon: '⚙️' },
+  ];
+
+  const handleLanguageChange = (lang: string) => {
+    setLanguage(lang);
+    localStorage.setItem('lang', lang);
+  };
 
   const handleLogout = async () => {
     try {
@@ -55,6 +72,11 @@ export default function ParentDashboard() {
       router.push('/login');
     }
   };
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem('lang');
+    if (savedLang) setLanguage(savedLang);
+  }, []);
 
   useEffect(() => {
     const fetchUserAndDashboard = async () => {
@@ -148,75 +170,201 @@ export default function ParentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-white px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-10">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-2">
-            <Image src="/jio-logo.png" alt="Logo" width={32} height={32} className="w-8 h-8" />
-            <span className="font-semibold text-gray-700 text-lg">
-              Parent <span className="text-purple-600">Dashboard</span>
-            </span>
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
+      <aside className="flex flex-col h-full w-64 bg-white border-r border-gray-300 py-6 px-4 justify-between">
+        <div>
+          <div className="flex items-center mb-10">
+            <Image src="/jio-logo.png" alt="Jio Logo" width={48} height={48} className="w-12 h-12 mr-2" />
           </div>
-          <div className="flex items-center gap-3">
-            <button className="rounded-full bg-gray-100 p-2 hover:bg-gray-200">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-gray-500">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.5a7.5 7.5 0 1115 0v.75a.75.75 0 01-.75.75h-13.5a.75.75 0 01-.75-.75V19.5z" />
-              </svg>
-            </button>
-            <button 
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-              </svg>
-              Logout
-            </button>
-          </div>
-        </div>
-        {/* Your Children Card */}
-        <div className="bg-gray-50 rounded-xl p-4 flex items-center gap-6 mb-8 shadow-sm">
-          <Image 
-            src={child?.avatar || '/landingPage.png'} 
-            alt="Child Avatar" 
-            width={80} height={80}
-            className="w-20 h-20 rounded-full object-cover border-2 border-purple-500" 
-            onError={(e) => {
-              e.currentTarget.src = '/landingPage.png';
-            }}
-          />
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold text-gray-700 text-lg truncate">{child?.name}</div>
-            <div className="text-xs text-gray-500 mt-1">Grade: <span className="font-medium text-gray-700">{child?.grade}</span></div>
-            {child?.school && <div className="text-xs text-gray-500 mt-1 truncate">School: <span className="font-medium text-gray-700">{child.school}</span></div>}
-            {child?.email && <div className="text-xs text-gray-500 mt-1 truncate">Email: <span className="font-medium text-gray-700">{child.email}</span></div>}
-            <Link href="#" className="inline-block mt-3 text-xs text-purple-600 font-semibold hover:underline">View All Learners</Link>
-          </div>
-        </div>
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-          {stats.map((stat) => (
-            <div key={stat.label} className="bg-white rounded-lg shadow p-6 flex flex-col items-center border border-gray-100">
-              <span className="text-2xl mb-1">{stat.icon}</span>
-              <span className="font-bold text-lg text-purple-600">{stat.value}</span>
-              <span className="text-xs text-gray-500 text-center">{stat.label}</span>
-            </div>
-          ))}
-        </div>
-        {/* Analytics Bar (Dummy or Real) */}
-        <div className="bg-gray-50 rounded-xl p-4 flex flex-col items-center relative mb-8">
-          <div className="w-full h-24 flex items-end gap-2">
-            {(analytics || dummyAnalytics).map((h, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center">
-                <div className="w-4 bg-purple-400 rounded-t" style={{ height: `${h}%` }}></div>
-              </div>
+          <nav className="flex flex-col gap-1">
+            {navItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg text-left transition-colors font-medium text-gray-900 ${activeTab === item.id ? 'bg-purple-600 text-white' : 'hover:bg-purple-100'}`}
+              >
+                <span className="text-lg">{item.icon}</span>
+                {item.label}
+              </button>
             ))}
-          </div>
-          <div className="flex justify-between w-full mt-2 text-xs text-gray-400">
-            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+          </nav>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-2 mt-6 rounded-lg text-left text-red-600 hover:bg-red-100 font-medium"
+          >
+            <span className="text-lg">🚪</span> Logout
+          </button>
+        </div>
+        <div className="mt-10">
+          <div className="bg-purple-100 rounded-xl p-4 flex flex-col items-center">
+            <Image src="/ai-buddy.png" alt="AI Buddy" width={64} height={64} className="w-16 h-16 rounded-full mb-2" />
+            <div className="text-sm font-semibold text-gray-900">Ask <span className="text-purple-600">AI Buddy</span></div>
           </div>
         </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Bar */}
+        <div className="flex items-center justify-between w-full px-6 py-4 bg-white border-b border-gray-200">
+          {/* Search Bar */}
+          <div className="flex-1 flex items-center">
+            <input
+              type="text"
+              placeholder="Search"
+              className="w-80 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm text-gray-900"
+            />
+          </div>
+          {/* Language Selector */}
+          <div className="flex items-center gap-4">
+            <select
+              value={language}
+              onChange={e => handleLanguageChange(e.target.value)}
+              className="border border-gray-400 px-3 py-1.5 rounded-md text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300 text-gray-900"
+            >
+              <option value="English (USA)">English (USA)</option>
+              <option value="हिन्दी">हिन्दी</option>
+              <option value="मराठी">मराठी</option>
+            </select>
+            {/* Notification Bell */}
+            <button className="relative text-gray-900 hover:text-purple-600">
+              <span className="text-2xl">🔔</span>
+              {/* Notification dot */}
+              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+            </button>
+            {/* User Avatar */}
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-900 text-sm">Parent</span>
+            </div>
+          </div>
+        </div>
+
+        <main className="flex-1 p-8 overflow-y-auto">
+          {/* Welcome Section */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+            <div className="flex items-center gap-4 mb-4 md:mb-0">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Welcome back, Parent!</h2>
+                <p className="text-gray-700 text-sm">Monitor your child's learning journey 🚀</p>
+              </div>
+            </div>
+            {/* Stats Cards */}
+            <div className="flex gap-4">
+              {stats.map((stat) => (
+                <div key={stat.label} className="bg-white rounded-lg shadow p-4 flex flex-col items-center border border-gray-100">
+                  <span className="text-2xl mb-1">{stat.icon}</span>
+                  <span className="font-bold text-lg text-purple-600">{stat.value}</span>
+                  <span className="text-xs text-gray-500 text-center">{stat.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Child Profile Card */}
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+            <div className="flex items-center gap-6">
+              {child?.avatar && isValidProfilePictureUrl(child.avatar) ? (
+                <Image 
+                  src={child.avatar}
+                  alt="Child Avatar" 
+                  width={80} height={80}
+                  className="w-20 h-20 rounded-full object-cover border-2 border-purple-500" 
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full border-2 border-gray-200 bg-gray-100" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-gray-800 text-xl truncate flex items-center gap-2">
+                  {child?.name}
+                  <span className="ml-2 px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-700 font-semibold">{child?.grade}</span>
+                </div>
+                {child?.school && <div className="text-xs text-gray-500 mt-1 truncate">🏫 {child.school}</div>}
+                {child?.email && <div className="text-xs text-gray-500 mt-1 truncate">✉️ {child.email}</div>}
+                <Link href="#" className="inline-block mt-3 text-xs text-purple-600 font-semibold hover:underline">View All Learners</Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-gray-900">Today's progress</span>
+              <span className="text-sm text-gray-700">{stats[0]?.value || '0%'} Complete - Keep going! 🚀</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-4">
+              <div className="bg-purple-500 h-4 rounded-full transition-all" style={{ width: stats[0]?.value || '0%' }}></div>
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="mt-8">
+            {activeTab === 'overview' && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Overview</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-medium text-gray-700 mb-2">Recent Activity</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span>Completed Math Basics module</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        <span>Earned "Quiz Master" badge</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+                        <span>Progress increased by 10%</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-700 mb-2">Weekly Analytics</h4>
+                    <div className="flex items-end gap-1 h-20">
+                      {analytics.map((h, i) => (
+                        <div key={i} className="flex-1 flex flex-col items-center">
+                          <div className="w-4 bg-purple-400 rounded-t" style={{ height: `${h}%` }}></div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between w-full mt-2 text-xs text-gray-400">
+                      <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {activeTab === 'child-progress' && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Child Progress</h3>
+                <p className="text-gray-600">Detailed progress reports and analytics will be displayed here.</p>
+              </div>
+            )}
+            {activeTab === 'reports' && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Reports</h3>
+                <p className="text-gray-600">Academic reports and performance summaries will be displayed here.</p>
+              </div>
+            )}
+            {activeTab === 'messages' && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Messages</h3>
+                <p className="text-gray-600">Communication with teachers and school will be displayed here.</p>
+              </div>
+            )}
+            {activeTab === 'settings' && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Settings</h3>
+                <p className="text-gray-600">Account settings and preferences will be displayed here.</p>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
     </div>
   );
