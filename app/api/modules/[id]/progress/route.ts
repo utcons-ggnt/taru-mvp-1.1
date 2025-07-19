@@ -4,8 +4,6 @@ import StudentProgress, { IModuleProgress, IGamificationProgress, IQuizAttempt }
 import Module, { IModule } from '@/models/Module';
 import User from '@/models/User';
 import jwt from 'jsonwebtoken';
-import { syncMultipleDataInAPI } from '@/lib/apiDataSync';
-import { DataSyncEvents } from '@/lib/dataSync';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -442,33 +440,6 @@ export async function POST(
       totalModulesCompleted: studentProgress.totalModulesCompleted,
       learningStreak: studentProgress.learningStreak
     };
-
-    // Sync data across the application
-    await syncMultipleDataInAPI([
-      {
-        eventType: DataSyncEvents.PROGRESS_UPDATED,
-        data: responseData,
-        userId: decoded.userId,
-        source: 'api'
-      },
-      {
-        eventType: DataSyncEvents.STUDENT_PROGRESS_UPDATED,
-        data: studentProgress,
-        userId: decoded.userId,
-        source: 'api'
-      },
-      {
-        eventType: DataSyncEvents.DASHBOARD_UPDATED,
-        data: {
-          totalPoints: studentProgress.totalPoints,
-          totalModulesCompleted: studentProgress.totalModulesCompleted,
-          learningStreak: studentProgress.learningStreak,
-          lastUpdated: new Date()
-        },
-        userId: decoded.userId,
-        source: 'api'
-      }
-    ]);
 
     return NextResponse.json({
       success: true,

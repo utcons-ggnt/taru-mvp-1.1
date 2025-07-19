@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Clock, Star, CheckCircle, XCircle, Users, Code, FileText, Trophy, Brain, Target, Award } from 'lucide-react';
-import { useAutoDataSync } from '@/lib/DataSyncProvider';
-import { DataSyncEvents } from '@/lib/dataSync';
 
 // YouTube API types
 declare global {
@@ -234,32 +232,37 @@ export default function ModulesTab() {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Use data synchronization for modules
-  const { data: modulesData } = useAutoDataSync(
-    DataSyncEvents.MODULE_UPDATED,
-    async () => {
-      const response = await fetch('/api/modules/recommended');
-      if (!response.ok) {
-        throw new Error('Failed to fetch modules');
-      }
-      const data = await response.json();
-      return data.modules || [];
-    },
-    'modules',
-    []
-  );
+  const [modulesData, setModulesData] = useState<Module[]>([]);
+  const [modulesLoading, setModulesLoading] = useState(true);
 
-  // Update modules state when data changes
+  // Fetch modules data
   useEffect(() => {
-    if (modulesData) {
-      setModules(modulesData);
-      setLoading(false);
-      
-      // Load progress for each module
-      modulesData.forEach((module: Module) => {
-        loadModuleProgress(module.id);
-      });
-    }
-  }, [modulesData]);
+    const fetchModules = async () => {
+      try {
+        setModulesLoading(true);
+        const response = await fetch('/api/modules/recommended');
+        if (!response.ok) {
+          throw new Error('Failed to fetch modules');
+        }
+        const data = await response.json();
+        const modules = data.modules || [];
+        setModulesData(modules);
+        setModules(modules);
+        setLoading(false);
+        
+        // Load progress for each module
+        modules.forEach((module: Module) => {
+          loadModuleProgress(module.id);
+        });
+      } catch (error) {
+        console.error('Error fetching modules:', error);
+        setModulesLoading(false);
+        setLoading(false);
+      }
+    };
+
+    fetchModules();
+  }, []);
 
   const loadModuleProgress = async (moduleId: string) => {
     try {

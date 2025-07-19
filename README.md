@@ -77,18 +77,12 @@ taru2/
 │   ├── parent-onboarding/     # Parent onboarding flow
 │   └── student-onboarding/    # Student onboarding flow
 ├── components/                # Shared components
-│   └── DataSyncExample.tsx    # Data sync demonstration
 ├── lib/                       # Utility libraries
-│   ├── dataSync.ts           # Core synchronization engine
-│   ├── DataSyncProvider.tsx  # React context provider
-│   ├── useDataSync.ts        # React hooks for data sync
-│   ├── apiDataSync.ts        # API integration utilities
 │   └── mongodb.ts            # Database connection
 ├── models/                    # Database models
 ├── scripts/                   # Database seeding
 │   └── seed-modules.js       # Module data seeding
 ├── docs/                      # Documentation
-│   └── DATA_SYNC_GUIDE.md    # Data sync system guide
 └── types/                     # TypeScript definitions
 ```
 
@@ -130,27 +124,6 @@ npm run dev
 
 6. **Access the application**
    Open http://localhost:3000 in your browser
-
-## 🔄 Data Synchronization System
-
-The platform includes a sophisticated real-time data synchronization system that ensures all data is consistently updated across all components without losing any existing content.
-
-### Key Features
-- **Event-driven architecture**: Uses predefined event types for different data updates
-- **Multiple sync strategies**: Basic, automatic, real-time, and optimistic synchronization
-- **Global state management**: Consistent data across all components
-- **Connection monitoring**: Automatic reconnection and data recovery
-- **Caching system**: Intelligent caching with TTL for performance
-
-### Available Hooks
-- `useDataSync` - Basic data synchronization
-- `useAutoDataSync` - Automatic API integration
-- `useRealtimeDataSync` - Real-time updates with polling
-- `useOptimisticDataSync` - Optimistic updates with rollback
-- `useMultiDataSync` - Multiple data subscriptions
-- `useGlobalDataSync` - Global state monitoring
-
-For detailed usage examples and API documentation, see [docs/DATA_SYNC_GUIDE.md](docs/DATA_SYNC_GUIDE.md).
 
 ## 📚 Learning Platform Flow
 

@@ -15,7 +15,9 @@ export default function Sidebar({ activeTab, onTabChange }: { activeTab: string,
     <aside className="flex flex-col h-full w-64 bg-white border-r border-gray-300 py-6 px-4 justify-between">
       <div>
         <div className="flex items-center mb-10">
-          <Image src="/jio-logo.png" alt="Jio Logo" width={48} height={48} className="w-12 h-12 mr-2" />
+          <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+            <Image src="/jio-logo.png" alt="Jio Logo" width={32} height={32} className="w-8 h-8" />
+          </div>
         </div>
         <nav className="flex flex-col gap-1">
           {navItems.map(item => (

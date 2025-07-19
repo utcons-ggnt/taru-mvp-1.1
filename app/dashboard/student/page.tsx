@@ -13,8 +13,6 @@ import ProgressTab from './components/ProgressTab';
 import RewardsTab from './components/RewardsTab';
 import SettingsTab from './components/SettingsTab';
 import Image from 'next/image';
-import { useAutoDataSync } from '@/lib/DataSyncProvider';
-import { DataSyncEvents } from '@/lib/dataSync';
 
 interface StudentProfile {
   name: string;
@@ -24,6 +22,7 @@ interface StudentProfile {
     grade?: string;
     school?: string;
   };
+  _id?: string; // Added for user ID
 }
 
 interface Notification {
@@ -133,35 +132,54 @@ export default function StudentDashboard() {
   }, [router]);
 
   // Use data synchronization for dashboard data
-  const { data: dashboardData, isLoading: dataLoading } = useAutoDataSync(
-    DataSyncEvents.DASHBOARD_UPDATED,
-    async () => {
-      if (!user) throw new Error('User not available');
-      const response = await fetch('/api/dashboard/student/overview');
-      if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data');
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!user) return;
+      try {
+        setDashboardLoading(true);
+        const response = await fetch('/api/dashboard/student/overview');
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data');
+        }
+        const data = await response.json();
+        setDashboardData(data);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setDashboardLoading(false);
       }
-      return response.json();
-    },
-    user?.email, // Use email as userId
-    [user]
-  );
+    };
+
+    fetchDashboardData();
+  }, [user]);
 
   // Use data synchronization for assessment data
-  const { data: assessmentData } = useAutoDataSync(
-    DataSyncEvents.ASSESSMENT_UPDATED,
-    async () => {
-      if (!user) throw new Error('User not available');
-      const response = await fetch('/api/assessment/diagnostic');
-      if (!response.ok) {
-        throw new Error('Failed to fetch assessment data');
+  const [assessmentData, setAssessmentData] = useState<DashboardData['assessment'] | null>(null);
+  const [assessmentLoading, setAssessmentLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAssessmentData = async () => {
+      if (!user) return;
+      try {
+        setAssessmentLoading(true);
+        const response = await fetch('/api/assessment/diagnostic');
+        if (!response.ok) {
+          throw new Error('Failed to fetch assessment data');
+        }
+        const data = await response.json();
+        setAssessmentData(data.assessment);
+      } catch (error) {
+        console.error('Error fetching assessment data:', error);
+      } finally {
+        setAssessmentLoading(false);
       }
-      const data = await response.json();
-      return data.assessment;
-    },
-    user?.email,
-    [user]
-  );
+    };
+
+    fetchAssessmentData();
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -288,79 +306,6 @@ export default function StudentDashboard() {
     ? Math.round((dashboardData.overview.completedModules / Math.max(1, dashboardData.overview.totalModules)) * 100)
     : dummyProgressPercent;
 
-  // Map recommended modules to learning cards with real data, fallback to dummy (unused since ModulesTab fetches its own data)
-  // const learningModules = dashboardData?.recommendedModules && dashboardData.recommendedModules.length > 0
-  //   ? dashboardData.recommendedModules.map((mod) => ({
-  //       id: mod.id,
-  //       image: subjectImages[mod.subject] || '/math.png',
-  //       title: mod.name,
-  //       xp: mod.xpPoints,
-  //       time: mod.estimatedDuration ? `${mod.estimatedDuration} min` : '',
-  //       progress: 0, // Will be updated when we have progress data
-  //       enroll: false,
-  //       moduleId: mod.id,
-  //       videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Sample video URL
-  //       totalDuration: 180, // 3 minutes in seconds
-  //       questions: [
-  //         {
-  //           id: '1',
-  //           question: `What is the main topic of this ${mod.subject} lesson?`,
-  //           options: [
-  //             'Basic concepts',
-  //             'Advanced techniques',
-  //             'Problem solving',
-  //             'Review and practice'
-  //           ],
-  //           correctAnswer: 0,
-  //           explanation: 'This lesson covers the fundamental concepts of the topic.'
-  //         },
-  //         {
-  //           id: '2',
-  //           question: 'Which of the following best describes the learning objective?',
-  //           options: [
-  //             'Memorize formulas',
-  //             'Understand concepts',
-  //             'Complete exercises',
-  //             'Take tests'
-  //           ],
-  //           correctAnswer: 1,
-  //           explanation: 'The main goal is to understand the underlying concepts.'
-  //         }
-  //       ]
-  //     }))
-  //   : dummyLearningModules.map((mod, index) => ({
-  //       ...mod,
-  //       id: `dummy-${index}`,
-  //       videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-  //       totalDuration: 180,
-  //       questions: [
-  //         {
-  //           id: '1',
-  //           question: 'What is the main topic of this lesson?',
-  //           options: [
-  //             'Basic concepts',
-  //             'Advanced techniques',
-  //             'Problem solving',
-  //             'Review and practice'
-  //           ],
-  //           correctAnswer: 0,
-  //           explanation: 'This lesson covers the fundamental concepts of the topic.'
-  //         },
-  //         {
-  //           id: '2',
-  //           question: 'Which of the following best describes the learning objective?',
-  //           options: [
-  //             'Memorize formulas',
-  //             'Understand concepts',
-  //             'Complete exercises',
-  //             'Take tests'
-  //           ],
-  //           correctAnswer: 1,
-  //           explanation: 'The main goal is to understand the underlying concepts.'
-  //         }
-  //       ]
-  //     }));
-
   // Map recent activity to courses with real module names, fallback to dummy
   const courses = dashboardData?.recentActivity && dashboardData.recentActivity.length > 0
     ? dashboardData.recentActivity.map((activity: { moduleId: string; progress: number }) => {
@@ -412,8 +357,8 @@ export default function StudentDashboard() {
     ? {
         name: dashboardData.overview.studentName || user.name || dummyProfile.name,
         email: user.email || dummyProfile.email,
-        grade: dashboardData.overview.grade || dummyProfile.grade,
-        school: dashboardData.overview.school || dummyProfile.school,
+        grade: dashboardData.overview.grade || user.profile?.grade || dummyProfile.grade,
+        school: dashboardData.overview.school || user.profile?.school || dummyProfile.school,
         language: language,
         studentKey: dashboardData.overview.studentKey || 'Not available',
       }
@@ -456,7 +401,7 @@ export default function StudentDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]); // handleLogout is stable
 
-  if (isLoading || dataLoading) {
+  if (isLoading || dashboardLoading || assessmentLoading) {
     return (
       <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
         <div className="w-full md:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-6 py-8 text-white flex flex-col justify-between relative">
@@ -487,49 +432,151 @@ export default function StudentDashboard() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Top Bar */}
-        <TopBar user={user} language={language} onLanguageChange={handleLanguageChange} />
+        <div className="flex items-center justify-between w-full px-6 py-4 bg-white border-b border-gray-200">
+          {/* Search Bar */}
+          <div className="flex-1 flex items-center">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
+              <input
+                type="text"
+                placeholder="Search"
+                className="w-80 pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm text-gray-900"
+              />
+            </div>
+          </div>
+          {/* Language Selector and User */}
+          <div className="flex items-center gap-4">
+            <select
+              value={language}
+              onChange={e => handleLanguageChange(e.target.value)}
+              className="border border-gray-400 px-3 py-1.5 rounded-md text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300 text-gray-900"
+            >
+              <option value="English (USA)">English (USA)</option>
+              <option value="हिन्दी">हिन्दी</option>
+              <option value="मराठी">मराठी</option>
+            </select>
+            {/* Notification Bell */}
+            <button className="relative text-gray-900 hover:text-purple-600">
+              <span className="text-2xl">🔔</span>
+              {/* Notification dot */}
+              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+            </button>
+            {/* User Avatar */}
+            <div className="flex items-center gap-2">
+              <Image src="/avatar.png" alt="User Avatar" width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
+              <span className="font-semibold text-gray-900 text-sm">
+                {user.name} #{user._id?.toString().slice(-4) || '0000'}
+              </span>
+            </div>
+          </div>
+        </div>
         <main className="flex-1 p-8 overflow-y-auto">
-          {/* Welcome Section */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-            <div className="flex items-center gap-4 mb-4 md:mb-0">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Welcome back, {dashboardData.overview.studentName || user.name}!</h2>
-                <p className="text-gray-700 text-sm">Ready for another fun quest? 🚀</p>
-              </div>
-            </div>
-            <StatsCards xp={stats.xp} badges={stats.badges} modules={stats.modules} />
-          </div>
-          {/* Progress Bar */}
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-gray-900">Today&apos;s progress</span>
-              <span className="text-sm text-gray-700">{progressPercent}% Complete - Keep going! 🚀</span>
-            </div>
-            <ProgressTrain percent={progressPercent} />
-          </div>
           {/* Tab Content */}
-          <div className="mt-8">
+          <div className="mt-0">
             {activeTab === 'overview' && (
-              <OverviewTab courses={courses} tests={tests} />
+              <>
+                {/* Welcome Section and Stats only for Overview */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+                  <div className="flex items-center gap-4 mb-4 md:mb-0">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        Welcome back, {user.name}!
+                      </h2>
+                      <p className="text-gray-700 text-sm">
+                        {user.profile?.grade ? `Grade ${user.profile.grade}` : ''} 
+                        {user.profile?.school ? ` • ${user.profile.school}` : ''}
+                        {!user.profile?.grade && !user.profile?.school ? 'Ready for another fun quest? 🚀' : ''}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Stats Cards */}
+                  <div className="flex gap-4">
+                    <div className="bg-white rounded-lg shadow-sm p-4 flex flex-col items-center border border-gray-100 min-w-[120px]">
+                      <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mb-2">
+                        <span className="text-white text-sm">📚</span>
+                      </div>
+                      <span className="font-bold text-2xl text-gray-900">{dashboardData?.overview?.inProgressModules || 3}</span>
+                      <span className="text-xs text-gray-500 text-center">Course in Progress</span>
+                      <span className="text-xs text-gray-400 mt-1">75+ XP</span>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-sm p-4 flex flex-col items-center border border-gray-100 min-w-[120px]">
+                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mb-2">
+                        <span className="text-white text-sm">✅</span>
+                      </div>
+                      <span className="font-bold text-2xl text-gray-900">{dashboardData?.overview?.completedModules || 6}</span>
+                      <span className="text-xs text-gray-500 text-center">Course Completed</span>
+                      <span className="text-xs text-gray-400 mt-1">75+ XP</span>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-sm p-4 flex flex-col items-center border border-gray-100 min-w-[120px]">
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mb-2">
+                        <span className="text-white text-sm">🎓</span>
+                      </div>
+                      <span className="font-bold text-2xl text-gray-900">{dashboardData?.progress?.badgesEarned?.length || 12}</span>
+                      <span className="text-xs text-gray-500 text-center">Certificates Earned</span>
+                      <span className="text-xs text-gray-400 mt-1">75+ XP</span>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-sm p-4 flex flex-col items-center border border-gray-100 min-w-[120px]">
+                      <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center mb-2">
+                        <span className="text-white text-sm">🤖</span>
+                      </div>
+                      <span className="font-bold text-2xl text-gray-900">100</span>
+                      <span className="text-xs text-gray-500 text-center">AI Avatar Support</span>
+                      <span className="text-xs text-gray-400 mt-1">75+ XP</span>
+                    </div>
+                  </div>
+                </div>
+                {/* OverviewTab content */}
+                <OverviewTab courses={courses} tests={tests} />
+              </>
             )}
-            {activeTab === 'modules' && (
-              <ModulesTab />
-            )}
-            {activeTab === 'diagnostic' && (
-              <DiagnosticTestTab />
-            )}
-            {activeTab === 'progress' && (
-              <ProgressTab progress={progressData} />
-            )}
-            {activeTab === 'rewards' && (
-              <RewardsTab badges={badgesData} />
-            )}
-            {activeTab === 'settings' && (
-              <SettingsTab profile={profileData} />
+            {activeTab === 'modules' && <ModulesTab />}
+            {activeTab === 'diagnostic' && <DiagnosticTestTab />}
+            {activeTab === 'progress' && <ProgressTab progress={progressData} />}
+            {activeTab === 'rewards' && <RewardsTab badges={badgesData} />}
+            {activeTab === 'settings' && <SettingsTab profile={profileData} />}
+            {/* Fallback for unknown tab */}
+            {![
+              'overview',
+              'modules',
+              'diagnostic',
+              'progress',
+              'rewards',
+              'settings',
+              'logout',
+            ].includes(activeTab) && (
+              <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">
+                Coming soon!
+              </div>
             )}
           </div>
         </main>
       </div>
+      {/* Right Panel - Upcoming Tests */}
+      <aside className="w-80 bg-white border-l border-gray-300 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Upcoming Tests</h3>
+        <div className="space-y-3">
+          {tests.map((test, index) => (
+            <div key={index} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer">
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: test.color }}
+              ></div>
+              <div className="flex-1">
+                <div className="font-medium text-gray-900 text-sm">{test.title}</div>
+                <div className="text-xs text-gray-500">{test.date}</div>
+              </div>
+              <span className="text-gray-400">→</span>
+            </div>
+          ))}
+        </div>
+        <button className="w-full mt-6 bg-black text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors">
+          See All Upcoming Tests
+        </button>
+      </aside>
+      {/* Floating Chat Button */}
+      <button className="fixed bottom-6 right-6 w-14 h-14 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-colors flex items-center justify-center">
+        <span className="text-xl">🤖</span>
+      </button>
     </div>
   );
 } 
