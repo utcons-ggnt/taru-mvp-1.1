@@ -3,15 +3,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from './components/Sidebar';
-import TopBar from './components/TopBar';
-import StatsCards from './components/StatsCards';
-import ProgressTrain from './components/ProgressTrain';
 import OverviewTab from './components/OverviewTab';
 import ModulesTab from './components/ModulesTab';
 import DiagnosticTestTab from './components/DiagnosticTestTab';
 import ProgressTab from './components/ProgressTab';
 import RewardsTab from './components/RewardsTab';
 import SettingsTab from './components/SettingsTab';
+import ChatModal from './components/ChatModal';
 import Image from 'next/image';
 
 interface StudentProfile {
@@ -92,6 +90,7 @@ export default function StudentDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [language, setLanguage] = useState('English (USA)');
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const router = useRouter();
   const logoutTriggered = useRef(false);
 
@@ -190,19 +189,9 @@ export default function StudentDashboard() {
     }
   };
 
-  // Subject to image mapping for module cards (unused since ModulesTab fetches its own data)
-  // const subjectImages: Record<string, string> = {
-  //   Mathematics: '/math.png',
-  //   Science: '/science.png',
-  //   Arts: '/arts.png',
-  //   Computer: '/computer.png',
-  //   English: '/english.png',
-  //   History: '/history.png',
-  //   Geography: '/geography.png',
-  //   Physics: '/physics.png',
-  //   Chemistry: '/chemistry.png',
-  //   Biology: '/biology.png',
-  // };
+
+
+
 
   // Subject to color mapping
   const subjectColors: Record<string, string> = {
@@ -219,8 +208,7 @@ export default function StudentDashboard() {
   };
 
   // Dummy data for fallback
-  const dummyStats = { xp: 2340, badges: 7, modules: 12 };
-  const dummyProgressPercent = 68;
+
   // const dummyLearningModules = [
   //   {
   //     image: '/math.png',
@@ -294,17 +282,7 @@ export default function StudentDashboard() {
     studentKey: 'STU12345',
   };
 
-  // Calculate real statistics from dashboard data, fallback to dummy
-  const stats = dashboardData ? {
-    xp: dashboardData.overview.totalXp || dummyStats.xp,
-    badges: dashboardData.progress.badgesEarned?.length || dummyStats.badges,
-    modules: dashboardData.overview.totalModules || dummyStats.modules,
-  } : dummyStats;
 
-  // Calculate real progress percentage, fallback to dummy
-  const progressPercent = dashboardData?.overview 
-    ? Math.round((dashboardData.overview.completedModules / Math.max(1, dashboardData.overview.totalModules)) * 100)
-    : dummyProgressPercent;
 
   // Map recent activity to courses with real module names, fallback to dummy
   const courses = dashboardData?.recentActivity && dashboardData.recentActivity.length > 0
@@ -574,9 +552,19 @@ export default function StudentDashboard() {
         </button>
       </aside>
       {/* Floating Chat Button */}
-      <button className="fixed bottom-6 right-6 w-14 h-14 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-colors flex items-center justify-center">
+      <button 
+        onClick={() => setIsChatOpen(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-colors flex items-center justify-center z-40"
+      >
         <span className="text-xl">🤖</span>
       </button>
+
+      {/* Chat Modal */}
+      <ChatModal 
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        studentData={user}
+      />
     </div>
   );
 } 

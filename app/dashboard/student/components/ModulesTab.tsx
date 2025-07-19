@@ -231,22 +231,17 @@ export default function ModulesTab() {
   } | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Use data synchronization for modules
-  const [modulesData, setModulesData] = useState<Module[]>([]);
-  const [modulesLoading, setModulesLoading] = useState(true);
-
   // Fetch modules data
   useEffect(() => {
     const fetchModules = async () => {
       try {
-        setModulesLoading(true);
+        setLoading(true);
         const response = await fetch('/api/modules/recommended');
         if (!response.ok) {
           throw new Error('Failed to fetch modules');
         }
         const data = await response.json();
         const modules = data.modules || [];
-        setModulesData(modules);
         setModules(modules);
         setLoading(false);
         
@@ -256,7 +251,6 @@ export default function ModulesTab() {
         });
       } catch (error) {
         console.error('Error fetching modules:', error);
-        setModulesLoading(false);
         setLoading(false);
       }
     };

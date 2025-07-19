@@ -246,7 +246,7 @@ export default function ParentDashboard() {
             <div className="flex items-center gap-4 mb-4 md:mb-0">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Welcome back, Parent!</h2>
-                <p className="text-gray-700 text-sm">Monitor your child's learning journey 🚀</p>
+                <p className="text-gray-700 text-sm">Monitor your child&apos;s learning journey 🚀</p>
               </div>
             </div>
             {/* Stats Cards */}
@@ -292,8 +292,8 @@ export default function ParentDashboard() {
           {/* Progress Bar */}
           <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
             <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-gray-900">Today's progress</span>
-              <span className="text-sm text-gray-700">{stats[0]?.value || '0%'} Complete - Keep going! 🚀</span>
+                              <span className="font-semibold text-gray-900">Today&apos;s progress</span>
+                              <span className="text-sm text-gray-700">{stats[0]?.value || '0%'} Complete - Keep going! 🚀</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-4">
               <div className="bg-purple-500 h-4 rounded-full transition-all" style={{ width: stats[0]?.value || '0%' }}></div>
@@ -315,7 +315,7 @@ export default function ParentDashboard() {
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                        <span>Earned "Quiz Master" badge</span>
+                        <span>Earned &quot;Quiz Master&quot; badge</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
