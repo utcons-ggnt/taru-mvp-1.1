@@ -2,12 +2,9 @@ import mongoose from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// Only throw error if we're actually trying to connect (not during build)
-function validateMongoDBUri() {
-  if (!MONGODB_URI) {
-    console.error('MONGODB_URI environment variable is not set. Please create a .env.local file with your MongoDB Atlas connection string.');
-    throw new Error('MONGODB_URI environment variable is not set');
-  }
+if (!MONGODB_URI) {
+  console.error('MONGODB_URI environment variable is not set. Please create a .env.local file with your MongoDB Atlas connection string.');
+  throw new Error('MONGODB_URI environment variable is not set');
 }
 
 interface MongooseCache {
@@ -26,9 +23,6 @@ if (!global.mongoose) {
 }
 
 async function connectDB() {
-  // Validate MongoDB URI only when actually connecting
-  validateMongoDBUri();
-  
   if (cached.conn) {
     return cached.conn;
   }
