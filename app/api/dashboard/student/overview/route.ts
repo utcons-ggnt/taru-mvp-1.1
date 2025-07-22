@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     const student = await Student.findOne({ userId: decoded.userId });
     
     // Get student progress
-    const progress = await StudentProgress.findOne({ userId: decoded.userId });
+    const progress = await StudentProgress.findOne({ studentId: decoded.userId });
     
     // Get assessment data
     const assessment = await Assessment.findOne({ userId: decoded.userId });

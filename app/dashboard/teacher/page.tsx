@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Dialog } from '@headlessui/react';
 
 interface TeacherProfile {
   name: string;
@@ -17,6 +18,10 @@ interface TeacherProfile {
 export default function TeacherDashboard() {
   const [user, setUser] = useState<TeacherProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [subjectSpecialization, setSubjectSpecialization] = useState('');
+  const [experienceYears, setExperienceYears] = useState('');
+  const [saving, setSaving] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -30,6 +35,12 @@ export default function TeacherDashboard() {
             return;
           }
           setUser(userData.user);
+          // Show onboarding if profile is incomplete
+          if (!userData.user.profile?.subjectSpecialization || !userData.user.profile?.experienceYears) {
+            setShowOnboarding(true);
+            setSubjectSpecialization(userData.user.profile?.subjectSpecialization || '');
+            setExperienceYears(userData.user.profile?.experienceYears || '');
+          }
         } else {
           router.push('/login');
         }
@@ -40,9 +51,29 @@ export default function TeacherDashboard() {
         setIsLoading(false);
       }
     };
-
     fetchUser();
   }, [router]);
+
+  const handleProfileSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const response = await fetch('/api/user/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subjectSpecialization,
+          experienceYears
+        })
+      });
+      if (response.ok) {
+        setShowOnboarding(false);
+        window.location.reload();
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -67,6 +98,25 @@ export default function TeacherDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+      {/* Onboarding Modal */}
+      <Dialog open={showOnboarding} onClose={() => {}} className="fixed z-50 inset-0 overflow-y-auto">
+        <div className="flex items-center justify-center min-h-screen px-4">
+          <Dialog.Panel className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+            <Dialog.Title className="text-lg font-bold mb-4">Complete Your Profile</Dialog.Title>
+            <form onSubmit={handleProfileSave} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Subject Specialization</label>
+                <input type="text" value={subjectSpecialization} onChange={e => setSubjectSpecialization(e.target.value)} required className="w-full border rounded px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Years of Experience</label>
+                <input type="number" min="0" value={experienceYears} onChange={e => setExperienceYears(e.target.value)} required className="w-full border rounded px-3 py-2" />
+              </div>
+              <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded font-semibold" disabled={saving}>{saving ? 'Saving...' : 'Save & Continue'}</button>
+            </form>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

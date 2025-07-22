@@ -272,3 +272,39 @@ For support and questions, please contact the development team or create an issu
 ---
 
 **Taru2** - Empowering education through personalized learning experiences with real-time data synchronization. 
+
+## 🧑‍💻 Demo Credentials (for Reviewers)
+
+| Role     | Email                | Password  |
+|----------|----------------------|-----------|
+| Student  | student1@demo.com    | demopass  |
+| Parent   | parent1@demo.com     | demopass  |
+| Teacher  | teacher1@demo.com    | demopass  |
+| Admin    | admin1@demo.com      | demopass  |
+
+- Use these accounts to log in and explore all role-based dashboards and features.
+
+## ⚡ Quickstart for Reviewers
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+2. **Seed the database with modules and demo users:**
+   ```bash
+   node scripts/seed-modules.js
+   node scripts/seed-demo-users.js
+   ```
+3. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+4. **Open [http://localhost:3000](http://localhost:3000) and log in with the demo credentials above.**
+
+## 🏆 Export & Download Features
+
+- **Students:**
+  - Download PDF certificates for earned badges (Rewards tab)
+  - Download progress as CSV (Progress tab)
+- **Admins:**
+  - Download all students' progress as CSV (Admin dashboard) 

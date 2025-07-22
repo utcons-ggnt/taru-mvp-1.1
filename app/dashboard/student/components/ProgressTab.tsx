@@ -1,4 +1,5 @@
 import React from 'react';
+import { saveAs } from 'file-saver';
 
 interface Progress {
   completedModules: number;
@@ -10,9 +11,32 @@ interface Progress {
 
 export default function ProgressTab({ progress }: { progress: Progress }) {
   const percent = Math.round((progress.completedModules / progress.totalModules) * 100);
+
+  const handleDownloadCSV = () => {
+    const rows = [
+      ['Modules Completed', 'Total Modules', 'Percent Complete'],
+      [progress.completedModules, progress.totalModules, percent + '%'],
+      [],
+      ['Progress History'],
+      ...progress.progressHistory.map((val, idx) => [`Step ${idx + 1}`, val]),
+      [],
+      ['Recent Test Scores'],
+      ...progress.recentScores.map((score, idx) => [`Test ${idx + 1}`, score + '%'])
+    ];
+    const csvContent = rows.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, 'progress_report.csv');
+  };
+
   return (
     <div className="bg-white rounded-xl shadow p-6 max-w-2xl mx-auto">
       <h2 className="text-xl font-bold mb-4 text-purple-700">Progress Report</h2>
+      <button
+        className="mb-4 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-4 py-2 rounded"
+        onClick={handleDownloadCSV}
+      >
+        Download CSV
+      </button>
       <div className="mb-4">
         <div className="text-lg font-semibold text-gray-900 mb-1">Modules Completed: {progress.completedModules} / {progress.totalModules}</div>
         <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">

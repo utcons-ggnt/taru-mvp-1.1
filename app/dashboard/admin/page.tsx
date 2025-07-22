@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Dialog } from '@headlessui/react';
+import { saveAs } from 'file-saver';
 
 interface AdminProfile {
   name: string;
@@ -13,6 +15,11 @@ interface AdminProfile {
 export default function AdminDashboard() {
   const [user, setUser] = useState<AdminProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [organizationType, setOrganizationType] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [saving, setSaving] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -26,6 +33,13 @@ export default function AdminDashboard() {
             return;
           }
           setUser(userData.user);
+          // Show onboarding if profile is incomplete
+          if (!userData.user.profile?.organizationType || !userData.user.profile?.contactEmail) {
+            setShowOnboarding(true);
+            setOrganizationType(userData.user.profile?.organizationType || '');
+            setContactEmail(userData.user.profile?.contactEmail || '');
+            setContactPhone(userData.user.profile?.contactPhone || '');
+          }
         } else {
           router.push('/login');
         }
@@ -36,9 +50,30 @@ export default function AdminDashboard() {
         setIsLoading(false);
       }
     };
-
     fetchUser();
   }, [router]);
+
+  const handleProfileSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const response = await fetch('/api/user/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationType,
+          contactEmail,
+          contactPhone
+        })
+      });
+      if (response.ok) {
+        setShowOnboarding(false);
+        window.location.reload();
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -46,6 +81,18 @@ export default function AdminDashboard() {
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
+    }
+  };
+
+  const handleDownloadAllProgress = async () => {
+    try {
+      const response = await fetch('/api/admin/export-student-progress');
+      if (!response.ok) throw new Error('Failed to fetch student progress');
+      const csv = await response.text();
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      saveAs(blob, 'all_student_progress.csv');
+    } catch {
+      alert('Failed to download student progress.');
     }
   };
 
@@ -63,6 +110,29 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+      {/* Onboarding Modal */}
+      <Dialog open={showOnboarding} onClose={() => {}} className="fixed z-50 inset-0 overflow-y-auto">
+        <div className="flex items-center justify-center min-h-screen px-4">
+          <Dialog.Panel className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+            <Dialog.Title className="text-lg font-bold mb-4">Complete Your Profile</Dialog.Title>
+            <form onSubmit={handleProfileSave} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Organization Type</label>
+                <input type="text" value={organizationType} onChange={e => setOrganizationType(e.target.value)} required className="w-full border rounded px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Contact Email</label>
+                <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} required className="w-full border rounded px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Contact Phone</label>
+                <input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} className="w-full border rounded px-3 py-2" />
+              </div>
+              <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded font-semibold" disabled={saving}>{saving ? 'Saving...' : 'Save & Continue'}</button>
+            </form>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -92,6 +162,12 @@ export default function AdminDashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <button
+          className="mb-8 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-4 py-2 rounded"
+          onClick={handleDownloadAllProgress}
+        >
+          Download All Student Progress (CSV)
+        </button>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Profile Card */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">

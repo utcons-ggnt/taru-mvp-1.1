@@ -208,7 +208,6 @@ export default function StudentDashboard() {
   };
 
   // Dummy data for fallback
-
   // const dummyLearningModules = [
   //   {
   //     image: '/math.png',
@@ -247,44 +246,44 @@ export default function StudentDashboard() {
   //     moduleId: 'computer-001',
   //   },
   // ];
-  const dummyCourses = [
-    { title: 'Mathematics basics', lessonsCompleted: '06/10 (60%)', duration: '20 min', xp: '60+ XP', color: '#FFD600' },
-    { title: 'Science Experiments', lessonsCompleted: '04/10 (40%)', duration: '15 min', xp: '50+ XP', color: '#00C49A' },
-    { title: 'Creative Arts', lessonsCompleted: '08/10 (80%)', duration: '40 min', xp: '75+ XP', color: '#2B6CB0' },
-    { title: 'Basic Computer', lessonsCompleted: '10/10 (100%)', duration: '30 min', xp: '80+ XP', color: '#7C3AED' },
-  ];
-  const dummyTests = [
-    { title: 'Mathematics basics', date: '30 Jul', color: '#FFD600' },
-    { title: 'Science Experiments', date: '20 Jul', color: '#00C49A' },
-    { title: 'Creative Arts', date: '10 Jul', color: '#2B6CB0' },
-    { title: 'Basic Computer', date: '05 Jul', color: '#FF6B6B' },
-    { title: 'AI Chat', date: '30 Jun', color: '#7C3AED' },
-  ];
-  const dummyProgress = {
-    completedModules: 8,
-    totalModules: 12,
-    progressHistory: [60, 65, 70, 75, 80, 85, 90, 95],
-    recentScores: [80, 85, 90, 88, 92],
-    totalTimeSpent: 240,
-  };
-  const dummyBadges = [
-    { name: 'Math Whiz', description: 'Completed all math modules', icon: '/math-badge.png', earnedAt: '2024-01-15' },
-    { name: 'Science Star', description: 'Top score in science', icon: '/science-badge.png', earnedAt: '2024-01-10' },
-    { name: 'Creative Champ', description: 'Excelled in creative arts', icon: '/arts-badge.png', earnedAt: '2024-01-05' },
-    { name: 'Tech Guru', description: 'Mastered computer basics', icon: '/computer-badge.png', earnedAt: '2024-01-01' },
-  ];
-  const dummyProfile = {
-    name: 'Aanya',
-    email: 'aanya@student.com',
-    grade: '7',
-    school: 'Jio World School',
-    language: 'English (USA)',
-    studentKey: 'STU12345',
-  };
+  // const dummyCourses = [
+  //   { title: 'Mathematics basics', lessonsCompleted: '06/10 (60%)', duration: '20 min', xp: '60+ XP', color: '#FFD600' },
+  //   { title: 'Science Experiments', lessonsCompleted: '04/10 (40%)', duration: '15 min', xp: '50+ XP', color: '#00C49A' },
+  //   { title: 'Creative Arts', lessonsCompleted: '08/10 (80%)', duration: '40 min', xp: '75+ XP', color: '#2B6CB0' },
+  //   { title: 'Basic Computer', lessonsCompleted: '10/10 (100%)', duration: '30 min', xp: '80+ XP', color: '#7C3AED' },
+  // ];
+  // const dummyTests = [
+  //   { title: 'Mathematics basics', date: '30 Jul', color: '#FFD600' },
+  //   { title: 'Science Experiments', date: '20 Jul', color: '#00C49A' },
+  //   { title: 'Creative Arts', date: '10 Jul', color: '#2B6CB0' },
+  //   { title: 'Basic Computer', date: '05 Jul', color: '#FF6B6B' },
+  //   { title: 'AI Chat', date: '30 Jun', color: '#7C3AED' },
+  // ];
+  // const dummyProgress = {
+  //   completedModules: 8,
+  //   totalModules: 12,
+  //   progressHistory: [60, 65, 70, 75, 80, 85, 90, 95],
+  //   recentScores: [80, 85, 90, 88, 92],
+  //   totalTimeSpent: 240,
+  // };
+  // const dummyBadges = [
+  //   { name: 'Math Whiz', description: 'Completed all math modules', icon: '/math-badge.png', earnedAt: '2024-01-15' },
+  //   { name: 'Science Star', description: 'Top score in science', icon: '/science-badge.png', earnedAt: '2024-01-10' },
+  //   { name: 'Creative Champ', description: 'Excelled in creative arts', icon: '/arts-badge.png', earnedAt: '2024-01-05' },
+  //   { name: 'Tech Guru', description: 'Mastered computer basics', icon: '/computer-badge.png', earnedAt: '2024-01-01' },
+  // ];
+  // const dummyProfile = {
+  //   name: 'Aanya',
+  //   email: 'aanya@student.com',
+  //   grade: '7',
+  //   school: 'Jio World School',
+  //   language: 'English (USA)',
+  //   studentKey: 'STU12345',
+  // };
 
 
 
-  // Map recent activity to courses with real module names, fallback to dummy
+  // Map recent activity to courses with real module names, fallback to 'Coming soon'
   const courses = dashboardData?.recentActivity && dashboardData.recentActivity.length > 0
     ? dashboardData.recentActivity.map((activity: { moduleId: string; progress: number }) => {
         const matchedModule = dashboardData.recommendedModules.find((m: { id: string; name: string }) => m.id === activity.moduleId);
@@ -297,9 +296,9 @@ export default function StudentDashboard() {
           progress: activity.progress,
         };
       })
-    : dummyCourses;
+    : [];
 
-  // Map assessment data to tests, fallback to dummy
+  // Map assessment data to tests, fallback to empty
   const tests: Test[] = assessmentData?.diagnosticCompleted
     ? [{
         title: 'Learning Profile Assessment',
@@ -307,40 +306,40 @@ export default function StudentDashboard() {
         color: '#7C3AED',
         score: assessmentData.diagnosticScore || 0
       }]
-    : dummyTests;
+    : [];
 
-  // Calculate real progress data, fallback to dummy
+  // Calculate real progress data, fallback to empty/default
   const progressData = dashboardData?.overview 
     ? {
-        completedModules: dashboardData.overview.completedModules || dummyProgress.completedModules,
-        totalModules: dashboardData.overview.totalModules || dummyProgress.totalModules,
+        completedModules: dashboardData.overview.completedModules || 0,
+        totalModules: dashboardData.overview.totalModules || 0,
         progressHistory: calculateProgressHistory(dashboardData),
         recentScores: calculateRecentScores(dashboardData),
-        totalTimeSpent: dashboardData.progress.totalTimeSpent || dummyProgress.totalTimeSpent,
+        totalTimeSpent: dashboardData.progress.totalTimeSpent || 0,
       }
-    : dummyProgress;
+    : { completedModules: 0, totalModules: 0, progressHistory: [], recentScores: [], totalTimeSpent: 0 };
 
-  // Map real badges data, fallback to dummy
+  // Map real badges data, fallback to empty
   const badgesData = dashboardData?.progress?.badgesEarned && dashboardData.progress.badgesEarned.length > 0
     ? dashboardData.progress.badgesEarned.map((badge: DashboardData['progress']['badgesEarned'][number]) => ({
         name: badge.name,
         description: badge.description,
-        icon: '/badge-default.png', // Use default icon since badge.icon doesn't exist in the model
+        icon: '/badge-default.png',
         earnedAt: badge.earnedAt
       }))
-    : dummyBadges;
+    : [];
 
-  // Map real profile data, fallback to dummy
+  // Map real profile data, fallback to minimal
   const profileData = user && dashboardData
     ? {
-        name: dashboardData.overview.studentName || user.name || dummyProfile.name,
-        email: user.email || dummyProfile.email,
-        grade: dashboardData.overview.grade || user.profile?.grade || dummyProfile.grade,
-        school: dashboardData.overview.school || user.profile?.school || dummyProfile.school,
+        name: dashboardData.overview.studentName || user.name || '',
+        email: user.email || '',
+        grade: dashboardData.overview.grade || user.profile?.grade || '',
+        school: dashboardData.overview.school || user.profile?.school || '',
         language: language,
         studentKey: dashboardData.overview.studentKey || 'Not available',
       }
-    : dummyProfile;
+    : { name: '', email: '', grade: '', school: '', language, studentKey: 'Not available' };
 
   // Helper function to calculate progress history
   function calculateProgressHistory(data: DashboardData): number[] {
@@ -469,11 +468,13 @@ export default function StudentDashboard() {
                   </div>
                   {/* Stats Cards */}
                   <div className="flex gap-4">
+                    {dashboardData?.overview ? (
+                      <>
                     <div className="bg-white rounded-lg shadow-sm p-4 flex flex-col items-center border border-gray-100 min-w-[120px]">
                       <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mb-2">
                         <span className="text-white text-sm">📚</span>
                       </div>
-                      <span className="font-bold text-2xl text-gray-900">{dashboardData?.overview?.inProgressModules || 3}</span>
+                          <span className="font-bold text-2xl text-gray-900">{dashboardData?.overview?.inProgressModules}</span>
                       <span className="text-xs text-gray-500 text-center">Course in Progress</span>
                       <span className="text-xs text-gray-400 mt-1">75+ XP</span>
                     </div>
@@ -481,7 +482,7 @@ export default function StudentDashboard() {
                       <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mb-2">
                         <span className="text-white text-sm">✅</span>
                       </div>
-                      <span className="font-bold text-2xl text-gray-900">{dashboardData?.overview?.completedModules || 6}</span>
+                          <span className="font-bold text-2xl text-gray-900">{dashboardData?.overview?.completedModules}</span>
                       <span className="text-xs text-gray-500 text-center">Course Completed</span>
                       <span className="text-xs text-gray-400 mt-1">75+ XP</span>
                     </div>
@@ -489,7 +490,7 @@ export default function StudentDashboard() {
                       <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mb-2">
                         <span className="text-white text-sm">🎓</span>
                       </div>
-                      <span className="font-bold text-2xl text-gray-900">{dashboardData?.progress?.badgesEarned?.length || 12}</span>
+                          <span className="font-bold text-2xl text-gray-900">{dashboardData?.progress?.badgesEarned?.length}</span>
                       <span className="text-xs text-gray-500 text-center">Certificates Earned</span>
                       <span className="text-xs text-gray-400 mt-1">75+ XP</span>
                     </div>
@@ -501,16 +502,24 @@ export default function StudentDashboard() {
                       <span className="text-xs text-gray-500 text-center">AI Avatar Support</span>
                       <span className="text-xs text-gray-400 mt-1">75+ XP</span>
                     </div>
+                      </>
+                    ) : (
+                      <div className="text-gray-400 text-center">Coming soon!</div>
+                    )}
                   </div>
                 </div>
                 {/* OverviewTab content */}
+                {courses.length > 0 ? (
                 <OverviewTab courses={courses} tests={tests} />
+                ) : (
+                  <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">Coming soon!</div>
+                )}
               </>
             )}
-            {activeTab === 'modules' && <ModulesTab />}
+            {activeTab === 'modules' && (courses.length > 0 ? <ModulesTab /> : <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">Coming soon!</div>)}
             {activeTab === 'diagnostic' && <DiagnosticTestTab />}
-            {activeTab === 'progress' && <ProgressTab progress={progressData} />}
-            {activeTab === 'rewards' && <RewardsTab badges={badgesData} />}
+            {activeTab === 'progress' && (progressData.completedModules > 0 ? <ProgressTab progress={progressData} /> : <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">Coming soon!</div>)}
+            {activeTab === 'rewards' && (badgesData.length > 0 ? <RewardsTab badges={badgesData} /> : <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">Coming soon!</div>)}
             {activeTab === 'settings' && <SettingsTab profile={profileData} />}
             {/* Fallback for unknown tab */}
             {![

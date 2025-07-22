@@ -20,23 +20,9 @@ interface RecentActivity {
 }
 
 export default function ParentDashboard() {
-  const dummyChild: ChildProfile = {
-    name: 'Sarah Doe',
-    grade: 'Grade 8',
-    avatar: '/landingPage.png',
-    school: 'Springfield Middle School',
-    email: 'sarah.doe@example.com',
-  };
-  const dummyStats = [
-    { label: 'Ready Program', value: '45%', icon: '📚' },
-    { label: 'AI Smart Assist', value: '0%', icon: '🤖' },
-    { label: 'Range Analytics', value: 'Bar', icon: '📊' },
-  ];
-  const dummyAnalytics = [30, 60, 40, 80, 50, 70, 20];
-
   const [child, setChild] = useState<ChildProfile | null>(null);
-  const [stats, setStats] = useState(dummyStats);
-  const [analytics, setAnalytics] = useState(dummyAnalytics);
+  const [stats, setStats] = useState<Array<{ label: string; value: string; icon: string }>>([]);
+  const [analytics, setAnalytics] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [language, setLanguage] = useState('English (USA)');
@@ -111,14 +97,14 @@ export default function ParentDashboard() {
           // Set child info if available (from parent-specific field)
           if (dashData.student) {
             setChild({
-              name: dashData.student.name || dummyChild.name,
-              grade: dashData.student.grade || dummyChild.grade,
-              avatar: dashData.student.profilePicture || dummyChild.avatar,
-              school: dashData.student.school || dummyChild.school,
-              email: dashData.student.email || dummyChild.email,
+              name: dashData.student.name || '',
+              grade: dashData.student.grade || '',
+              avatar: dashData.student.profilePicture || '',
+              school: dashData.student.school || '',
+              email: dashData.student.email || '',
             });
           } else {
-            setChild(dummyChild);
+            setChild(null);
           }
 
           // Set stats from studentDashboard.overview
@@ -129,7 +115,7 @@ export default function ParentDashboard() {
               { label: 'Range Analytics', value: `${sd.overview.totalXp || 0} XP`, icon: '📊' },
             ]);
           } else {
-            setStats(dummyStats);
+            setStats([]);
           }
 
           // Set analytics from studentDashboard.recentActivity
@@ -142,18 +128,18 @@ export default function ParentDashboard() {
             }
             setAnalytics(activityAnalytics.slice(0, 7));
           } else {
-            setAnalytics(dummyAnalytics);
+            setAnalytics([]);
           }
         } else {
-          setChild(dummyChild);
-          setStats(dummyStats);
-          setAnalytics(dummyAnalytics);
+          setChild(null);
+          setStats([]);
+          setAnalytics([]);
         }
       } catch {
         // Handle error silently and use dummy data
-        setChild(dummyChild);
-        setStats(dummyStats);
-        setAnalytics(dummyAnalytics);
+        setChild(null);
+        setStats([]);
+        setAnalytics([]);
       } finally {
         setIsLoading(false);
       }
@@ -251,13 +237,13 @@ export default function ParentDashboard() {
             </div>
             {/* Stats Cards */}
             <div className="flex gap-4">
-              {stats.map((stat) => (
+              {stats.length > 0 ? stats.map((stat) => (
                 <div key={stat.label} className="bg-white rounded-lg shadow p-4 flex flex-col items-center border border-gray-100">
                   <span className="text-2xl mb-1">{stat.icon}</span>
                   <span className="font-bold text-lg text-purple-600">{stat.value}</span>
                   <span className="text-xs text-gray-500 text-center">{stat.label}</span>
                 </div>
-              ))}
+              )) : <div className="text-gray-400 text-center">Coming soon!</div>}
             </div>
           </div>
 
@@ -275,12 +261,12 @@ export default function ParentDashboard() {
                   }}
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full border-2 border-gray-200 bg-gray-100" />
+                <div className="w-20 h-20 rounded-full border-2 border-gray-200 bg-gray-100 flex items-center justify-center text-gray-400">Coming soon!</div>
               )}
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-gray-800 text-xl truncate flex items-center gap-2">
-                  {child?.name}
-                  <span className="ml-2 px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-700 font-semibold">{child?.grade}</span>
+                  {child?.name || <span className="text-gray-400">Coming soon!</span>}
+                  {child?.grade && <span className="ml-2 px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-700 font-semibold">{child.grade}</span>}
                 </div>
                 {child?.school && <div className="text-xs text-gray-500 mt-1 truncate">🏫 {child.school}</div>}
                 {child?.email && <div className="text-xs text-gray-500 mt-1 truncate">✉️ {child.email}</div>}
@@ -293,7 +279,7 @@ export default function ParentDashboard() {
           <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
             <div className="flex items-center justify-between mb-2">
                               <span className="font-semibold text-gray-900">Today&apos;s progress</span>
-                              <span className="text-sm text-gray-700">{stats[0]?.value || '0%'} Complete - Keep going! 🚀</span>
+              <span className="text-sm text-gray-700">{stats[0]?.value || 'Coming soon!'} Complete - Keep going! 🚀</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-4">
               <div className="bg-purple-500 h-4 rounded-full transition-all" style={{ width: stats[0]?.value || '0%' }}></div>
