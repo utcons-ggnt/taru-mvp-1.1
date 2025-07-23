@@ -13,6 +13,7 @@ export async function GET() {
       success: true,
       modules: modules.map(module => ({
         id: module._id,
+        moduleId: module.moduleId,
         title: module.title,
         description: module.description,
         subject: module.subject,
@@ -21,7 +22,10 @@ export async function GET() {
         duration: module.duration,
         videoUrl: module.videoUrl,
         points: module.points,
-        tags: module.tags
+        tags: module.tags,
+        quizQuestions: module.quizQuestions,
+        contentTypes: module.contentTypes,
+        gamification: module.gamification
       }))
     });
   } catch (error) {

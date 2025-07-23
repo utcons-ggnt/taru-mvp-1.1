@@ -137,7 +137,7 @@ export default function LoginPage() {
         <div className="mt-16">
           <h2 className="text-3xl md:text-4xl font-bold leading-tight">
             {t.welcomeBack} <br />
-            <span className="text-yellow-300 font-extrabold">{t.jioWorldLearning}</span><br />
+            <span className="text-amber-400 font-extrabold">{t.jioWorldLearning}</span><br />
             {t.continueJourney}
           </h2>
         </div>
@@ -182,7 +182,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t.enterEmail}
                 required
-                className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black"
+                className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-gray-900"
               />
               <input
                 type="password"
@@ -190,11 +190,11 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={t.enterPassword}
                 required
-                className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black"
+                className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-gray-900"
               />
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+                <div className="alert-error">
                   {error}
                 </div>
               )}

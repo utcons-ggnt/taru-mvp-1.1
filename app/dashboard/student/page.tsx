@@ -10,6 +10,7 @@ import ProgressTab from './components/ProgressTab';
 import RewardsTab from './components/RewardsTab';
 import SettingsTab from './components/SettingsTab';
 import ChatModal from './components/ChatModal';
+import StatsCards from './components/StatsCards';
 import Image from 'next/image';
 
 interface StudentProfile {
@@ -341,6 +342,46 @@ export default function StudentDashboard() {
       }
     : { name: '', email: '', grade: '', school: '', language, studentKey: 'Not available' };
 
+  // Stats cards data with proper fallbacks
+  const statsCardsData = dashboardData?.overview ? [
+    {
+      title: 'Courses in Progress',
+      value: dashboardData.overview.inProgressModules || 0,
+      subtitle: `${Math.round((dashboardData.overview.inProgressModules || 0) * 7.5)}+ XP`,
+      icon: '📚',
+      color: 'bg-orange-500'
+    },
+    {
+      title: 'Courses Completed',
+      value: dashboardData.overview.completedModules || 0,
+      subtitle: `${Math.round((dashboardData.overview.completedModules || 0) * 10)}+ XP`,
+      icon: '✅',
+      color: 'bg-green-500'
+    },
+    {
+      title: 'Certificates Earned',
+      value: dashboardData.progress?.badgesEarned?.length || 0,
+      subtitle: 'Achievement Level',
+      icon: '🎓',
+      color: 'bg-blue-500'
+    },
+    {
+      title: 'AI Chat Available',
+      value: '24/7',
+      subtitle: 'Learning Support',
+      icon: '🤖',
+      color: 'bg-yellow-500'
+    }
+  ] : [
+    {
+      title: 'Getting Started',
+      value: '0',
+      subtitle: 'Complete setup first',
+      icon: '🚀',
+      color: 'bg-gray-400'
+    }
+  ];
+
   // Helper function to calculate progress history
   function calculateProgressHistory(data: DashboardData): number[] {
     if (!data.overview) return [0];
@@ -467,59 +508,16 @@ export default function StudentDashboard() {
                     </div>
                   </div>
                   {/* Stats Cards */}
-                  <div className="flex gap-4">
-                    {dashboardData?.overview ? (
-                      <>
-                    <div className="bg-white rounded-lg shadow-sm p-4 flex flex-col items-center border border-gray-100 min-w-[120px]">
-                      <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mb-2">
-                        <span className="text-white text-sm">📚</span>
-                      </div>
-                          <span className="font-bold text-2xl text-gray-900">{dashboardData?.overview?.inProgressModules}</span>
-                      <span className="text-xs text-gray-500 text-center">Course in Progress</span>
-                      <span className="text-xs text-gray-400 mt-1">75+ XP</span>
-                    </div>
-                    <div className="bg-white rounded-lg shadow-sm p-4 flex flex-col items-center border border-gray-100 min-w-[120px]">
-                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mb-2">
-                        <span className="text-white text-sm">✅</span>
-                      </div>
-                          <span className="font-bold text-2xl text-gray-900">{dashboardData?.overview?.completedModules}</span>
-                      <span className="text-xs text-gray-500 text-center">Course Completed</span>
-                      <span className="text-xs text-gray-400 mt-1">75+ XP</span>
-                    </div>
-                    <div className="bg-white rounded-lg shadow-sm p-4 flex flex-col items-center border border-gray-100 min-w-[120px]">
-                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mb-2">
-                        <span className="text-white text-sm">🎓</span>
-                      </div>
-                          <span className="font-bold text-2xl text-gray-900">{dashboardData?.progress?.badgesEarned?.length}</span>
-                      <span className="text-xs text-gray-500 text-center">Certificates Earned</span>
-                      <span className="text-xs text-gray-400 mt-1">75+ XP</span>
-                    </div>
-                    <div className="bg-white rounded-lg shadow-sm p-4 flex flex-col items-center border border-gray-100 min-w-[120px]">
-                      <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center mb-2">
-                        <span className="text-white text-sm">🤖</span>
-                      </div>
-                      <span className="font-bold text-2xl text-gray-900">100</span>
-                      <span className="text-xs text-gray-500 text-center">AI Avatar Support</span>
-                      <span className="text-xs text-gray-400 mt-1">75+ XP</span>
-                    </div>
-                      </>
-                    ) : (
-                      <div className="text-gray-400 text-center">Coming soon!</div>
-                    )}
-                  </div>
+                  <StatsCards stats={statsCardsData} />
                 </div>
                 {/* OverviewTab content */}
-                {courses.length > 0 ? (
-                <OverviewTab courses={courses} tests={tests} />
-                ) : (
-                  <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">Coming soon!</div>
-                )}
+                <OverviewTab courses={courses} tests={tests} onTabChange={setActiveTab} />
               </>
             )}
-            {activeTab === 'modules' && (courses.length > 0 ? <ModulesTab /> : <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">Coming soon!</div>)}
+            {activeTab === 'modules' && <ModulesTab />}
             {activeTab === 'diagnostic' && <DiagnosticTestTab />}
-            {activeTab === 'progress' && (progressData.completedModules > 0 ? <ProgressTab progress={progressData} /> : <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">Coming soon!</div>)}
-            {activeTab === 'rewards' && (badgesData.length > 0 ? <RewardsTab badges={badgesData} /> : <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">Coming soon!</div>)}
+            {activeTab === 'progress' && <ProgressTab progress={progressData} onTabChange={setActiveTab} />}
+            {activeTab === 'rewards' && <RewardsTab badges={badgesData} onTabChange={setActiveTab} />}
             {activeTab === 'settings' && <SettingsTab profile={profileData} />}
             {/* Fallback for unknown tab */}
             {![
@@ -556,8 +554,11 @@ export default function StudentDashboard() {
             </div>
           ))}
         </div>
-        <button className="w-full mt-6 bg-black text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors">
-          See All Upcoming Tests
+        <button 
+          className="w-full mt-6 bg-black text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors"
+          onClick={() => setActiveTab('diagnostic')}
+        >
+          Take Diagnostic Test
         </button>
       </aside>
       {/* Floating Chat Button */}

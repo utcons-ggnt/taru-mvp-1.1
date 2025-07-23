@@ -40,7 +40,9 @@ export default function Sidebar({ activeTab, onTabChange }: { activeTab: string,
       </div>
       <div className="mt-10">
         <div className="bg-purple-100 rounded-xl p-4 flex flex-col items-center">
-          <Image src="/ai-buddy.png" alt="AI Buddy" width={64} height={64} className="w-16 h-16 rounded-full mb-2" />
+          <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mb-2">
+            <span className="text-2xl text-white">🤖</span>
+          </div>
           <div className="text-sm font-semibold text-gray-900">Ask <span className="text-purple-600">AI Buddy</span></div>
         </div>
       </div>

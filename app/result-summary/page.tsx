@@ -70,7 +70,7 @@ export default function ResultSummary() {
 
   const getSkillLevelDescription = (score: number) => {
     if (score >= 80) return { level: 'Advanced', color: 'text-green-600', bg: 'bg-green-100' };
-    if (score >= 60) return { level: 'Intermediate', color: 'text-yellow-600', bg: 'bg-yellow-100' };
+    if (score >= 60) return { level: 'Intermediate', color: 'text-amber-700', bg: 'bg-amber-100' };
     return { level: 'Beginner', color: 'text-blue-600', bg: 'bg-blue-100' };
   };
 

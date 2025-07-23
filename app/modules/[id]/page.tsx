@@ -73,7 +73,7 @@ export default function ModuleDetail() {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'beginner': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200';
-      case 'intermediate': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200';
+      case 'intermediate': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200';
       case 'advanced': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-200';
     }
@@ -214,7 +214,7 @@ export default function ModuleDetail() {
               <div className="text-sm text-gray-600 dark:text-gray-400">Lessons</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+              <div className="text-2xl font-bold text-amber-700 dark:text-amber-400">
                 {getLearningTypeIcon(module.learningType)}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 capitalize">{module.learningType}</div>
@@ -347,7 +347,7 @@ export default function ModuleDetail() {
                     <div className="space-y-2">
                       {module.prerequisites.map(prereq => (
                         <div key={prereq} className="flex items-center space-x-2">
-                          <span className="text-yellow-500">🔗</span>
+                          <span className="text-amber-600">🔗</span>
                           <span className="text-gray-700 dark:text-gray-300">{prereq}</span>
                         </div>
                       ))}

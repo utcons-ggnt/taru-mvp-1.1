@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 
 interface Course {
@@ -6,81 +8,159 @@ interface Course {
   duration: string;
   xp: string;
   color: string;
+  progress: number;
 }
 
 interface Test {
   title: string;
   date: string;
   color: string;
+  score?: number;
 }
 
-export default function OverviewTab({ courses, tests }: { courses: Course[]; tests: Test[] }) {
+interface OverviewTabProps {
+  courses: Course[];
+  tests: Test[];
+  onTabChange?: (tab: string) => void;
+}
+
+export default function OverviewTab({ courses, tests, onTabChange }: OverviewTabProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      {/* Left: Overview Cards and Course Table */}
-      <div className="md:col-span-2">
-        <div className="flex gap-4 mb-6">
-          <div className="bg-purple-100 rounded-xl px-6 py-4 text-center flex-1">
-            <div className="text-2xl font-bold text-purple-700">03</div>
-            <div className="text-xs text-gray-900 mt-1">Course in Progress</div>
+    <div className="space-y-8">
+      {/* Current Learning Section */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Continue Learning</h3>
+                 {courses.length > 0 ? (
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+             {courses.map((course, index) => (
+               <div key={index} className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+                 <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4" style={{backgroundColor: course.color}}>
+                   <span className="text-2xl text-white">📚</span>
+                 </div>
+                 <h4 className="font-semibold text-gray-900 mb-2">{course.title}</h4>
+                 <p className="text-sm text-gray-600 mb-4">Progress: {course.lessonsCompleted}</p>
+                 <div className="flex items-center justify-between">
+                   <span className="text-xs text-gray-500">{course.duration} • {course.xp}</span>
+                   <button 
+                     className="text-purple-600 text-sm font-medium hover:text-purple-700"
+                     onClick={() => window.location.href = '#modules'}
+                   >
+                     Continue
+                   </button>
+                 </div>
+               </div>
+             ))}
+           </div>
+        ) : (
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-8 text-center">
+            <div className="text-6xl mb-4">🚀</div>
+            <h4 className="text-xl font-semibold text-gray-800 mb-2">Ready to Start Learning?</h4>
+            <p className="text-gray-600 mb-4">
+              Complete your diagnostic assessment to get personalized learning modules.
+            </p>
+                         <button 
+               className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
+               onClick={() => onTabChange?.('diagnostic')}
+             >
+               Take Diagnostic Test
+             </button>
           </div>
-          <div className="bg-purple-100 rounded-xl px-6 py-4 text-center flex-1">
-            <div className="text-2xl font-bold text-purple-700">06</div>
-            <div className="text-xs text-gray-900 mt-1">Course Completed</div>
+        )}
+      </div>
+
+      {/* Recommended Modules Section */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recommended for You</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+              <span className="text-2xl">📊</span>
+            </div>
+            <h4 className="font-semibold text-gray-900 mb-2">Mathematics Basics</h4>
+            <p className="text-sm text-gray-600 mb-4">Build strong foundation in math concepts</p>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">30 min • 50 XP</span>
+                             <button 
+                 className="text-blue-600 text-sm font-medium hover:text-blue-700"
+                 onClick={() => onTabChange?.('modules')}
+               >
+                 Start
+               </button>
+            </div>
           </div>
-          <div className="bg-purple-100 rounded-xl px-6 py-4 text-center flex-1">
-            <div className="text-2xl font-bold text-purple-700">12</div>
-            <div className="text-xs text-gray-900 mt-1">Certificates Earned</div>
+          
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+              <span className="text-2xl">🔬</span>
+            </div>
+            <h4 className="font-semibold text-gray-900 mb-2">Science Experiments</h4>
+            <p className="text-sm text-gray-600 mb-4">Explore the world through experiments</p>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">25 min • 40 XP</span>
+                             <button 
+                 className="text-green-600 text-sm font-medium hover:text-green-700"
+                 onClick={() => onTabChange?.('modules')}
+               >
+                 Start
+               </button>
+            </div>
           </div>
-          <div className="bg-purple-100 rounded-xl px-6 py-4 text-center flex-1">
-            <div className="text-2xl font-bold text-purple-700">100</div>
-            <div className="text-xs text-gray-900 mt-1">AI Avatar Support</div>
+          
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+              <span className="text-2xl">🎨</span>
+            </div>
+            <h4 className="font-semibold text-gray-900 mb-2">Creative Arts</h4>
+            <p className="text-sm text-gray-600 mb-4">Express yourself through creative projects</p>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">45 min • 60 XP</span>
+                             <button 
+                 className="text-purple-600 text-sm font-medium hover:text-purple-700"
+                 onClick={() => onTabChange?.('modules')}
+               >
+                 Start
+               </button>
+            </div>
           </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Course You&apos;re taking</h3>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-900 font-bold">
-                <th className="py-2">Course title</th>
-                <th className="py-2">Lessons Completed</th>
-                <th className="py-2">Duration</th>
-                <th className="py-2">XP Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              {courses.map((course, idx) => (
-                <tr key={idx} className="border-t border-gray-200">
-                  <td className="py-2 flex items-center gap-2 text-gray-900 font-semibold">
-                    <span className={`w-4 h-4 rounded-full inline-block`} style={{background: course.color}}></span>
-                    {course.title}
-                  </td>
-                  <td className="py-2 text-gray-900 font-semibold">{course.lessonsCompleted}</td>
-                  <td className="py-2 text-gray-900 font-semibold">{course.duration}</td>
-                  <td className="py-2 text-gray-900 font-semibold">{course.xp}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </div>
-      {/* Right: Upcoming Tests */}
+
+      {/* Recent Activity */}
       <div>
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
-          <h3 className="font-semibold text-gray-900 mb-4">Upcoming Tests</h3>
-          <ul className="space-y-3">
-            {tests.map((test, idx) => (
-              <li key={idx} className="flex items-center gap-3">
-                <span className="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold" style={{background: test.color}}></span>
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-900">{test.title}</div>
-                  <div className="text-xs text-gray-900">{test.date}</div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+        {tests.length > 0 ? (
+          <div className="bg-white rounded-lg shadow-sm">
+            {tests.map((test, index) => (
+              <div key={index} className="flex items-center justify-between p-4 border-b border-gray-100 last:border-b-0">
+                <div className="flex items-center space-x-3">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: test.color }}
+                  ></div>
+                  <div>
+                    <p className="font-medium text-gray-900">{test.title}</p>
+                    <p className="text-sm text-gray-500">Completed on {test.date}</p>
+                  </div>
                 </div>
-              </li>
+                {test.score && (
+                  <div className="text-right">
+                    <p className={`font-semibold ${
+                      test.score >= 90 ? 'text-accessible-success' : 
+                      test.score >= 80 ? 'text-accessible-info' : 
+                      test.score >= 70 ? 'text-accessible-warning' : 'text-accessible-error'
+                    }`}>{test.score}%</p>
+                    <p className="text-xs text-accessible-muted">Score</p>
+                  </div>
+                )}
+              </div>
             ))}
-          </ul>
-          <button className="w-full mt-6 bg-black text-white py-2 rounded-lg font-semibold text-sm">See All Upcoming Tests</button>
-        </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+            <div className="text-4xl mb-4">📈</div>
+            <p className="text-accessible-muted">Your learning activity will appear here</p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -331,7 +331,7 @@ export default function SkillAssessment() {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Enable Voice Instructions
           </h3>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-700 dark:text-gray-300">
             Get audio guidance throughout your learning journey
           </p>
         </div>
@@ -368,8 +368,8 @@ export default function SkillAssessment() {
               <div className="flex items-center space-x-3">
                 <span className="text-2xl">{style.icon}</span>
                 <div>
-                  <h4 className="font-semibold text-gray-900 dark:text-white">{style.label}</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{style.description}</p>
+                  <h4 className="font-semibold text-gray-800 dark:text-white">{style.label}</h4>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{style.description}</p>
                 </div>
               </div>
             </button>
@@ -397,7 +397,7 @@ export default function SkillAssessment() {
               }`}
             >
               <div className="text-3xl mb-2">{env.icon}</div>
-              <h4 className="font-semibold text-gray-900 dark:text-white">{env.label}</h4>
+                                <h4 className="font-semibold text-gray-800 dark:text-white">{env.label}</h4>
             </button>
           ))}
         </div>
@@ -738,7 +738,7 @@ export default function SkillAssessment() {
           <h2 className="text-3xl md:text-4xl font-bold leading-tight">
             Let&apos;s discover <br />
             your unique skills <br />
-            and <span className="text-yellow-300 font-extrabold">Learning<br />Preferences.</span>
+            and <span className="text-amber-400 font-extrabold">Learning<br />Preferences.</span>
           </h2>
         </div>
         <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8" />
@@ -759,7 +759,7 @@ export default function SkillAssessment() {
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
                 Skill Assessment
               </h1>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-700 text-sm">
                 Let&apos;s discover your unique skills and learning preferences
               </p>
               <div className="flex justify-center mt-4">

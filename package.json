@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "generate-secret": "node scripts/generate-secret.js"
+    "generate-secret": "node scripts/generate-secret.js",
+    "reset-db": "node scripts/reset-database.js",
+    "seed-modules": "node scripts/seed-modules.js",
+    "seed-users": "node scripts/seed-demo-users.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

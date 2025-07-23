@@ -206,7 +206,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
             >
               {showDebug ? 'Hide Debug' : 'Show Debug'}
             </button>
-            <button onClick={onClose} className="text-white hover:text-purple-200 transition-colors">
+            <button onClick={onClose} className="text-white hover:text-purple-100 transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -230,7 +230,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                     <p className="text-sm">{message.text}</p>
                     <p
                       className={`text-xs mt-1 ${
-                        message.sender === 'user' ? 'text-purple-200' : 'text-gray-500'
+                        message.sender === 'user' ? 'text-purple-100' : 'text-gray-600'
                       }`}
                     >
                       {message.timestamp.toLocaleTimeString([], {
@@ -311,7 +311,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                       </div>
                     )}
                   </div>
-                  {message.sender === 'user' && <User className="w-4 h-4 mt-0.5 text-purple-200" />}
+                  {message.sender === 'user' && <User className="w-4 h-4 mt-0.5 text-purple-100" />}
                 </div>
               </div>
             </div>
@@ -368,14 +368,14 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder="Type your message..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm text-gray-900"
               disabled={isLoading}
             />
             <button
               aria-label="Send message"
               onClick={sendMessage}
               disabled={!inputMessage.trim() || isLoading}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:text-gray-100 disabled:cursor-not-allowed transition-colors"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -386,7 +386,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                 <button
                   key={suggestion}
                   onClick={() => setInputMessage(suggestion)}
-                  className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors"
+                  className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full transition-colors"
                 >
                   {suggestion}
                 </button>

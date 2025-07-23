@@ -247,7 +247,7 @@ export default function ModulesTab() {
         
         // Load progress for each module
         modules.forEach((module: Module) => {
-          loadModuleProgress(module.id);
+          loadModuleProgress(module.moduleId);
         });
       } catch (error) {
         console.error('Error fetching modules:', error);
@@ -282,6 +282,18 @@ export default function ModulesTab() {
     setSelectedAnswers([]);
     setQuizResults([]);
     setFeedback('');
+  };
+
+  const markAsCompletedAndStartQuiz = (module: Module) => {
+    setSelectedModule(module);
+    // Skip video and mark as completed
+    setVideoProgress({ watchTime: module.duration || 0, completed: true });
+    setCurrentQuestionIndex(0);
+    setSelectedAnswers([]);
+    setQuizResults([]);
+    setFeedback('');
+    // Go directly to quiz
+    setShowQuiz(true);
   };
 
   const onYouTubeReady = (event: { target: { getCurrentTime: () => number; getDuration: () => number; getPlaybackRate: () => number; getPlayerState: () => number } }) => {
@@ -365,7 +377,7 @@ export default function ModulesTab() {
     
     try {
       setSavingProgress(true);
-      const response = await fetch(`/api/modules/${selectedModule.id}/progress`, {
+      const response = await fetch(`/api/modules/${selectedModule.moduleId}/progress`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -428,7 +440,7 @@ export default function ModulesTab() {
     
     try {
       setSavingProgress(true);
-      const response = await fetch(`/api/modules/${selectedModule.id}/progress`, {
+      const response = await fetch(`/api/modules/${selectedModule.moduleId}/progress`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -500,10 +512,10 @@ export default function ModulesTab() {
 
     try {
       setSavingProgress(true);
-      const response = await fetch(`/api/modules/${selectedModule.id}/progress`, {
+      const response = await fetch(`/api/modules/${selectedModule.moduleId}/progress`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+                 body: JSON.stringify({
           videoProgress,
           quizAttempts,
           feedback,
@@ -518,7 +530,7 @@ export default function ModulesTab() {
         // Update local progress
         setModuleProgress(prev => ({
           ...prev,
-          [selectedModule.id]: data.progress
+          [selectedModule.moduleId]: data.progress
         }));
         
         setShowFeedback(false);
@@ -548,8 +560,8 @@ export default function ModulesTab() {
     if (progress.videoProgress.completed) percentage += 25;
     if (progress.interactiveProgress?.completed) percentage += 25;
     if (progress.projectSubmission) percentage += 25;
-    if (progress.quizAttempts.length > 0) percentage += 15;
-    if (progress.feedback.trim()) percentage += 10;
+    if (Array.isArray(progress.quizAttempts) && progress.quizAttempts.length > 0) percentage += 15;
+    if (progress.feedback && progress.feedback.trim()) percentage += 10;
     
     return percentage;
   };
@@ -567,8 +579,78 @@ export default function ModulesTab() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
+  if (modules.length === 0) {
+    return (
+      <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-12 text-center">
+        <div className="text-6xl mb-6">📚</div>
+        <h3 className="text-2xl font-bold text-gray-800 mb-4">Learning Modules Coming Soon!</h3>
+        <p className="text-gray-600 mb-8 max-w-md mx-auto">
+          Our learning modules are being prepared for you. Complete your diagnostic assessment to get personalized module recommendations.
+        </p>
+        <div className="space-y-4">
+                      <div className="flex items-center justify-center space-x-8 text-sm text-gray-600">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+              <span>Video lessons</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+              <span>Interactive exercises</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+              <span>Progress tracking</span>
+            </div>
+          </div>
+                      <div className="text-sm text-gray-600 mt-4">
+            Meanwhile, explore sample learning content below:
+          </div>
+          
+          {/* Sample modules */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                <span className="text-2xl">📊</span>
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-2">Mathematics Basics</h4>
+              <p className="text-sm text-gray-600 mb-4">Build strong foundation in math concepts</p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600">30 min • 50 XP</span>
+                <button className="text-blue-600 text-sm font-medium">Coming Soon</button>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                <span className="text-2xl">🔬</span>
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-2">Science Experiments</h4>
+              <p className="text-sm text-gray-600 mb-4">Explore the world through experiments</p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600">25 min • 40 XP</span>
+                <button className="text-green-600 text-sm font-medium">Coming Soon</button>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                <span className="text-2xl">🎨</span>
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-2">Creative Arts</h4>
+              <p className="text-sm text-gray-600 mb-4">Express yourself through creative projects</p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600">45 min • 60 XP</span>
+                <button className="text-purple-600 text-sm font-medium">Coming Soon</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -577,17 +659,17 @@ export default function ModulesTab() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {modules.map((module) => {
-          const progressStatus = getProgressStatus(module.id);
-          const progressPercentage = getProgressPercentage(module.id);
-          const progress = moduleProgress[module.id];
+          const progressStatus = getProgressStatus(module.moduleId);
+          const progressPercentage = getProgressPercentage(module.moduleId);
+          const progress = moduleProgress[module.moduleId];
 
           return (
-            <div key={module.id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <div key={module.moduleId} className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{module.title}</h3>
                   <p className="text-sm text-gray-600 mb-2">{module.description}</p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
                     <span className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
                       {module.duration} min
@@ -630,6 +712,21 @@ export default function ModulesTab() {
                 </div>
               </div>
 
+              {/* Test Out Information */}
+              {progressStatus !== 'completed' && (
+                <div className="mb-4 p-3 bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <span className="text-orange-500 mt-0.5">💡</span>
+                    <div>
+                      <p className="text-sm font-medium text-orange-800 mb-1">Quick Test Option Available</p>
+                      <p className="text-xs text-orange-700">
+                        Already familiar with this topic? Use &quot;Test Out&quot; to skip the lesson and take the quiz directly to earn your points!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Progress Bar */}
               <div className="mb-4">
                 <div className="flex justify-between text-sm text-gray-600 mb-1">
@@ -648,22 +745,30 @@ export default function ModulesTab() {
               {progress?.gamificationProgress && module.gamification?.quests?.length > 0 && (
                 <div className="mb-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Award className="w-4 h-4 text-yellow-500" />
+                    <Award className="w-4 h-4 text-amber-600" />
                     <span className="text-sm font-medium text-gray-700">Quests:</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {progress.gamificationProgress.quests.map((quest, index) => (
-                      <span
-                        key={quest.questId}
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          quest.completed 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-gray-100 text-gray-600'
-                        }`}
-                      >
-                        {quest.current}/{module.gamification.quests[index]?.target}
-                      </span>
-                    ))}
+                    {progress.gamificationProgress.quests.map((quest, index) => {
+                      const questDef = module.gamification.quests[index];
+                      if (!questDef || typeof questDef.target !== 'number' || !questDef.title) return null;
+                      const target = questDef.target;
+                      const current = Math.min(Math.round(quest.current), target);
+                      return (
+                        <span
+                          key={quest.questId}
+                          className={`px-2 py-1 text-xs rounded-full ${
+                            quest.completed 
+                              ? 'bg-green-100 text-green-700 font-bold' 
+                              : 'bg-gray-100 text-gray-600'
+                          }`}
+                          title={questDef.title}
+                          aria-label={questDef.title}
+                        >
+                          {quest.completed ? '✓ Completed' : `${current}/${target}`}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -679,17 +784,33 @@ export default function ModulesTab() {
                     </span>
                   ))}
                 </div>
-                <button
-                  onClick={() => startModule(module)}
-                  disabled={progressStatus === 'completed'}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    progressStatus === 'completed'
-                      ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                      : 'bg-purple-600 text-white hover:bg-purple-700'
-                  }`}
-                >
-                  {progressStatus === 'completed' ? 'Completed' : 'Start'}
-                </button>
+                <div className="flex gap-2">
+                  {progressStatus !== 'completed' && (
+                    <>
+                      <button
+                        onClick={() => markAsCompletedAndStartQuiz(module)}
+                        className="px-3 py-2 rounded-lg text-xs font-medium bg-orange-500 text-white hover:bg-orange-600 transition-colors"
+                        title="Skip lesson and take quiz directly"
+                      >
+                        Test Out
+                      </button>
+                      <button
+                        onClick={() => startModule(module)}
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+                      >
+                        Start Lesson
+                      </button>
+                    </>
+                  )}
+                  {progressStatus === 'completed' && (
+                    <button
+                      disabled
+                      className="px-4 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-700 cursor-not-allowed"
+                    >
+                      Completed
+                    </button>
+                  )}
+                </div>
               </div>
 
               {progress && progress.pointsEarned > 0 && (
@@ -855,7 +976,7 @@ export default function ModulesTab() {
                     <ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
                       {selectedModule.contentTypes.project?.requirements.map((req, index) => (
                         <li key={index} className="flex items-start">
-                          <span className="text-yellow-600 mr-2">•</span>
+                          <span className="text-amber-700 mr-2">•</span>
                           <span>{req}</span>
                         </li>
                       ))}
@@ -872,7 +993,7 @@ export default function ModulesTab() {
                       type="text"
                       value={projectSubmission.title}
                       onChange={(e) => setProjectSubmission(prev => ({ ...prev, title: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900"
                       placeholder="Enter your project title"
                     />
                   </div>
@@ -885,7 +1006,7 @@ export default function ModulesTab() {
                       value={projectSubmission.content}
                       onChange={(e) => setProjectSubmission(prev => ({ ...prev, content: e.target.value }))}
                       rows={8}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none text-gray-900"
                       placeholder="Describe your project in detail..."
                     />
                   </div>
@@ -949,7 +1070,7 @@ export default function ModulesTab() {
                 
                 <div className="bg-yellow-50 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
-                    <Users className="w-5 h-5 text-yellow-600" />
+                    <Users className="w-5 h-5 text-amber-700" />
                     <span className="font-semibold text-gray-900">Group Size: {selectedModule.contentTypes.peerLearning?.groupSize} students</span>
                   </div>
                   <p className="text-sm text-gray-600">

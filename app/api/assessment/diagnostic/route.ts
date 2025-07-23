@@ -2,18 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
+import Student from '@/models/Student';
 import Assessment from '@/models/Assessment';
+import { getQuestionsForGrade, calculateSectionScores, generateRecommendations } from '@/lib/diagnosticQuestions';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 interface DecodedToken {
   userId: string;
   [key: string]: unknown;
-}
-
-interface GenerateResultsParams {
-  categoryScores: Record<string, number>;
-  learningStyle: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -50,39 +47,99 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { diagnosticResults, answers } = await request.json();
+    // Get student profile to determine grade
+    const student = await Student.findOne({ userId: decoded.userId });
+    if (!student) {
+      return NextResponse.json(
+        { error: 'Student profile not found. Please complete onboarding first.' },
+        { status: 400 }
+      );
+    }
+
+    const { answers, timeSpent } = await request.json();
 
     // Validate required fields
-    if (!diagnosticResults || !answers) {
+    if (!answers || typeof answers !== 'object') {
       return NextResponse.json({ 
-        error: 'Missing required fields' 
+        error: 'Answers are required' 
       }, { status: 400 });
     }
+
+    // Calculate scores based on the new system
+    const sectionScores = calculateSectionScores(answers);
+    const overallScore = Object.values(sectionScores).reduce((sum, score) => sum + score, 0);
+    const maxPossibleScore = getQuestionsForGrade(student.classGrade)
+      .reduce((sum, q) => sum + q.points, 0);
+    
+    const percentageScore = Math.round((overallScore / maxPossibleScore) * 100);
+
+    // Determine learning style based on answers
+    let learningStyle = 'Visual';
+    if (sectionScores['Logic'] && sectionScores['Logic'] > sectionScores['Creativity']) {
+      learningStyle = 'Analytical';
+    } else if (sectionScores['Creativity'] && sectionScores['Creativity'] > sectionScores['Logic']) {
+      learningStyle = 'Creative';
+    } else if (sectionScores['Reflection'] && sectionScores['Reflection'] > 30) {
+      learningStyle = 'Reflective';
+    }
+
+    // Generate recommendations based on performance and grade level
+    const gradeLevel = parseInt(student.classGrade.replace(/\D/g, '')) || 0;
+    let level: string;
+    if (gradeLevel >= 1 && gradeLevel <= 5) level = 'Elementary';
+    else if (gradeLevel >= 6 && gradeLevel <= 8) level = 'Middle';
+    else level = 'Secondary';
+
+    const recommendations = generateRecommendations(sectionScores, level);
 
     // Update assessment with diagnostic results
     const updateData = {
       diagnosticCompleted: true,
-      diagnosticScore: diagnosticResults.overallScore,
+      diagnosticScore: percentageScore,
       diagnosticResults: {
-        learningStyle: diagnosticResults.learningStyle,
-        skillLevels: diagnosticResults.categoryScores,
-        interestAreas: Object.keys(diagnosticResults.categoryScores).filter(
-          category => diagnosticResults.categoryScores[category] >= 60
-        ),
-        recommendedModules: generateRecommendedModules(diagnosticResults)
+        learningStyle,
+        skillLevels: sectionScores,
+        interestAreas: Object.keys(sectionScores)
+          .filter(category => sectionScores[category] >= (maxPossibleScore * 0.1))
+          .slice(0, 5), // Top 5 interest areas
+        recommendedModules: recommendations,
+        detailedScores: {
+          sectionScores,
+          overallScore,
+          maxPossibleScore,
+          percentageScore,
+          timeSpent: timeSpent || 0,
+          completedQuestions: Object.keys(answers).length,
+          level
+        }
       }
     };
 
     await Assessment.findOneAndUpdate(
       { userId: decoded.userId },
       updateData,
-      { new: true }
+      { upsert: true, new: true }
     );
 
     return NextResponse.json({ 
       success: true, 
       message: 'Diagnostic assessment completed successfully',
-      results: diagnosticResults
+      results: {
+        overallScore: percentageScore,
+        learningStyle,
+        sectionScores,
+        recommendations,
+        level,
+        detailedAnalysis: {
+          strengths: Object.keys(sectionScores)
+            .filter(cat => sectionScores[cat] >= (maxPossibleScore * 0.15))
+            .slice(0, 3),
+          areasForImprovement: Object.keys(sectionScores)
+            .filter(cat => sectionScores[cat] < (maxPossibleScore * 0.1))
+            .slice(0, 3),
+          timeEfficiency: timeSpent ? `${Math.round(timeSpent / 60)} minutes` : 'Not tracked'
+        }
+      }
     });
 
   } catch (error) {
@@ -127,18 +184,68 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get assessment data
-    const assessment = await Assessment.findOne({ userId: decoded.userId });
-    
-    if (!assessment) {
-      return NextResponse.json({ 
-        assessment: null 
-      });
+    // Get student profile to determine grade
+    const student = await Student.findOne({ userId: decoded.userId });
+    if (!student) {
+      return NextResponse.json(
+        { error: 'Student profile not found. Please complete onboarding first.' },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({ 
-      assessment: assessment.toJSON() 
+    // Get questions appropriate for student's grade
+    const questions = getQuestionsForGrade(student.classGrade);
+    
+    // Shuffle questions to ensure variety
+    const shuffledQuestions = questions.sort(() => Math.random() - 0.5);
+    
+    // Select a balanced set of questions (max 15 for good UX)
+    const selectedQuestions: typeof questions = [];
+    const sectionsUsed = new Set<string>();
+    
+    // First, try to get at least one question from each section
+    shuffledQuestions.forEach(q => {
+      if (!sectionsUsed.has(q.section) && selectedQuestions.length < 10) {
+        selectedQuestions.push(q);
+        sectionsUsed.add(q.section);
+      }
     });
+    
+    // Fill remaining slots with other questions
+    shuffledQuestions.forEach(q => {
+      if (selectedQuestions.length < 15 && !selectedQuestions.includes(q)) {
+        selectedQuestions.push(q);
+      }
+    });
+
+    // Get existing assessment data
+    const assessment = await Assessment.findOne({ userId: decoded.userId });
+    
+    const response = {
+      questions: selectedQuestions.map(q => ({
+        id: q.id,
+        section: q.section,
+        prompt: q.prompt,
+        inputType: q.inputType,
+        options: q.options,
+        category: q.category,
+        points: q.points,
+        timeLimit: q.timeLimit
+      })),
+      studentInfo: {
+        grade: student.classGrade,
+        level: selectedQuestions[0]?.level || 'Middle',
+        totalQuestions: selectedQuestions.length,
+        estimatedTime: selectedQuestions.reduce((sum, q) => sum + (q.timeLimit || 120), 0)
+      },
+      existingAssessment: assessment ? {
+        completed: assessment.diagnosticCompleted || false,
+        score: assessment.diagnosticScore || 0,
+        results: assessment.diagnosticResults || null
+      } : null
+    };
+
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error('Get diagnostic assessment error:', error);
@@ -146,39 +253,4 @@ export async function GET(request: NextRequest) {
       error: 'Internal server error' 
     }, { status: 500 });
   }
-}
-
-function generateRecommendedModules(results: GenerateResultsParams): string[] {
-  const recommendations: string[] = [];
-  
-  // Add recommendations based on skill levels
-  Object.entries(results.categoryScores).forEach(([category, score]: [string, number]) => {
-    if (score >= 80) {
-      // High skill level - recommend advanced modules
-      recommendations.push(`${category.toLowerCase()}-advanced`);
-    } else if (score >= 60) {
-      // Medium skill level - recommend intermediate modules
-      recommendations.push(`${category.toLowerCase()}-intermediate`);
-    } else {
-      // Low skill level - recommend beginner modules
-      recommendations.push(`${category.toLowerCase()}-beginner`);
-    }
-  });
-
-  // Add recommendations based on learning style
-  switch (results.learningStyle) {
-    case 'reading-writing':
-      recommendations.push('literature-beginner', 'writing-beginner');
-      break;
-    case 'logical-mathematical':
-      recommendations.push('math-beginner', 'logic-beginner');
-      break;
-    case 'visual-spatial':
-      recommendations.push('art-beginner', 'technology-beginner');
-      break;
-    default:
-      recommendations.push('general-beginner');
-  }
-
-  return recommendations.slice(0, 10); // Limit to top 10 recommendations
 } 

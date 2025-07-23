@@ -244,9 +244,14 @@ export async function POST(
         (q: IGamificationProgress['quests'][number]) => q.questId === 'quest1' || q.questId.includes('watch')
       );
       if (videoQuest) {
-        const watchPercentage = (videoProgress.watchTime / moduleProgress.videoProgress.totalDuration) * 100;
-        videoQuest.current = Math.min(watchPercentage, videoQuest.target);
-        videoQuest.completed = watchPercentage >= videoQuest.target;
+        const watchPercentage = (moduleProgress.videoProgress.totalDuration > 0)
+          ? (videoProgress.watchTime / moduleProgress.videoProgress.totalDuration) * 100
+          : 0;
+        const safeWatchPercentage = isNaN(watchPercentage) ? 0 : watchPercentage;
+        const safeTarget = typeof videoQuest.target === 'number' && !isNaN(videoQuest.target) ? videoQuest.target : 100;
+        videoQuest.current = Math.min(safeWatchPercentage, safeTarget);
+        if (isNaN(videoQuest.current)) videoQuest.current = 0;
+        videoQuest.completed = safeWatchPercentage >= safeTarget;
       }
     }
 
@@ -268,8 +273,11 @@ export async function POST(
         (q: IGamificationProgress['quests'][number]) => q.questId === 'quest2' || q.questId.includes('complete')
       );
       if (interactiveQuest && interactiveProgress.completed) {
-        interactiveQuest.current = Math.min(interactiveQuest.current + 1, interactiveQuest.target);
-        interactiveQuest.completed = interactiveQuest.current >= interactiveQuest.target;
+        const safeTarget = typeof interactiveQuest.target === 'number' && !isNaN(interactiveQuest.target) ? interactiveQuest.target : 100;
+        const newCurrent = isNaN(interactiveQuest.current + 1) ? 0 : interactiveQuest.current + 1;
+        interactiveQuest.current = Math.min(newCurrent, safeTarget);
+        if (isNaN(interactiveQuest.current)) interactiveQuest.current = 0;
+        interactiveQuest.completed = interactiveQuest.current >= safeTarget;
       }
     }
 
@@ -325,15 +333,19 @@ export async function POST(
       
       // Calculate quiz score
       const correctAnswers = quizAttempts.filter((attempt: IQuizAttempt) => attempt.isCorrect).length;
-      moduleProgress.quizScore = (correctAnswers / quizAttempts.length) * 100;
+      const quizScore = quizAttempts.length > 0 ? (correctAnswers / quizAttempts.length) * 100 : 0;
+      moduleProgress.quizScore = quizScore;
 
       // Update quest progress
       const quizQuest = moduleProgress.gamificationProgress.quests.find(
         (q: IGamificationProgress['quests'][number]) => q.questId.includes('score')
       );
       if (quizQuest) {
-        quizQuest.current = Math.min(moduleProgress.quizScore, quizQuest.target);
-        quizQuest.completed = moduleProgress.quizScore >= quizQuest.target;
+        const safeTarget = typeof quizQuest.target === 'number' && !isNaN(quizQuest.target) ? quizQuest.target : 100;
+        const safeQuizScore = isNaN(quizScore) ? 0 : quizScore;
+        quizQuest.current = Math.min(safeQuizScore, safeTarget);
+        if (isNaN(quizQuest.current)) quizQuest.current = 0;
+        quizQuest.completed = safeQuizScore >= safeTarget;
       }
     }
 

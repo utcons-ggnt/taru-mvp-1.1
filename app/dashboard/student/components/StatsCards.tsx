@@ -1,20 +1,30 @@
 import React from 'react';
 
-export default function StatsCards({ xp, badges, modules }: { xp: number, badges: number, modules: number }) {
+interface StatsCard {
+  title: string;
+  value: string | number;
+  subtitle: string;
+  icon: string;
+  color: string;
+}
+
+interface StatsCardsProps {
+  stats: StatsCard[];
+}
+
+export default function StatsCards({ stats }: StatsCardsProps) {
   return (
-    <div className="flex gap-6 justify-center my-6">
-      <div className="bg-purple-100 rounded-xl px-8 py-6 text-center shadow-sm">
-        <div className="text-3xl font-bold text-purple-700">{xp}</div>
-        <div className="text-sm text-gray-900 mt-1">XP Points</div>
-      </div>
-      <div className="bg-purple-100 rounded-xl px-8 py-6 text-center shadow-sm">
-        <div className="text-3xl font-bold text-purple-700">{badges.toString().padStart(2, '0')}</div>
-        <div className="text-sm text-gray-900 mt-1">Badges</div>
-      </div>
-      <div className="bg-purple-100 rounded-xl px-8 py-6 text-center shadow-sm">
-        <div className="text-3xl font-bold text-purple-700">{modules}</div>
-        <div className="text-sm text-gray-900 mt-1">Modules</div>
-      </div>
+    <div className="flex gap-4 flex-wrap">
+      {stats.map((stat, index) => (
+        <div key={index} className="bg-white rounded-lg shadow-sm p-4 flex flex-col items-center border border-gray-100 min-w-[120px]">
+          <div className={`w-8 h-8 ${stat.color} rounded-full flex items-center justify-center mb-2`}>
+            <span className="text-white text-sm">{stat.icon}</span>
+          </div>
+          <span className="font-bold text-2xl text-gray-900">{stat.value}</span>
+          <span className="text-xs text-gray-500 text-center">{stat.title}</span>
+          <span className="text-xs text-gray-400 mt-1">{stat.subtitle}</span>
+        </div>
+      ))}
     </div>
   );
 } 

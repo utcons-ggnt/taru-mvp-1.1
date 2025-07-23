@@ -642,7 +642,7 @@ export default function StudentOnboarding() {
                 onChange={() => handleMultiSelect('learningModePreference', mode)}
                 className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
               />
-              <span className="text-sm text-gray-700">{mode}</span>
+              <span className="text-sm text-gray-800">{mode}</span>
             </label>
           ))}
         </div>
@@ -662,7 +662,7 @@ export default function StudentOnboarding() {
                 onChange={() => handleMultiSelect('interestsOutsideClass', interest)}
                 className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
               />
-              <span className="text-sm text-gray-700">{interest}</span>
+              <span className="text-sm text-gray-800">{interest}</span>
             </label>
           ))}
         </div>
@@ -681,7 +681,7 @@ export default function StudentOnboarding() {
                 onChange={() => handleMultiSelect('preferredCareerDomains', domain)}
                 className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
               />
-              <span className="text-sm text-gray-700">{domain}</span>
+              <span className="text-sm text-gray-800">{domain}</span>
             </label>
           ))}
         </div>
@@ -779,7 +779,7 @@ export default function StudentOnboarding() {
             onChange={(e) => handleInputChange('termsAndConditionsAccepted', e.target.checked)}
             className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
           />
-          <span className="text-sm text-gray-700">I accept the terms and conditions *</span>
+                      <span className="text-sm text-gray-800">I accept the terms and conditions *</span>
         </label>
         {errors.termsAndConditionsAccepted && <p className="text-red-500 text-sm mt-1">{errors.termsAndConditionsAccepted}</p>}
       </div>
@@ -805,7 +805,7 @@ export default function StudentOnboarding() {
           <h2 className="text-3xl md:text-4xl font-bold leading-tight">
             Complete your <br />
             student profile <br />
-            and <span className="text-yellow-300 font-extrabold">Unlock your<br />Learning Journey.</span>
+            and <span className="text-amber-400 font-extrabold">Unlock your<br />Learning Journey.</span>
           </h2>
         </div>
         <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8" />

@@ -419,7 +419,7 @@ export default function DiagnosticAssessment() {
           <h2 className="text-3xl md:text-4xl font-bold leading-tight">
             Let&apos;s understand <br />
             your current skills <br />
-            and <span className="text-yellow-300 font-extrabold">Learning<br />Preferences.</span>
+            and <span className="text-amber-400 font-extrabold">Learning<br />Preferences.</span>
           </h2>
         </div>
         <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8" />

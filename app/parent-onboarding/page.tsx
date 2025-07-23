@@ -591,7 +591,7 @@ export default function ParentOnboarding() {
           <h2 className="text-3xl md:text-4xl font-bold leading-tight">
             Complete your <br />
             parent profile <br />
-            and <span className="text-yellow-300 font-extrabold">Monitor your<br />Child&apos;s Progress.</span>
+            and <span className="text-amber-400 font-extrabold">Monitor your<br />Child&apos;s Progress.</span>
           </h2>
         </div>
         <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8" />

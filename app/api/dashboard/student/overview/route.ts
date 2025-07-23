@@ -4,22 +4,15 @@ import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Student from '@/models/Student';
 import StudentProgress from '@/models/StudentProgress';
-import Assessment from '@/models/Assessment';
 import Module from '@/models/Module';
+import Assessment from '@/models/Assessment';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 interface DecodedToken {
   userId: string;
+  role: string;
   [key: string]: unknown;
-}
-
-interface ModuleProgress {
-  moduleId: string;
-  status: string;
-  progress: number;
-  xpEarned: number;
-  startedAt: Date;
 }
 
 export async function GET(request: NextRequest) {
@@ -44,113 +37,137 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Connect to database
-    await connectDB();
-
-    // Get user
-    const user = await User.findById(decoded.userId);
-    if (!user || user.role !== 'student') {
+    if (decoded.role !== 'student') {
       return NextResponse.json(
-        { error: 'Only students can access this endpoint' },
+        { error: 'Access denied. Student role required.' },
         { status: 403 }
       );
     }
 
-    // Get student profile
+    await connectDB();
+
+    // Get user and student info
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
     const student = await Student.findOne({ userId: decoded.userId });
-    
+    if (!student) {
+      return NextResponse.json(
+        { error: 'Student profile not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get all modules for total count
+    const allModules = await Module.find({});
+    const totalModules = allModules.length;
+
     // Get student progress
-    const progress = await StudentProgress.findOne({ studentId: decoded.userId });
-    
-    // Get assessment data
-    const assessment = await Assessment.findOne({ userId: decoded.userId });
-    
-    // Get active modules
-    const activeModules = await Module.find({ isActive: true }).limit(5);
+    const studentProgresses = await StudentProgress.find({ studentId: student._id });
+    const completedModules = studentProgresses.filter(progress => progress.completed).length;
+    const inProgressModules = studentProgresses.filter(progress => !progress.completed && progress.videoProgress.watchTime > 0).length;
 
-    // Calculate statistics
-    const totalModules = progress?.moduleProgress?.length || 0;
-    const completedModules = progress?.moduleProgress?.filter((mp: ModuleProgress) => mp.status === 'completed').length || 0;
-    const inProgressModules = progress?.moduleProgress?.filter((mp: ModuleProgress) => mp.status === 'in-progress').length || 0;
-    const totalXp = progress?.totalXpEarned || 0;
-    const averageScore = assessment?.diagnosticScore || 0;
+    // Calculate total XP
+    const totalXp = studentProgresses.reduce((sum, progress) => sum + (progress.pointsEarned || 0), 0);
 
-    // Get recent activity (last 5 modules)
-    const recentActivity = progress?.moduleProgress?.slice(-5).map((mp: ModuleProgress) => ({
-      moduleId: mp.moduleId,
-      status: mp.status,
-      progress: mp.progress,
-      xpEarned: mp.xpEarned,
-      lastAccessed: mp.startedAt
-    })) || [];
+    // Calculate average score
+    const scoresWithQuiz = studentProgresses.filter(progress => progress.quizScore > 0);
+    const averageScore = scoresWithQuiz.length > 0 
+      ? Math.round(scoresWithQuiz.reduce((sum, progress) => sum + progress.quizScore, 0) / scoresWithQuiz.length)
+      : 0;
 
-    // Get notifications based on progress
-    const notifications = [];
-    
-    if (completedModules === 0) {
-      notifications.push({
-        id: '1',
-        title: 'Welcome to JioWorld Learning!',
-        message: 'Complete your first module to start earning XP and badges.',
-        type: 'info',
-        date: new Date().toISOString().split('T')[0],
-        read: false
+    // Get recent activity (last 5 modules worked on)
+    const recentActivity = studentProgresses
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 5)
+      .map(progress => {
+        const foundModule = allModules.find(m => m._id.toString() === progress.moduleId);
+        return {
+          moduleId: progress.moduleId,
+          status: progress.completed ? 'completed' : 'in-progress',
+          progress: progress.completed ? 100 : Math.round((progress.videoProgress.watchTime / 300) * 100), // Assuming 5 min videos
+          xpEarned: progress.pointsEarned || 0,
+          lastAccessed: progress.updatedAt,
+          moduleName: foundModule?.title || 'Unknown Module'
+        };
       });
-    }
-    
-    if (inProgressModules > 0) {
-      notifications.push({
-        id: '2',
-        title: 'Continue Your Learning',
-        message: `You have ${inProgressModules} module(s) in progress. Keep going!`,
-        type: 'success',
-        date: new Date().toISOString().split('T')[0],
-        read: false
-      });
-    }
 
-    if (assessment?.diagnosticCompleted) {
-      notifications.push({
-        id: '3',
-        title: 'Assessment Complete!',
-        message: 'Your learning profile has been created. Check out your personalized recommendations!',
-        type: 'success',
-        date: assessment.assessmentCompletedAt?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
-        read: false
-      });
-    }
+    // Get recommended modules (modules not started yet)
+    const startedModuleIds = studentProgresses.map(progress => progress.moduleId);
+    const recommendedModules = allModules
+      .filter(module => !startedModuleIds.includes(module._id.toString()))
+      .slice(0, 6)
+      .map(module => ({
+        id: module._id.toString(),
+        name: module.title,
+        subject: module.subject,
+        description: module.description,
+        xpPoints: module.points,
+        estimatedDuration: module.duration
+      }));
 
-    return NextResponse.json({
+    // Get badges earned (from gamification progress)
+    const badgesEarned = studentProgresses
+      .flatMap(progress => progress.gamificationProgress?.badges || [])
+      .map(badge => ({
+        badgeId: badge.badgeId,
+        name: badge.name,
+        description: `Achievement earned through learning progress`,
+        earnedAt: badge.earnedAt
+      }));
+
+    // Get assessment info
+    let assessment = null;
+    try {
+      const userAssessment = await Assessment.findOne({ userId: decoded.userId });
+      if (userAssessment) {
+        assessment = {
+          diagnosticCompleted: userAssessment.completed,
+          diagnosticScore: userAssessment.overallScore || 0,
+          assessmentCompletedAt: userAssessment.createdAt
+        };
+      }
+         } catch {
+       console.log('Assessment not found, continuing without it');
+     }
+
+    // Calculate total time spent
+    const totalTimeSpent = studentProgresses.reduce((sum, progress) => {
+      return sum + (progress.videoProgress.watchTime || 0);
+    }, 0);
+
+    const dashboardData = {
       overview: {
         totalModules,
         completedModules,
         inProgressModules,
         totalXp,
         averageScore,
-        studentName: student?.fullName || user.name,
-        grade: student?.classGrade || user.profile?.grade || 'Not set',
-        school: student?.schoolName || 'Not set',
-        studentKey: student?.uniqueId || 'Not available'
+        studentName: user.name,
+        grade: student.grade || user.profile?.grade || '',
+        school: student.school || user.profile?.school || '',
+        studentKey: student.studentKey || `STU${student._id.toString().slice(-6).toUpperCase()}`
       },
       recentActivity,
-      notifications,
-      recommendedModules: activeModules.slice(0, 3).map(foundModule => ({
-        id: foundModule.moduleId,
-        name: foundModule.name,
-        subject: foundModule.subject,
-        description: foundModule.description,
-        xpPoints: foundModule.xpPoints,
-        estimatedDuration: foundModule.estimatedDuration
-      })),
+      notifications: [], // TODO: Implement notifications system
+      recommendedModules,
       progress: {
-        totalTimeSpent: progress?.totalTimeSpent || 0,
-        badgesEarned: progress?.badgesEarned || [],
-        currentModule: progress?.currentModule || null
-      }
-    });
+        totalTimeSpent,
+        badgesEarned,
+        currentModule: recentActivity[0] || null
+      },
+      assessment
+    };
 
-  } catch (error: unknown) {
-    console.error('Get student overview error:', error);
+    return NextResponse.json(dashboardData);
+
+  } catch (error) {
+    console.error('Dashboard overview error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

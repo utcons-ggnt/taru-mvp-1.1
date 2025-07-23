@@ -212,7 +212,7 @@ export default function Home() {
             Start your journey <br />
             with just one click. <br />
             Choose your role <br />
-            and <span className="text-yellow-300 font-extrabold">Unlock a World<br />of Learning.</span>
+            and <span className="text-amber-400 font-extrabold">Unlock a World<br />of Learning.</span>
           </h2>
         </div>
         <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-80 h-80 md:w-64 md:h-64 mx-auto mt-2" />
@@ -305,7 +305,7 @@ export default function Home() {
                   value={formData.fullName}
                   onChange={handleInputChange}
                   placeholder="Full Name"
-                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black"
+                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-gray-900"
                   required
                 />
               </div>
@@ -318,7 +318,7 @@ export default function Home() {
                   value={formData.guardianName}
                   onChange={handleInputChange}
                   placeholder="Guardian Name"
-                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black"
+                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-gray-900"
                   required
                 />
               </div>
@@ -341,7 +341,7 @@ export default function Home() {
                     required
                   />
                   {selectedRole === 'parent' && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-600 mt-1">
                       Enter the student ID provided by your child
                     </p>
                   )}
@@ -372,7 +372,7 @@ export default function Home() {
                   value={formData.location}
                   onChange={handleInputChange}
                   placeholder="Location"
-                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black"
+                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-gray-900"
                   required
                 />
               </div>
@@ -385,7 +385,7 @@ export default function Home() {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="Email Address"
-                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black"
+                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-gray-900"
                   required
                 />
               </div>
@@ -398,7 +398,7 @@ export default function Home() {
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="Password"
-                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black"
+                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-gray-900"
                   required
                 />
               </div>
@@ -411,14 +411,14 @@ export default function Home() {
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   placeholder="Confirm Password"
-                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black"
+                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-gray-900"
                   required
                 />
               </div>
 
               {/* Error Message */}
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+                <div className="alert-error">
                   {error}
                 </div>
               )}
@@ -435,7 +435,7 @@ export default function Home() {
 
             {/* Sign In Link */}
             <div className="text-center mt-6">
-              <span className="text-gray-600 text-sm">Already have an account? </span>
+              <span className="text-gray-700 text-sm">Already have an account? </span>
               <Link
                 href="/login"
                 className="text-[#7F00FF] hover:text-[#6B00E6] font-semibold text-sm"
