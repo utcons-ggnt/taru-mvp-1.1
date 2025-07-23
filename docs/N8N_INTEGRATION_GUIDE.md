@@ -7,7 +7,7 @@ This guide ensures accurate working of the n8n webhook integration with the Chat
 The integration consists of:
 1. **ChatModal** - React component that sends messages
 2. **API Route** (`/api/chat`) - Handles communication with n8n
-3. **n8n Workflow** - AI-BUDDY workflow with Google Gemini
+3. **n8n Workflow** - AI-BUDDY workflow with AI Assistant
 
 ## 🔧 Setup Requirements
 
@@ -20,8 +20,8 @@ N8N_WEBHOOK_URL=https://aviadigitalmind.app.n8n.cloud/webhook/AI-BUDDY
 
 ### 2. n8n Workflow Structure
 Your n8n workflow should have:
-- **Webhook Node** - Receives POST requests
-- **AI Agent Node** - Uses Google Gemini
+- **Webhook Node** - Receives GET requests
+- **AI Agent Node** - Uses AI Assistant
 - **Respond to Webhook Node** - Returns AI response
 
 Expected payload format:
@@ -123,8 +123,8 @@ Extracted response: {...}
   "n8nOutput": {
     "fullResponse": {...},
     "processedResponse": {...},
-    "geminiInput": "Original query",
-    "geminiResponse": "AI response",
+    "aiInput": "Original query",
+    "aiResponse": "AI response",
     "timestamp": "2024-01-15T10:30:00.000Z",
     "studentContext": {
       "name": "Student Name",
@@ -164,7 +164,7 @@ Extracted response: {...}
 1. **User sends message** → ChatModal
 2. **ChatModal** → API Route (`/api/chat`)
 3. **API Route** → n8n Webhook
-4. **n8n Workflow** → Google Gemini AI
+4. **n8n Workflow** → AI Assistant
 5. **AI Response** → n8n → API Route → ChatModal
 6. **Display** → User sees AI response with debug info
 

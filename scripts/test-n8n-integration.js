@@ -1,5 +1,3 @@
-const fetch = require('node-fetch');
-
 // Test configuration
 const TEST_CONFIG = {
   apiUrl: 'http://localhost:3000/api/chat',
@@ -20,13 +18,22 @@ async function testDirectWebhook() {
   console.log('Webhook URL:', TEST_CONFIG.webhookUrl);
   
   try {
-    const response = await fetch(TEST_CONFIG.webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: TEST_CONFIG.testMessage,
-        studentData: TEST_CONFIG.studentData
-      })
+    // Convert to GET request with URL parameters
+    const urlParams = new URLSearchParams({
+      query: TEST_CONFIG.testMessage,
+      name: TEST_CONFIG.studentData.name,
+      email: TEST_CONFIG.studentData.email,
+      grade: TEST_CONFIG.studentData.grade,
+      school: TEST_CONFIG.studentData.school,
+      studentId: TEST_CONFIG.studentData.studentId,
+      timestamp: TEST_CONFIG.studentData.timestamp
+    });
+    
+    const testUrl = `${TEST_CONFIG.webhookUrl}?${urlParams.toString()}`;
+    
+    const response = await fetch(testUrl, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
     });
 
     console.log('Direct webhook status:', response.status, response.statusText);
@@ -48,7 +55,7 @@ async function testDirectWebhook() {
 }
 
 async function testAPIEndpoint() {
-  console.log('\n🌐 Testing API endpoint...');
+  console.log('\n🔌 Testing API endpoint...');
   console.log('API URL:', TEST_CONFIG.apiUrl);
   
   try {
@@ -61,81 +68,58 @@ async function testAPIEndpoint() {
       })
     });
 
-    console.log('API status:', response.status, response.statusText);
+    console.log('API endpoint status:', response.status, response.statusText);
     
     if (response.ok) {
       const data = await response.json();
-      console.log('✅ API response:', JSON.stringify(data, null, 2));
-      
-      // Check if n8n integration worked
-      if (data.success && data.n8nOutput) {
-        console.log('✅ n8n integration successful!');
-        console.log('AI-BUDDY Input:', data.n8nOutput.geminiInput);
-        console.log('AI-BUDDY Response:', data.n8nOutput.geminiResponse);
-      } else if (data.fallback) {
-        console.log('⚠️ Using fallback response (n8n unavailable)');
-      }
-      
+      console.log('✅ API endpoint response:', JSON.stringify(data, null, 2));
       return true;
     } else {
-      console.log('❌ API failed:', response.status, response.statusText);
+      console.log('❌ API endpoint failed:', response.status, response.statusText);
       const errorText = await response.text();
       console.log('Error details:', errorText);
       return false;
     }
   } catch (error) {
-    console.log('❌ API error:', error.message);
+    console.log('❌ API endpoint error:', error.message);
     return false;
   }
 }
 
-async function testGETEndpoint() {
-  console.log('\n🔍 Testing GET endpoint...');
-  
-  try {
-    const response = await fetch(TEST_CONFIG.apiUrl);
-    console.log('GET status:', response.status, response.statusText);
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ GET response:', data);
-      return true;
-    } else {
-      console.log('❌ GET failed:', response.status, response.statusText);
-      return false;
-    }
-  } catch (error) {
-    console.log('❌ GET error:', error.message);
-    return false;
-  }
-}
+async function runTests() {
+  console.log('🧪 Starting n8n Integration Tests\n');
+  console.log('Configuration:');
+  console.log('- Webhook URL:', TEST_CONFIG.webhookUrl);
+  console.log('- API URL:', TEST_CONFIG.apiUrl);
+  console.log('- Test Message:', TEST_CONFIG.testMessage);
+  console.log('- Student Data:', JSON.stringify(TEST_CONFIG.studentData, null, 2));
+  console.log('\n' + '='.repeat(50) + '\n');
 
-async function runAllTests() {
-  console.log('🚀 Starting n8n Integration Tests...\n');
+  const webhookSuccess = await testDirectWebhook();
+  const apiSuccess = await testAPIEndpoint();
+
+  console.log('\n' + '='.repeat(50));
+  console.log('📊 Test Results Summary:');
+  console.log('- Direct Webhook:', webhookSuccess ? '✅ PASS' : '❌ FAIL');
+  console.log('- API Endpoint:', apiSuccess ? '✅ PASS' : '❌ FAIL');
   
-  const results = {
-    directWebhook: await testDirectWebhook(),
-    apiEndpoint: await testAPIEndpoint(),
-    getEndpoint: await testGETEndpoint()
-  };
-  
-  console.log('\n📊 Test Results:');
-  console.log('Direct Webhook:', results.directWebhook ? '✅ PASS' : '❌ FAIL');
-  console.log('API Endpoint:', results.apiEndpoint ? '✅ PASS' : '❌ FAIL');
-  console.log('GET Endpoint:', results.getEndpoint ? '✅ PASS' : '❌ FAIL');
-  
-  if (results.directWebhook && results.apiEndpoint) {
-    console.log('\n🎉 All critical tests passed! n8n integration is working correctly.');
-  } else if (results.apiEndpoint) {
-    console.log('\n⚠️ API is working but n8n webhook may have issues. Check webhook URL and n8n workflow.');
+  if (webhookSuccess && apiSuccess) {
+    console.log('\n🎉 All tests passed! ChatModal integration is working correctly.');
   } else {
-    console.log('\n❌ Critical issues detected. Check your setup and try again.');
+    console.log('\n⚠️  Some tests failed. Check the logs above for details.');
+    console.log('\n🔧 Troubleshooting tips:');
+    console.log('1. Ensure your development server is running (npm run dev)');
+    console.log('2. Check that N8N_WEBHOOK_URL is set in your .env.local file');
+    console.log('3. Verify your n8n workflow is active and accessible');
+    console.log('4. Test the webhook directly in n8n editor');
   }
+  
+  process.exit(webhookSuccess && apiSuccess ? 0 : 1);
 }
 
-// Run tests if this script is executed directly
+// Only run if this file is executed directly
 if (require.main === module) {
-  runAllTests().catch(console.error);
+  runTests().catch(console.error);
 }
 
-module.exports = { testDirectWebhook, testAPIEndpoint, testGETEndpoint, runAllTests }; 
+module.exports = { testDirectWebhook, testAPIEndpoint, runTests }; 

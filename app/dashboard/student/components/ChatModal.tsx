@@ -11,8 +11,8 @@ interface Message {
   n8nOutput?: {
     fullResponse?: unknown;
     processedResponse?: unknown;
-    geminiInput?: string;
-    geminiResponse?: string;
+    aiInput?: string;
+    aiResponse?: string;
     timestamp?: string;
     studentContext?: {
       name?: string;
@@ -29,8 +29,8 @@ interface Message {
     webhookUrl?: string;
     timestamp?: string;
   };
-  geminiInput?: string;
-  geminiResponse?: string;
+  aiInput?: string;
+  aiResponse?: string;
   aiBuddyResponse?: unknown;
 }
 
@@ -108,14 +108,14 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
 
         // Enhanced error handling and response processing
         let responseText = data.response || 'Thank you for your message! I\'ll get back to you soon.';
-        let geminiInput = data.n8nOutput?.geminiInput || inputMessage;
-        let geminiResponse = data.n8nOutput?.geminiResponse || data.response;
+        let aiInput = data.n8nOutput?.aiInput || inputMessage;
+        let aiResponse = data.n8nOutput?.aiResponse || data.response;
 
         // If n8n failed but we have a fallback response
         if (data.fallback && data.response) {
           responseText = data.response;
-          geminiInput = inputMessage;
-          geminiResponse = 'Fallback response (n8n unavailable)';
+          aiInput = inputMessage;
+          aiResponse = 'Fallback response (n8n unavailable)';
         }
 
         const botMessage: Message = {
@@ -125,8 +125,8 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
           timestamp: new Date(),
           n8nOutput: data.n8nOutput,
           metadata: data.metadata,
-          geminiInput: geminiInput,
-          geminiResponse: geminiResponse,
+          aiInput: aiInput,
+          aiResponse: aiResponse,
           aiBuddyResponse: data.n8nOutput?.fullResponse || data.response
         };
 
@@ -135,8 +135,8 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
         // Enhanced logging
         if (data.n8nOutput) {
           console.log('N8N Output:', data.n8nOutput);
-          console.log('AI-BUDDY Input:', geminiInput);
-          console.log('AI-BUDDY Response:', geminiResponse);
+          console.log('AI-BUDDY Input:', aiInput);
+          console.log('AI-BUDDY Response:', aiResponse);
         }
         if (data.metadata) {
           console.log('Response Metadata:', data.metadata);
@@ -241,7 +241,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
 
                     {showN8nOutput &&
                       message.sender === 'bot' &&
-                      (message.geminiInput || message.geminiResponse) && (
+                      (message.aiInput || message.aiResponse) && (
                         <div className="mt-3 p-3 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg">
                           <div className="flex items-center gap-2 mb-3">
                             <div className="w-4 h-4 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
@@ -251,19 +251,19 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                               AI-BUDDY (Workflow 3)
                             </span>
                           </div>
-                          {message.geminiInput && (
+                          {message.aiInput && (
                             <div className="mb-3">
                               <span className="text-xs font-medium text-green-700">📤 Query to AI-BUDDY:</span>
                               <div className="text-xs text-green-700 bg-white p-3 rounded border border-green-200 shadow-sm whitespace-pre-wrap">
-                                {message.geminiInput}
+                                {message.aiInput}
                               </div>
                             </div>
                           )}
-                          {message.geminiResponse && (
+                          {message.aiResponse && (
                             <div className="mb-2">
                               <span className="text-xs font-medium text-blue-700">📥 AI-BUDDY Response:</span>
                               <div className="text-xs text-blue-700 bg-white p-3 rounded border border-blue-200 shadow-sm whitespace-pre-wrap">
-                                {message.geminiResponse}
+                                {message.aiResponse}
                               </div>
                             </div>
                           )}
@@ -341,7 +341,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
 
         {/* AI Summary */}
         {showN8nOutput &&
-          messages.some((m) => m.sender === 'bot' && (m.geminiInput || m.geminiResponse)) && (
+          messages.some((m) => m.sender === 'bot' && (m.aiInput || m.aiResponse)) && (
             <div className="p-3 border-t border-gray-200 bg-gradient-to-r from-green-50 to-blue-50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -350,7 +350,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                 </div>
                 <span className="text-xs text-green-600">
                   {
-                    messages.filter((m) => m.sender === 'bot' && (m.geminiInput || m.geminiResponse)).length
+                    messages.filter((m) => m.sender === 'bot' && (m.aiInput || m.aiResponse)).length
                   }{' '}
                   AI responses
                 </span>
