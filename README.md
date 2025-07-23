@@ -40,9 +40,17 @@ A comprehensive educational platform designed for students, parents, teachers, p
 - **Connection monitoring**: Automatic reconnection and data recovery
 - **Multiple sync strategies**: Basic, automatic, real-time, and optimistic synchronization
 
+## 🛠️ How Features Are Implemented
+
+- **Authentication**: JWT tokens in HTTP-only cookies; APIs check token and user role.
+- **Data Sync**: Frontend fetches/polls APIs for latest data; optimistic UI updates.
+- **Personalized Learning**: Assessments/results drive module and path recommendations.
+- **Gamification**: XP, badges, and quests tracked and shown in dashboard.
+- **AI Chat**: ChatModal sends queries to API, which relays to n8n AI assistant.
+
 ## 🛠️ Technology Stack
 
-- **Frontend**: Next.js 15act 19, TypeScript, Tailwind CSS 4
+- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS 4
 - **Backend**: Next.js API Routes, Node.js
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: JWT tokens with HTTP-only cookies
@@ -76,14 +84,11 @@ taru2/
 │   ├── modules/               # Module Details
 │   ├── parent-onboarding/     # Parent onboarding flow
 │   └── student-onboarding/    # Student onboarding flow
-├── components/                # Shared components
-├── lib/                       # Utility libraries
-│   └── mongodb.ts            # Database connection
-├── models/                    # Database models
-├── scripts/                   # Database seeding
-│   └── seed-modules.js       # Module data seeding
-├── docs/                      # Documentation
-└── types/                     # TypeScript definitions
+├── lib/                       # Utility libraries (diagnosticQuestions.ts, mongodb.ts, utils.ts)
+├── models/                    # Database models (Assessment.ts, LearningPath.ts, Module.ts, Parent.ts, Student.ts, StudentProgress.ts, User.ts)
+├── scripts/                   # Database and utility scripts (seed-modules.js, seed-demo-users.js, reset-database.js, cleanup-profile-pictures.js, test-n8n-integration.js)
+├── docs/                      # Documentation (N8N_INTEGRATION_GUIDE.md)
+├── types/                     # TypeScript definitions (currently empty)
 ```
 
 ## 🚀 Getting Started
@@ -96,15 +101,17 @@ taru2/
 ### Installation
 
 1. **Clone the repository**
-```bash
+   ```bash
    git clone <repository-url>
    cd taru2
-```
+   ```
 
 2. **Install dependencies**
-```bash
-npm install
-3*Environment Setup**
+   ```bash
+   npm install
+   ```
+
+3. **Environment Setup**
    Create a `.env.local` file in the root directory:
    ```env
    MONGODB_URI=your_mongodb_connection_string
@@ -115,12 +122,13 @@ npm install
    ```bash
    # Run the seed script to populate sample data
    node scripts/seed-modules.js
+   node scripts/seed-demo-users.js
    ```
 
 5. **Start the development server**
-```bash
-npm run dev
-```
+   ```bash
+   npm run dev
+   ```
 
 6. **Access the application**
    Open http://localhost:3000 in your browser
@@ -251,7 +259,9 @@ Ensure all required environment variables are set in production:
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
-- `npm run generate-secret` - Generate JWT secret
+- `npm run reset-db` - Reset the database
+- `npm run seed-modules` - Seed modules data
+- `npm run seed-users` - Seed demo users
 
 ## 🤝 Contributing
 
@@ -283,6 +293,7 @@ For support and questions, please contact the development team or create an issu
 | Admin    | admin1@demo.com      | demopass  |
 
 - Use these accounts to log in and explore all role-based dashboards and features.
+- If demo accounts do not work, reseed the database using the scripts in the `scripts/` directory.
 
 ## ⚡ Quickstart for Reviewers
 
@@ -307,4 +318,8 @@ For support and questions, please contact the development team or create an issu
   - Download PDF certificates for earned badges (Rewards tab)
   - Download progress as CSV (Progress tab)
 - **Admins:**
-  - Download all students' progress as CSV (Admin dashboard) 
+  - Download all students' progress as CSV (Admin dashboard)
+
+## 📄 Additional Documentation
+
+- See `docs/N8N_INTEGRATION_GUIDE.md` for integration details with N8N. 
