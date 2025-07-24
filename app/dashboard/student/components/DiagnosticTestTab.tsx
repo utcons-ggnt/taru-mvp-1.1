@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Clock, CheckCircle, Star, Brain, Trophy, Target } from 'lucide-react';
 
 interface DiagnosticQuestion {
@@ -52,9 +52,36 @@ export default function DiagnosticTestTab() {
     loadDiagnosticQuestions();
   }, []);
 
+  const completeTest = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/assessment/diagnostic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          answers,
+          timeSpent: totalTimeSpent,
+          completed: true
+        })
+      });
 
+      if (!response.ok) {
+        throw new Error('Failed to submit diagnostic test');
+      }
 
-  const handleNextQuestion = () => {
+      const data = await response.json();
+      setResults(data.results);
+      setTestCompleted(true);
+      setTestStarted(false);
+    } catch (err) {
+      setError('Failed to submit test. Please try again.');
+      console.error('Submit test error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [answers, totalTimeSpent, setLoading, setResults, setTestCompleted, setTestStarted, setError]);
+
+  const handleNextQuestion = useCallback(() => {
     if (currentQuestionIndex < questions.length - 1) {
       const nextIndex = currentQuestionIndex + 1;
       setCurrentQuestionIndex(nextIndex);
@@ -62,7 +89,7 @@ export default function DiagnosticTestTab() {
     } else {
       completeTest();
     }
-  };
+  }, [currentQuestionIndex, questions, setCurrentQuestionIndex, setTimeRemaining, completeTest]);
 
   // Timer effect
   useEffect(() => {
@@ -130,35 +157,6 @@ export default function DiagnosticTestTab() {
       const prevIndex = currentQuestionIndex - 1;
       setCurrentQuestionIndex(prevIndex);
       setTimeRemaining(questions[prevIndex]?.timeLimit || 120);
-    }
-  };
-
-  const completeTest = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/assessment/diagnostic', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          answers,
-          timeSpent: totalTimeSpent,
-          completed: true
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to submit diagnostic test');
-      }
-
-      const data = await response.json();
-      setResults(data.results);
-      setTestCompleted(true);
-      setTestStarted(false);
-    } catch (err) {
-      setError('Failed to submit test. Please try again.');
-      console.error('Submit test error:', err);
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -346,21 +346,21 @@ export default function StudentDashboard() {
   const statsCardsData = dashboardData?.overview ? [
     {
       title: 'Courses in Progress',
-      value: dashboardData.overview.inProgressModules || 0,
+      value: String(dashboardData.overview.inProgressModules || 0),
       subtitle: `${Math.round((dashboardData.overview.inProgressModules || 0) * 7.5)}+ XP`,
       icon: '📚',
       color: 'bg-orange-500'
     },
     {
       title: 'Courses Completed',
-      value: dashboardData.overview.completedModules || 0,
+      value: String(dashboardData.overview.completedModules || 0),
       subtitle: `${Math.round((dashboardData.overview.completedModules || 0) * 10)}+ XP`,
       icon: '✅',
       color: 'bg-green-500'
     },
     {
       title: 'Certificates Earned',
-      value: dashboardData.progress?.badgesEarned?.length || 0,
+      value: String(dashboardData.progress?.badgesEarned?.length || 0),
       subtitle: 'Achievement Level',
       icon: '🎓',
       color: 'bg-blue-500'

@@ -54,9 +54,9 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
     try {
       console.log('Attempting to connect to webhook:', webhookUrl);
       
-      // Add timeout to prevent hanging requests
+      // Add timeout to prevent hanging requests (increased to 30 seconds for n8n workflows)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
       // Convert payload to URL parameters for GET request
       const urlParams = new URLSearchParams({
@@ -86,8 +86,23 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
         console.error('Failed to parse n8n response as JSON:', parseError);
         rawResponse = { error: 'Invalid JSON response from n8n' };
       }
-    } catch (fetchError) {
-      console.error('Webhook connection failed:', fetchError);
+    } catch (fetchError: unknown) {
+      const error = fetchError as Error & { code?: string };
+      console.error('Webhook connection failed:', error);
+      console.error('Webhook URL attempted:', webhookUrl);
+      console.error('Error name:', error.name);
+      console.error('Error code:', error.code);
+      
+      let errorMessage = 'Connection failed';
+      if (error.name === 'AbortError') {
+        errorMessage = 'Webhook timeout (30s) - n8n workflow may be taking too long or inactive';
+      } else if (error.code === 'ENOTFOUND') {
+        errorMessage = 'Webhook URL not found - check n8n webhook URL';
+      } else if (error.code === 'ECONNREFUSED') {
+        errorMessage = 'Connection refused - n8n server may be down';
+      }
+      
+      console.error('Diagnosed issue:', errorMessage);
       
       // Return immediate fallback response for network errors
       return NextResponse.json({
@@ -114,7 +129,7 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
           studentDataProvided: !!studentData,
           webhookUrl: webhookUrl,
           timestamp: new Date().toISOString(),
-          error: 'Webhook unreachable - using fallback mode'
+          error: `Webhook unreachable: ${errorMessage} - using fallback mode`
         }
       });
     }
