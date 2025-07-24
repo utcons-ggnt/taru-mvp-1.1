@@ -2,6 +2,14 @@
 
 A comprehensive educational platform designed for students, parents, teachers, parent organizations, and administrators. The platform features personalized learning experiences, role-based dashboards, secure authentication, and real-time data synchronization.
 
+## ✨ Recent Improvements
+
+- **Edit Profile Feature:** Students can now edit their profile (name, grade, school, language) directly from the Settings tab with a modern, accessible UI and real-time feedback.
+- **Notification System:** Interactive notification bell in the dashboard top bar with dropdown, unread count, and mark-as-read functionality.
+- **Color & UX Enhancements:** Unified color scheme and improved accessibility for all major components (ProgressTab, SettingsTab, ChatModal, etc.).
+- **Chat Modal:** Modernized color scheme and improved accessibility for the AI chat assistant.
+- **Build & Linting:** Improved build process and error handling for unused variables and linting issues.
+
 ## 🚀 Features
 
 ### Authentication & User Management
@@ -239,6 +247,7 @@ npm run dev
 npm run build
 npm start
 ```
+- The build process will also run linting and type checks. If you encounter errors such as unused variables, follow the error message to remove or use the variable, then rebuild.
 
 ### Environment Variables
 Ensure all required environment variables are set in production:
