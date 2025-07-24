@@ -92,6 +92,8 @@ export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [language, setLanguage] = useState('English (USA)');
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const router = useRouter();
   const logoutTriggered = useRef(false);
 
@@ -146,6 +148,42 @@ export default function StudentDashboard() {
         }
         const data = await response.json();
         setDashboardData(data);
+        
+        // Set sample notifications (in a real app, this would come from the API)
+        setNotifications([
+          {
+            id: '1',
+            title: 'New Module Available!',
+            message: 'Mathematics Advanced Topics is now available in your learning path.',
+            type: 'info',
+            date: new Date().toISOString(),
+            read: false
+          },
+          {
+            id: '2',
+            title: 'Quiz Reminder',
+            message: 'Don\'t forget to complete your Science quiz before tomorrow.',
+            type: 'warning',
+            date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+            read: false
+          },
+          {
+            id: '3',
+            title: 'Achievement Unlocked!',
+            message: 'Congratulations! You\'ve earned the "Quick Learner" badge.',
+            type: 'success',
+            date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+            read: true
+          },
+          {
+            id: '4',
+            title: 'Study Streak',
+            message: 'Amazing! You\'ve maintained a 7-day learning streak. Keep it up!',
+            type: 'success',
+            date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+            read: false
+          }
+        ]);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -342,6 +380,84 @@ export default function StudentDashboard() {
       }
     : { name: '', email: '', grade: '', school: '', language, studentKey: 'Not available' };
 
+  // Handle profile updates
+  const handleProfileUpdate = async (updatedProfile: Partial<typeof profileData>) => {
+    // Update the user state immediately for optimistic UI updates
+    if (user) {
+      setUser(prev => prev ? {
+        ...prev,
+        name: updatedProfile.name || prev.name,
+        profile: {
+          ...prev.profile,
+          grade: updatedProfile.grade || prev.profile?.grade,
+          school: updatedProfile.school || prev.profile?.school,
+        }
+      } : prev);
+    }
+
+    // Refresh dashboard data to get the latest information
+    try {
+      const response = await fetch('/api/dashboard/student/overview');
+      if (!response.ok) {
+        throw new Error('Failed to fetch updated dashboard data');
+      }
+      const data = await response.json();
+      setDashboardData(data);
+    } catch (error) {
+      console.error('Error refreshing dashboard data:', error);
+    }
+  };
+
+  // Notification functions
+  const unreadCount = notifications.filter(n => !n.read).length;
+  
+  const handleNotificationClick = () => {
+    setIsNotificationOpen(!isNotificationOpen);
+  };
+
+  const markNotificationAsRead = (notificationId: string) => {
+    setNotifications(prev => 
+      prev.map(n => 
+        n.id === notificationId ? { ...n, read: true } : n
+      )
+    );
+  };
+
+  const markAllNotificationsAsRead = () => {
+    setNotifications(prev => 
+      prev.map(n => ({ ...n, read: true }))
+    );
+  };
+
+  const getNotificationIcon = (type: Notification['type']) => {
+    switch (type) {
+      case 'success': return '✅';
+      case 'warning': return '⚠️';
+      case 'error': return '❌';
+      default: return 'ℹ️';
+    }
+  };
+
+  const getNotificationColor = (type: Notification['type']) => {
+    switch (type) {
+      case 'success': return 'text-green-600 bg-green-50 border-green-200';
+      case 'warning': return 'text-orange-600 bg-orange-50 border-orange-200';
+      case 'error': return 'text-red-600 bg-red-50 border-red-200';
+      default: return 'text-blue-600 bg-blue-50 border-blue-200';
+    }
+  };
+
+  const formatNotificationTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d ago`;
+  };
+
   // Stats cards data with proper fallbacks
   const statsCardsData = dashboardData?.overview ? [
     {
@@ -474,11 +590,97 @@ export default function StudentDashboard() {
               <option value="मराठी">मराठी</option>
             </select>
             {/* Notification Bell */}
-            <button className="relative text-gray-900 hover:text-purple-600">
-              <span className="text-2xl">🔔</span>
-              {/* Notification dot */}
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={handleNotificationClick}
+                className="relative text-gray-900 hover:text-purple-600 transition-colors p-2 rounded-full hover:bg-gray-50"
+              >
+                <span className="text-2xl">🔔</span>
+                {/* Notification count */}
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notifications Dropdown */}
+              {isNotificationOpen && (
+                <div className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden">
+                  {/* Header */}
+                  <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+                    <h3 className="font-semibold text-gray-900">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllNotificationsAsRead}
+                        className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Notifications List */}
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length > 0 ? (
+                      notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className={`px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                            !notification.read ? 'bg-blue-50/50' : ''
+                          }`}
+                          onClick={() => markNotificationAsRead(notification.id)}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${getNotificationColor(notification.type)}`}>
+                              <span className="text-sm">{getNotificationIcon(notification.type)}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <h4 className={`text-sm font-medium ${!notification.read ? 'text-gray-900' : 'text-gray-700'}`}>
+                                  {notification.title}
+                                </h4>
+                                {!notification.read && (
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-600 mb-1 line-clamp-2">
+                                {notification.message}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {formatNotificationTime(notification.date)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-4 py-8 text-center text-gray-500">
+                        <span className="text-4xl mb-2 block">🔔</span>
+                        <p className="text-sm">No notifications yet</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  {notifications.length > 0 && (
+                    <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+                      <button className="text-xs text-purple-600 hover:text-purple-700 font-medium w-full text-center">
+                        View all notifications
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Overlay to close dropdown */}
+              {isNotificationOpen && (
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setIsNotificationOpen(false)}
+                ></div>
+              )}
+            </div>
             {/* User Avatar */}
             <div className="flex items-center gap-2">
               <Image src="/avatar.png" alt="User Avatar" width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
@@ -518,7 +720,7 @@ export default function StudentDashboard() {
             {activeTab === 'diagnostic' && <DiagnosticTestTab />}
             {activeTab === 'progress' && <ProgressTab progress={progressData} onTabChange={setActiveTab} />}
             {activeTab === 'rewards' && <RewardsTab badges={badgesData} onTabChange={setActiveTab} />}
-            {activeTab === 'settings' && <SettingsTab profile={profileData} />}
+            {activeTab === 'settings' && <SettingsTab profile={profileData} onProfileUpdate={handleProfileUpdate} />}
             {/* Fallback for unknown tab */}
             {![
               'overview',

@@ -231,7 +231,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
         >
           {/* Header */}
           <motion.div 
-            className="flex items-center justify-between p-4 border-b border-gray-200 bg-purple-600 text-white rounded-t-xl"
+            className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-t-xl"
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.4 }}
@@ -257,7 +257,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                   AI Learning Assistant
                 </motion.h3>
                 <motion.p 
-                  className="text-xs text-purple-100"
+                  className="text-xs text-white/80"
                   initial={{ x: -10, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ delay: 0.4, duration: 0.3 }}
@@ -269,7 +269,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
             <div className="flex items-center gap-2">
               <motion.button
                 onClick={() => setShowN8nOutput(!showN8nOutput)}
-                className="text-xs bg-white bg-opacity-20 hover:bg-opacity-30 px-2 py-1 rounded transition-colors"
+                className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors backdrop-blur-sm"
                 title="Toggle AI-BUDDY output display"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -281,7 +281,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
               </motion.button>
               <motion.button
                 onClick={() => setShowDebug(!showDebug)}
-                className="text-xs bg-white bg-opacity-20 hover:bg-opacity-30 px-2 py-1 rounded transition-colors"
+                className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors backdrop-blur-sm"
                 title="Toggle debug mode"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -293,7 +293,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
               </motion.button>
               <motion.button 
                 onClick={onClose} 
-                className="text-white hover:text-purple-100 transition-colors"
+                className="text-white hover:text-white/80 transition-colors"
                 whileHover={{ 
                   scale: 1.1,
                   rotate: 90,
@@ -311,7 +311,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
 
           {/* Messages */}
           <motion.div 
-            className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50"
+            className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-gray-100"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.4 }}
@@ -331,8 +331,8 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                   <motion.div
                     className={`max-w-[80%] p-3 rounded-2xl ${
                       message.isUser
-                        ? 'bg-purple-600 text-white rounded-br-md'
-                        : 'bg-white text-gray-800 rounded-bl-md shadow-sm'
+                        ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-br-md shadow-md'
+                        : 'bg-white text-gray-900 rounded-bl-md shadow-sm border border-gray-100'
                     }`}
                     whileHover={{ 
                       scale: 1.02,
@@ -342,7 +342,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                     <p className="text-sm leading-relaxed">{message.content}</p>
                     <motion.p 
                       className={`text-xs mt-1 ${
-                        message.isUser ? 'text-purple-100' : 'text-gray-500'
+                        message.isUser ? 'text-white/70' : 'text-gray-500'
                       }`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -369,7 +369,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                   exit="exit"
                 >
                   <motion.div 
-                    className="bg-white p-3 rounded-2xl rounded-bl-md shadow-sm"
+                    className="bg-white p-3 rounded-2xl rounded-bl-md shadow-sm border border-gray-100"
                     animate={{ 
                       scale: [1, 1.02, 1],
                     }}
@@ -381,7 +381,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                   >
                     <div className="flex items-center gap-2">
                       <motion.div
-                        className="w-2 h-2 bg-purple-600 rounded-full"
+                        className="w-2 h-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full"
                         animate={{ 
                           scale: [1, 1.5, 1],
                           opacity: [0.5, 1, 0.5]
@@ -393,7 +393,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                         }}
                       />
                       <motion.div
-                        className="w-2 h-2 bg-purple-600 rounded-full"
+                        className="w-2 h-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full"
                         animate={{ 
                           scale: [1, 1.5, 1],
                           opacity: [0.5, 1, 0.5]
@@ -405,7 +405,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                         }}
                       />
                       <motion.div
-                        className="w-2 h-2 bg-purple-600 rounded-full"
+                        className="w-2 h-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full"
                         animate={{ 
                           scale: [1, 1.5, 1],
                           opacity: [0.5, 1, 0.5]
@@ -437,19 +437,18 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask me anything about your learning..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-gray-900"
                 rows={1}
                 disabled={isLoading}
                 whileFocus={{ 
                   scale: 1.02,
-                  borderColor: "#9333ea",
                   transition: { duration: 0.2 }
                 }}
               />
               <motion.button
                 onClick={handleSendMessage}
                 disabled={!inputMessage.trim() || isLoading}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
                 whileHover={{ 
                   scale: 1.05,
                   boxShadow: "0 5px 15px -5px rgba(147, 51, 234, 0.4)"
@@ -480,7 +479,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                 <motion.button
                   key={suggestion}
                   onClick={() => setInputMessage(suggestion)}
-                  className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors"
+                  className="px-3 py-1 text-xs bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700 rounded-full hover:from-purple-100 hover:to-blue-100 transition-colors border border-purple-200"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   initial={{ opacity: 0, scale: 0.8 }}

@@ -63,16 +63,16 @@ export default function ProgressTab({ progress, onTabChange }: ProgressTabProps)
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Overall Progress</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-accessible-link mb-2">{progress.completedModules}</div>
-                <div className="text-sm text-accessible-muted">Modules Completed</div>
+                <div className="text-3xl font-bold text-purple-600 mb-2">{progress.completedModules}</div>
+                <div className="text-sm text-gray-500">Modules Completed</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-accessible-info mb-2">{progress.totalModules}</div>
-                <div className="text-sm text-accessible-muted">Total Modules</div>
+                <div className="text-3xl font-bold text-blue-600 mb-2">{progress.totalModules}</div>
+                <div className="text-sm text-gray-500">Total Modules</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-accessible-success mb-2">{percent}%</div>
-                <div className="text-sm text-accessible-muted">Completion Rate</div>
+                <div className="text-3xl font-bold text-green-600 mb-2">{percent}%</div>
+                <div className="text-sm text-gray-500">Completion Rate</div>
               </div>
             </div>
             
@@ -96,16 +96,16 @@ export default function ProgressTab({ progress, onTabChange }: ProgressTabProps)
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Time Investment</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <div className="text-2xl font-bold text-accessible-warning mb-2">
+                <div className="text-2xl font-bold text-orange-600 mb-2">
                   {Math.floor(progress.totalTimeSpent / 60)}h {progress.totalTimeSpent % 60}m
                 </div>
-                <div className="text-sm text-accessible-muted">Total Learning Time</div>
+                <div className="text-sm text-gray-500">Total Learning Time</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-accessible-info mb-2">
+                <div className="text-2xl font-bold text-blue-600 mb-2">
                   {progress.completedModules > 0 ? Math.round(progress.totalTimeSpent / progress.completedModules) : 0}m
                 </div>
-                <div className="text-sm text-accessible-muted">Average Time per Module</div>
+                <div className="text-sm text-gray-500">Average Time per Module</div>
               </div>
             </div>
           </div>
@@ -136,19 +136,19 @@ export default function ProgressTab({ progress, onTabChange }: ProgressTabProps)
                 {progress.recentScores.map((score, idx) => (
                   <div key={idx} className="text-center p-3 bg-gray-50 rounded-lg">
                     <div className={`text-xl font-bold mb-1 ${
-                      score >= 90 ? 'text-accessible-success' : 
-                      score >= 80 ? 'text-accessible-info' : 
-                      score >= 70 ? 'text-accessible-warning' : 'text-accessible-error'
+                      score >= 90 ? 'text-green-600' : 
+                      score >= 80 ? 'text-blue-600' : 
+                      score >= 70 ? 'text-yellow-600' : 'text-red-600'
                     }`}>
                       {score as number}%
                     </div>
-                    <div className="text-xs text-accessible-muted">Test {idx + 1}</div>
+                    <div className="text-xs text-gray-500">Test {idx + 1}</div>
                   </div>
                 ))}
               </div>
               <div className="mt-4 text-center">
-                <div className="text-sm text-accessible-secondary">
-                  Average Score: <span className="font-semibold text-accessible-link">
+                <div className="text-sm text-gray-600">
+                  Average Score: <span className="font-semibold text-purple-600">
                     {Math.round(progress.recentScores.reduce((a, b) => a + b, 0) / progress.recentScores.length)}%
                   </span>
                 </div>
