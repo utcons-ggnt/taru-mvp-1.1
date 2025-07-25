@@ -43,7 +43,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
 
   return (
     <motion.div 
-      className="flex gap-4 flex-wrap"
+      className="stats-grid w-full"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -51,7 +51,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
       {stats.map((stat, index) => (
         <motion.div 
           key={index} 
-          className="bg-white rounded-lg shadow-sm p-4 flex flex-col items-center border border-gray-100 min-w-[120px]"
+          className="card p-3 sm:p-4 flex flex-col items-center text-center min-w-0 touch-manipulation"
           variants={cardVariants}
           whileHover={{ 
             scale: 1.05,
@@ -64,7 +64,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
           whileTap={{ scale: 0.98 }}
         >
           <motion.div 
-            className={`w-8 h-8 ${stat.color} rounded-full flex items-center justify-center mb-2`}
+            className={`w-7 h-7 sm:w-8 sm:h-8 ${stat.color} rounded-full flex items-center justify-center mb-2`}
             whileHover={{ 
               scale: 1.1,
               rotate: [0, -10, 10, 0],
@@ -72,7 +72,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
             }}
           >
             <motion.span 
-              className="text-white text-sm"
+              className="text-white text-xs sm:text-sm"
               animate={{ 
                 scale: [1, 1.1, 1],
               }}
@@ -88,7 +88,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
           </motion.div>
           
           <motion.span 
-            className="font-bold text-2xl text-gray-900"
+            className="font-bold text-lg sm:text-2xl text-gray-900 leading-tight"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ 
@@ -102,7 +102,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
           </motion.span>
           
           <motion.span 
-            className="text-xs text-gray-500 text-center"
+            className="text-xs text-gray-500 text-center mt-1 leading-tight"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ 
@@ -114,7 +114,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
           </motion.span>
           
           <motion.span 
-            className="text-xs text-gray-400 mt-1"
+            className="text-xs text-gray-400 mt-1 leading-tight"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ 

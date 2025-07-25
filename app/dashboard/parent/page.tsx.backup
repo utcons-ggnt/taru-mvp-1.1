@@ -716,7 +716,6 @@ export default function ParentDashboard() {
           </div>
         </main>
       </div>
-      </div>
 
       {/* Floating Chat Button */}
       <button 

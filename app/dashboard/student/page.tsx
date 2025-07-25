@@ -93,6 +93,7 @@ export default function StudentDashboard() {
   const [language, setLanguage] = useState('English (USA)');
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const router = useRouter();
   const logoutTriggered = useRef(false);
@@ -537,19 +538,20 @@ export default function StudentDashboard() {
 
   if (isLoading || dashboardLoading || assessmentLoading) {
     return (
-      <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
-        <div className="w-full md:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-6 py-8 text-white flex flex-col justify-between relative">
-          <Image src="/jio-logo.png" alt="Jio Logo" width={56} height={56} className="absolute top-4 left-4 w-14 h-14 object-contain" />
-          <div className="mt-20 md:mt-32">
-            <h2 className="text-3xl md:text-4xl font-bold leading-snug md:leading-snug px-2 md:px-10">
+      <main className="min-h-screen flex flex-col lg:flex-row bg-white overflow-hidden">
+        <div className="w-full lg:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-4 sm:px-6 py-8 text-white flex flex-col justify-between relative">
+          <Image src="/jio-logo.png" alt="Jio Logo" width={56} height={56} className="absolute top-4 left-4 w-12 h-12 sm:w-14 sm:h-14 object-contain" />
+          <div className="mt-16 sm:mt-20 lg:mt-32">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight px-2 sm:px-4 lg:px-10">
               Loading your <br />
               student dashboard...
             </h2>
           </div>
-          <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
+          <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-48 sm:w-56 lg:w-64 mx-auto mt-6 sm:mt-8 lg:mt-12" />
         </div>
-        <div className="w-full md:w-1/2 bg-white px-4 sm:px-8 py-10 flex flex-col justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+        <div className="w-full lg:w-1/2 bg-white px-4 sm:px-8 py-8 lg:py-10 flex flex-col justify-center">
+          <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="text-center text-gray-600 mt-4 text-sm sm:text-base">Preparing your learning experience...</p>
       </div>
       </main>
     );
@@ -560,45 +562,59 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+    <div className="dashboard-container">
+      {/* Responsive Sidebar */}
+      <Sidebar 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab}
+        isOpen={isMobileMenuOpen}
+        onToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      />
+      
+      {/* Main Content Area */}
+      <div className="dashboard-main">
         {/* Top Bar */}
-        <div className="flex items-center justify-between w-full px-6 py-4 bg-white border-b border-gray-200">
-          {/* Search Bar */}
-          <div className="flex-1 flex items-center">
-            <div className="relative">
+        <div className="flex items-center justify-between w-full px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-gray-200 relative">
+          {/* Search Bar - Hidden on mobile, shown on tablet+ */}
+          <div className="hidden sm:flex flex-1 items-center max-w-md">
+            <div className="relative w-full">
               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
               <input
                 type="text"
                 placeholder="Search"
-                className="w-80 pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm text-gray-900"
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm text-gray-900"
               />
             </div>
           </div>
+          
+          {/* Mobile: Logo and User Info */}
+          <div className="flex sm:hidden items-center flex-1 justify-center ml-12">
+            <span className="text-lg font-bold text-gray-800">Dashboard</span>
+          </div>
+          
           {/* Language Selector and User */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Language Selector - Hidden on mobile */}
             <select
               value={language}
               onChange={e => handleLanguageChange(e.target.value)}
-              className="border border-gray-400 px-3 py-1.5 rounded-md text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300 text-gray-900"
+              className="hidden sm:block border border-gray-400 px-3 py-1.5 rounded-md text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300 text-gray-900"
             >
               <option value="English (USA)">English (USA)</option>
               <option value="हिन्दी">हिन्दी</option>
               <option value="मराठी">मराठी</option>
             </select>
+            
             {/* Notification Bell */}
             <div className="relative">
               <button 
                 onClick={handleNotificationClick}
-                className="relative text-gray-900 hover:text-purple-600 transition-colors p-2 rounded-full hover:bg-gray-50"
+                className="relative text-gray-900 hover:text-purple-600 transition-colors p-2 rounded-full hover:bg-gray-50 touch-manipulation"
               >
-                <span className="text-2xl">🔔</span>
+                <span className="text-xl sm:text-2xl">🔔</span>
                 {/* Notification count */}
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -606,7 +622,7 @@ export default function StudentDashboard() {
 
               {/* Notifications Dropdown */}
               {isNotificationOpen && (
-                <div className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden">
+                <div className="notification-dropdown">
                   {/* Header */}
                   <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-gray-50">
                     <h3 className="font-semibold text-gray-900">Notifications</h3>
@@ -626,7 +642,7 @@ export default function StudentDashboard() {
                       notifications.map((notification) => (
                         <div
                           key={notification.id}
-                          className={`px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                          className={`px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors touch-manipulation ${
                             !notification.read ? 'bg-blue-50/50' : ''
                           }`}
                           onClick={() => markNotificationAsRead(notification.id)}
@@ -681,94 +697,104 @@ export default function StudentDashboard() {
                 ></div>
               )}
             </div>
+            
             {/* User Avatar */}
             <div className="flex items-center gap-2">
-              <Image src="/avatar.png" alt="User Avatar" width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
-              <span className="font-semibold text-gray-900 text-sm">
+              <Image src="/avatar.png" alt="User Avatar" width={32} height={32} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover" />
+              <span className="hidden sm:block font-semibold text-gray-900 text-sm">
                 {user.name} #{user._id?.toString().slice(-4) || '0000'}
               </span>
             </div>
           </div>
         </div>
-        <main className="flex-1 p-8 overflow-y-auto">
-          {/* Tab Content */}
-          <div className="mt-0">
-            {activeTab === 'overview' && (
-              <>
-                {/* Welcome Section and Stats only for Overview */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-                  <div className="flex items-center gap-4 mb-4 md:mb-0">
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">
-                        Welcome back, {user.name}!
-                      </h2>
-                      <p className="text-gray-700 text-sm">
-                        {user.profile?.grade ? `Grade ${user.profile.grade}` : ''} 
-                        {user.profile?.school ? ` • ${user.profile.school}` : ''}
-                        {!user.profile?.grade && !user.profile?.school ? 'Ready for another fun quest? 🚀' : ''}
-                      </p>
+        
+        {/* Main Content with Responsive Layout */}
+        <div className="dashboard-content">
+          {/* Main Panel */}
+          <main className="flex-1 overflow-y-auto">
+            {/* Tab Content */}
+            <div className="space-y-6">
+              {activeTab === 'overview' && (
+                <>
+                  {/* Welcome Section and Stats only for Overview */}
+                  <div className="flex flex-col space-y-4 lg:space-y-0 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                          Welcome back, {user.name}!
+                        </h2>
+                        <p className="text-gray-700 text-sm sm:text-base">
+                          {user.profile?.grade ? `Grade ${user.profile.grade}` : ''} 
+                          {user.profile?.school ? ` • ${user.profile.school}` : ''}
+                          {!user.profile?.grade && !user.profile?.school ? 'Ready for another fun quest? 🚀' : ''}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Stats Cards */}
+                    <div className="w-full lg:w-auto">
+                      <StatsCards stats={statsCardsData} />
                     </div>
                   </div>
-                  {/* Stats Cards */}
-                  <StatsCards stats={statsCardsData} />
+                  {/* OverviewTab content */}
+                  <OverviewTab courses={courses} tests={tests} onTabChange={setActiveTab} />
+                </>
+              )}
+              {activeTab === 'modules' && <ModulesTab />}
+              {activeTab === 'diagnostic' && <DiagnosticTestTab />}
+              {activeTab === 'progress' && <ProgressTab progress={progressData} onTabChange={setActiveTab} />}
+              {activeTab === 'rewards' && <RewardsTab badges={badgesData} onTabChange={setActiveTab} />}
+              {activeTab === 'settings' && <SettingsTab profile={profileData} onProfileUpdate={handleProfileUpdate} />}
+              {/* Fallback for unknown tab */}
+              {![
+                'overview',
+                'modules',
+                'diagnostic',
+                'progress',
+                'rewards',
+                'settings',
+                'logout',
+              ].includes(activeTab) && (
+                <div className="card text-center text-gray-500">
+                  Coming soon!
                 </div>
-                {/* OverviewTab content */}
-                <OverviewTab courses={courses} tests={tests} onTabChange={setActiveTab} />
-              </>
-            )}
-            {activeTab === 'modules' && <ModulesTab />}
-            {activeTab === 'diagnostic' && <DiagnosticTestTab />}
-            {activeTab === 'progress' && <ProgressTab progress={progressData} onTabChange={setActiveTab} />}
-            {activeTab === 'rewards' && <RewardsTab badges={badgesData} onTabChange={setActiveTab} />}
-            {activeTab === 'settings' && <SettingsTab profile={profileData} onProfileUpdate={handleProfileUpdate} />}
-            {/* Fallback for unknown tab */}
-            {![
-              'overview',
-              'modules',
-              'diagnostic',
-              'progress',
-              'rewards',
-              'settings',
-              'logout',
-            ].includes(activeTab) && (
-              <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">
-                Coming soon!
-              </div>
-            )}
-          </div>
-        </main>
-      </div>
-      {/* Right Panel - Upcoming Tests */}
-      <aside className="w-80 bg-white border-l border-gray-300 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Upcoming Tests</h3>
-        <div className="space-y-3">
-          {tests.map((test, index) => (
-            <div key={index} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer">
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: test.color }}
-              ></div>
-              <div className="flex-1">
-                <div className="font-medium text-gray-900 text-sm">{test.title}</div>
-                <div className="text-xs text-gray-500">{test.date}</div>
-              </div>
-              <span className="text-gray-400">→</span>
+              )}
             </div>
-          ))}
+          </main>
+          
+          {/* Right Panel - Desktop Only */}
+          <aside className="dashboard-right-panel">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Upcoming Tests</h3>
+            <div className="space-y-3">
+              {tests.map((test, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: test.color }}
+                  ></div>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 text-sm">{test.title}</div>
+                    <div className="text-xs text-gray-500">{test.date}</div>
+                  </div>
+                  <span className="text-gray-400">→</span>
+                </div>
+              ))}
+            </div>
+            <button 
+              className="btn btn-primary w-full mt-6"
+              onClick={() => setActiveTab('diagnostic')}
+            >
+              Take Diagnostic Test
+            </button>
+          </aside>
         </div>
-        <button 
-          className="w-full mt-6 bg-black text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors"
-          onClick={() => setActiveTab('diagnostic')}
-        >
-          Take Diagnostic Test
-        </button>
-      </aside>
+      </div>
+
       {/* Floating Chat Button */}
       <button 
         onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-colors flex items-center justify-center z-40"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-all duration-300 flex items-center justify-center z-40 touch-manipulation hover:scale-105"
       >
-        <span className="text-xl">🤖</span>
+        <span className="text-lg sm:text-xl">🤖</span>
       </button>
 
       {/* Chat Modal */}

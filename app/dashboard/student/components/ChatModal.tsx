@@ -214,7 +214,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
   return (
     <AnimatePresence>
       <motion.div 
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-end z-50 p-4"
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center sm:justify-end z-50 p-0 sm:p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -222,7 +222,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
         onClick={onClose}
       >
         <motion.div 
-          className="bg-white rounded-t-xl shadow-2xl w-full max-w-md h-[600px] flex flex-col"
+          className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:w-auto sm:max-w-md h-full sm:h-[600px] max-h-screen flex flex-col"
           variants={modalVariants}
           initial="hidden"
           animate="visible"
@@ -231,25 +231,25 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
         >
           {/* Header */}
           <motion.div 
-            className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-t-xl"
+            className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-t-2xl sm:rounded-t-xl"
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.4 }}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
               <motion.div 
-                className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center"
+                className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center flex-shrink-0"
                 whileHover={{ 
                   scale: 1.1,
                   rotate: 360,
                   transition: { duration: 0.6 }
                 }}
               >
-                <Bot className="w-5 h-5" />
+                <Bot className="w-4 h-4 sm:w-5 sm:h-5" />
               </motion.div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <motion.h3 
-                  className="font-semibold"
+                  className="font-semibold text-sm sm:text-base truncate"
                   initial={{ x: -10, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ delay: 0.3, duration: 0.3 }}
@@ -257,7 +257,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                   AI Learning Assistant
                 </motion.h3>
                 <motion.p 
-                  className="text-xs text-white/80"
+                  className="text-xs text-white/80 truncate"
                   initial={{ x: -10, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ delay: 0.4, duration: 0.3 }}
@@ -266,10 +266,10 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                 </motion.p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <motion.button
                 onClick={() => setShowN8nOutput(!showN8nOutput)}
-                className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors backdrop-blur-sm"
+                className="hidden sm:block text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors backdrop-blur-sm touch-manipulation"
                 title="Toggle AI-BUDDY output display"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -281,7 +281,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
               </motion.button>
               <motion.button
                 onClick={() => setShowDebug(!showDebug)}
-                className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors backdrop-blur-sm"
+                className="hidden sm:block text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors backdrop-blur-sm touch-manipulation"
                 title="Toggle debug mode"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -293,7 +293,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
               </motion.button>
               <motion.button 
                 onClick={onClose} 
-                className="text-white hover:text-white/80 transition-colors"
+                className="text-white hover:text-white/80 transition-colors p-1 touch-manipulation"
                 whileHover={{ 
                   scale: 1.1,
                   rotate: 90,
@@ -304,14 +304,14 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.7, duration: 0.3 }}
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </motion.button>
             </div>
           </motion.div>
 
           {/* Messages */}
           <motion.div 
-            className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-gray-100"
+            className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-gradient-to-b from-gray-50 to-gray-100"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.4 }}
@@ -329,7 +329,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                   layout
                 >
                   <motion.div
-                    className={`max-w-[80%] p-3 rounded-2xl ${
+                    className={`max-w-[85%] sm:max-w-[80%] p-2.5 sm:p-3 rounded-2xl ${
                       message.isUser
                         ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-br-md shadow-md'
                         : 'bg-white text-gray-900 rounded-bl-md shadow-sm border border-gray-100'
@@ -339,7 +339,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                       transition: { duration: 0.2 }
                     }}
                   >
-                    <p className="text-sm leading-relaxed">{message.content}</p>
+                    <p className="text-xs sm:text-sm leading-relaxed">{message.content}</p>
                     <motion.p 
                       className={`text-xs mt-1 ${
                         message.isUser ? 'text-white/70' : 'text-gray-500'
@@ -426,7 +426,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
 
           {/* Input */}
           <motion.div 
-            className="p-4 border-t border-gray-200 bg-white"
+            className="p-3 sm:p-4 border-t border-gray-200 bg-white"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.4 }}
@@ -437,7 +437,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask me anything about your learning..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-gray-900"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-gray-900 text-sm sm:text-base touch-manipulation"
                 rows={1}
                 disabled={isLoading}
                 whileFocus={{ 
@@ -448,7 +448,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
               <motion.button
                 onClick={handleSendMessage}
                 disabled={!inputMessage.trim() || isLoading}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+                className="px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm touch-manipulation min-w-[44px]"
                 whileHover={{ 
                   scale: 1.05,
                   boxShadow: "0 5px 15px -5px rgba(147, 51, 234, 0.4)"
@@ -462,6 +462,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                     repeat: Infinity, 
                     ease: "linear" 
                   } : {}}
+                  className="text-base sm:text-lg"
                 >
                   {isLoading ? '⏳' : '📤'}
                 </motion.span>
@@ -470,7 +471,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
             
             {/* Quick suggestions */}
             <motion.div 
-              className="flex gap-2 mt-2 flex-wrap"
+              className="flex gap-1.5 sm:gap-2 mt-2 sm:mt-3 flex-wrap"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.4 }}
@@ -479,7 +480,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                 <motion.button
                   key={suggestion}
                   onClick={() => setInputMessage(suggestion)}
-                  className="px-3 py-1 text-xs bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700 rounded-full hover:from-purple-100 hover:to-blue-100 transition-colors border border-purple-200"
+                  className="px-2.5 sm:px-3 py-1 text-xs bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700 rounded-full hover:from-purple-100 hover:to-blue-100 transition-colors border border-purple-200 touch-manipulation"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   initial={{ opacity: 0, scale: 0.8 }}

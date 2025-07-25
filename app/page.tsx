@@ -245,7 +245,7 @@ export default function Home() {
 
       {/* 🟪 Left Section - Deep Purple Gradient */}
       <motion.section 
-        className="w-full md:w-1/2 bg-gradient-to-br from-[#7F00FF] to-[#E100FF] px-6 py-8 text-white flex flex-col justify-between relative"
+        className="w-full lg:w-1/2 bg-gradient-to-br from-[#7F00FF] to-[#E100FF] px-4 sm:px-6 py-6 sm:py-8 text-white flex flex-col justify-between relative min-h-screen lg:min-h-0"
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.8 }}
@@ -255,16 +255,16 @@ export default function Home() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.6 }}
         >
-          <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="absolute top-4 left-4 w-18 h-18 object-contain" />
+          <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="absolute top-4 left-4 w-12 h-12 sm:w-16 sm:h-16 lg:w-18 lg:h-18 object-contain" />
         </motion.div>
         
         <motion.div 
-          className="mt-32"
+          className="mt-16 sm:mt-20 lg:mt-32 px-2 sm:px-4"
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.8 }}
         >
-          <h2 className="text-5xl md:text-5xl font-bold leading-tight">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
             Start your journey <br />
             with just one click. <br />
             Choose your role <br />
@@ -277,7 +277,7 @@ export default function Home() {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.7, duration: 0.6 }}
           whileHover={{ scale: 1.05 }}
-          className="w-80 h-80 md:w-64 md:h-64 mx-auto mt-2"
+          className="w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-64 lg:h-64 mx-auto mt-4 sm:mt-6 lg:mt-2"
         >
           <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-full h-full object-contain" />
         </motion.div>
@@ -285,7 +285,7 @@ export default function Home() {
 
       {/* ⬜ Right Section - White with Grid */}
       <motion.section 
-        className="w-full md:w-1/2 bg-white px-6 py-8 flex flex-col justify-center relative" 
+        className="w-full lg:w-1/2 bg-white px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center relative min-h-screen lg:min-h-0" 
         style={{
           backgroundImage: `
             linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
@@ -299,16 +299,16 @@ export default function Home() {
       >
         {/* Language Selector */}
         <motion.div 
-          className="absolute top-6 right-6 flex items-center gap-2 text-sm text-gray-700 z-20"
+          className="absolute top-4 sm:top-6 right-4 sm:right-6 flex items-center gap-2 text-sm text-gray-700 z-20"
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.6 }}
         >
-          <span role="img" aria-label="language" className="text-base">🌐</span>
+          <span role="img" aria-label="language" className="text-sm sm:text-base">🌐</span>
           <motion.select
             value={language}
             onChange={(e) => handleLanguageChange(e.target.value)}
-            className="border border-gray-300 px-3 py-1.5 rounded-md text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+            className="border border-gray-300 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
             whileFocus={{ scale: 1.02 }}
           >
             {languages.map((lang) => (
@@ -320,19 +320,19 @@ export default function Home() {
         </motion.div>
 
         <motion.div 
-          className="max-w-md mx-auto w-full"
+          className="max-w-md mx-auto w-full px-4 sm:px-0"
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.6, duration: 0.8 }}
         >
           {/* Registration Form Container */}
           <motion.div 
-            className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100"
+            className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 lg:p-8 border border-gray-100 w-full"
             whileHover={{ y: -5, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
             transition={{ duration: 0.3 }}
           >
             <motion.h2 
-              className="text-2xl font-bold text-gray-900 mb-6 text-center"
+              className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 text-center"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.5 }}
@@ -342,17 +342,17 @@ export default function Home() {
 
             {/* Role Selector Tabs */}
             <motion.div 
-              className="mb-6"
+              className="mb-4 sm:mb-6"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.9, duration: 0.5 }}
             >
-              <div className="flex bg-gray-100 rounded-lg p-1">
+              <div className="grid grid-cols-2 sm:flex bg-gray-100 rounded-lg p-1 gap-1 sm:gap-0">
                 {['student', 'teacher', 'parent', 'organization'].map((role, index) => (
                   <motion.button 
                     key={role}
                     onClick={() => handleRoleChange(role)}
-                    className={`flex-1 px-3 py-2 rounded-md font-medium text-xs transition-all duration-200 border-2 ${
+                    className={`flex-1 px-2 sm:px-3 py-2 sm:py-2 rounded-md font-medium text-xs sm:text-xs transition-all duration-200 border-2 touch-manipulation ${
                       selectedRole === role 
                         ? 'bg-white text-gray-900 shadow-sm font-semibold border-purple-500' 
                         : 'text-gray-600 hover:text-gray-900 border-transparent'
@@ -372,7 +372,7 @@ export default function Home() {
             {/* Registration Form */}
             <motion.form 
               onSubmit={handleSubmit} 
-              className="space-y-4"
+              className="space-y-3 sm:space-y-4"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 1.1, duration: 0.6 }}
@@ -389,7 +389,7 @@ export default function Home() {
                   value={formData.fullName}
                   onChange={handleInputChange}
                   placeholder="Full Name"
-                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300"
+                  className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300 touch-manipulation"
                   required
                   whileFocus={{ scale: 1.01, borderColor: "#7c3aed" }}
                 />
@@ -407,15 +407,15 @@ export default function Home() {
                   value={formData.guardianName}
                   onChange={handleInputChange}
                   placeholder="Guardian Name"
-                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300"
+                  className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300 touch-manipulation"
                   required
                   whileFocus={{ scale: 1.01 }}
                 />
               </motion.div>
 
-              {/* Class/Grade and Language - Side by side on md+ */}
+              {/* Class/Grade and Language - Stacked on mobile, side by side on desktop */}
               <motion.div 
-                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 1.4, duration: 0.4 }}
@@ -432,7 +432,7 @@ export default function Home() {
                       selectedRole === 'parent' ? 'Student ID (e.g., STUabc123def)' : 
                       'Organization Type'
                     }
-                    className="w-full px-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black transition-all duration-300"
+                    className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-black transition-all duration-300 touch-manipulation"
                     required
                     whileFocus={{ scale: 1.01 }}
                   />
@@ -459,7 +459,7 @@ export default function Home() {
                       selectedRole === 'parent' ? 'Location' : 
                       'Industry'
                     }
-                    className="w-full px-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-black transition-all duration-300"
+                    className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-black transition-all duration-300 touch-manipulation"
                     required
                     whileFocus={{ scale: 1.01 }}
                   />
@@ -478,7 +478,7 @@ export default function Home() {
                   value={formData.location}
                   onChange={handleInputChange}
                   placeholder="Location"
-                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300"
+                  className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300 touch-manipulation"
                   required
                   whileFocus={{ scale: 1.01 }}
                 />
@@ -496,7 +496,7 @@ export default function Home() {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="Email Address"
-                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300"
+                  className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300 touch-manipulation"
                   required
                   whileFocus={{ scale: 1.01 }}
                 />
@@ -514,7 +514,7 @@ export default function Home() {
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="Password"
-                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300"
+                  className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300 touch-manipulation"
                   required
                   whileFocus={{ scale: 1.01 }}
                 />
@@ -532,7 +532,7 @@ export default function Home() {
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   placeholder="Confirm Password"
-                  className="w-full px-3 py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300"
+                  className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300 touch-manipulation"
                   required
                   whileFocus={{ scale: 1.01 }}
                 />
@@ -556,7 +556,7 @@ export default function Home() {
               {/* Register Button */}
               <motion.button
                 type="submit"
-                className="w-full bg-[#7F00FF] text-white font-semibold py-3 px-6 rounded-full hover:bg-[#6B00E6] focus:ring-4 focus:ring-purple-200 transition-all duration-200 text-base relative overflow-hidden"
+                className="btn btn-primary w-full py-3 sm:py-3 text-sm sm:text-base font-semibold relative overflow-hidden touch-manipulation"
                 disabled={isLoading}
                 whileHover={{ scale: 1.02, boxShadow: "0 10px 25px -5px rgba(127, 0, 255, 0.4)" }}
                 whileTap={{ scale: 0.98 }}
@@ -578,7 +578,7 @@ export default function Home() {
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                       />
-                      Creating Account...
+                      <span className="text-xs sm:text-sm">Creating Account...</span>
                     </motion.div>
                   ) : (
                     <motion.span
@@ -596,15 +596,15 @@ export default function Home() {
 
             {/* Sign In Link */}
             <motion.div 
-              className="text-center mt-6"
+              className="text-center mt-4 sm:mt-6"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 2.0, duration: 0.4 }}
             >
-              <span className="text-gray-700 text-sm">Already have an account? </span>
+              <span className="text-gray-700 text-xs sm:text-sm">Already have an account? </span>
               <Link
                 href="/login"
-                className="text-[#7F00FF] hover:text-[#6B00E6] font-semibold text-sm transition-colors duration-200"
+                className="text-[#7F00FF] hover:text-[#6B00E6] font-semibold text-xs sm:text-sm transition-colors duration-200 touch-manipulation"
               >
                 <motion.span
                   whileHover={{ scale: 1.05 }}
