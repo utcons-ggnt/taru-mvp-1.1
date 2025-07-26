@@ -90,6 +90,32 @@ body {
   color: var(--primary); /* Fallback */
 }
 
+/* Purple gradient for welcome banner */
+.gradient-primary {
+  background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 25%, #a855f7 50%, #c084fc 75%, #ddd6fe 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 8s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Glass effect for overlay elements */
+.glass-dark {
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 /* Focus styles */
 *:focus {
   outline: 2px solid var(--border-focus);
@@ -223,6 +249,7 @@ body {
   min-height: 100vh;
   flex-direction: column;
   background-color: #f7fafc;
+  overflow-x: hidden;
 }
 
 @media (min-width: 768px) {
@@ -243,6 +270,7 @@ body {
   border-right: 1px solid #e2e8f0;
   transform: translateX(-100%);
   transition: transform 0.3s ease-in-out;
+  overflow: hidden;
 }
 
 .dashboard-sidebar.open {
@@ -251,10 +279,25 @@ body {
 
 @media (min-width: 768px) {
   .dashboard-sidebar {
-    position: static;
+    position: fixed;
     transform: translateX(0);
-    width: 256px;
-    max-width: 256px;
+    width: 80px;
+    max-width: 80px;
+    overflow: visible;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-sidebar {
+    width: 80px;
+    max-width: 80px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .dashboard-sidebar {
+    width: 80px;
+    max-width: 80px;
   }
 }
 
@@ -263,11 +306,23 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0;
 }
 
 @media (min-width: 768px) {
   .dashboard-main {
-    margin-left: 0;
+    margin-left: 80px;
+    min-width: 0;
+    flex: 1;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-main {
+    margin-left: 80px;
+    /* Remove margin-right to eliminate right whitespace */
+    min-width: 0;
+    flex: 1;
   }
 }
 
@@ -275,6 +330,7 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
+  min-width: 0;
 }
 
 @media (min-width: 768px) {
@@ -287,21 +343,123 @@ body {
   .dashboard-content {
     display: flex;
     gap: 2rem;
+    min-width: 0;
+    flex: 1;
+    /* Remove any right padding if present */
+    padding-right: 0;
+  }
+}
+
+@media (min-width: 1280px) {
+  .dashboard-content {
+    gap: 3rem;
   }
 }
 
 .dashboard-right-panel {
   display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  background-color: white;
+  border-left: 1px solid #e2e8f0;
+  min-height: 100vh;
+  transform: translateX(100%);
+  transition: transform 0.3s ease-in-out;
+}
+
+.dashboard-right-panel.open {
+  transform: translateX(0);
 }
 
 @media (min-width: 1024px) {
   .dashboard-right-panel {
-    display: block;
-    width: 320px;
+    display: flex;
+    flex-direction: column;
+    width: 48px; /* Slim bar */
     flex-shrink: 0;
     background-color: white;
     border-left: 1px solid #e2e8f0;
+    padding: 0; /* Remove padding */
+    transition: width 0.3s cubic-bezier(0.4,0,0.2,1), padding 0.3s cubic-bezier(0.4,0,0.2,1);
+    overflow: hidden;
+    z-index: 30;
+    position: relative;
+    min-height: 100vh;
+    transform: translateX(0);
+  }
+  .dashboard-right-panel:hover {
+    width: 320px;
     padding: 1.5rem;
+    overflow: visible;
+  }
+}
+@media (max-width: 1023px) {
+  .dashboard-right-panel {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    background-color: white;
+    border-left: 1px solid #e2e8f0;
+    min-height: 100vh;
+    width: 320px;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .dashboard-right-panel.open {
+    display: flex;
+    flex-direction: column;
+    transform: translateX(0);
+  }
+}
+/* Floating button for mobile/tablet */
+@media (max-width: 1023px) {
+  .right-panel-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 50;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #f3e8ff;
+    box-shadow: 0 2px 8px rgba(124,58,237,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .right-panel-fab:hover {
+    background: #ede9fe;
+  }
+}
+
+/* Ensure proper spacing on larger screens */
+@media (min-width: 1280px) {
+  .dashboard-right-panel {
+    width: 80px;
+  }
+  
+  .dashboard-right-panel:hover {
+    width: 320px;
+  }
+}
+
+/* Responsive utilities for better sidebar behavior */
+.sidebar-touch-area {
+  touch-action: pan-y;
+}
+
+@media (max-width: 767px) {
+  .sidebar-touch-area {
+    touch-action: none;
   }
 }
 

@@ -106,7 +106,7 @@ export default function OverviewTab({ courses, tests: _tests, onTabChange }: Ove
         className="gradient-primary rounded-2xl p-6 text-white relative overflow-hidden"
         variants={sectionVariants}
       >
-        <div className="absolute inset-0 bg-black bg-opacity-10"></div>
+        <div className="absolute inset-0 bg-purple-600 bg-opacity-10"></div>
         <div className="absolute top-4 right-4 opacity-20">
           <Zap className="w-24 h-24" />
         </div>

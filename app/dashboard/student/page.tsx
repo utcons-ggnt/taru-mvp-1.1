@@ -94,11 +94,13 @@ export default function StudentDashboard() {
   const [language, setLanguage] = useState('English (USA)');
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isRightPanelHovered, setIsRightPanelHovered] = useState(false);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const router = useRouter();
   const logoutTriggered = useRef(false);
-
+  
   useEffect(() => {
     const savedLang = localStorage.getItem('lang')
     if (savedLang) setLanguage(savedLang)
@@ -564,7 +566,6 @@ export default function StudentDashboard() {
               student dashboard...
             </h2>
           </div>
-          <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-48 sm:w-56 lg:w-64 mx-auto mt-6 sm:mt-8 lg:mt-12" />
         </div>
         <div className="w-full lg:w-1/2 bg-white px-4 sm:px-8 py-8 lg:py-10 flex flex-col justify-center">
           <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-purple-600 mx-auto"></div>
@@ -584,12 +585,12 @@ export default function StudentDashboard() {
       <Sidebar 
         activeTab={activeTab} 
         onTabChange={setActiveTab}
-        isOpen={isMobileMenuOpen}
-        onToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
       />
       
       {/* Main Content Area */}
-      <div className="dashboard-main">
+      <div className="dashboard-main bg-gray-50">
         {/* Top Bar */}
         <div className="flex items-center justify-between w-full px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-gray-200 relative">
           {/* Search Bar - Hidden on mobile, shown on tablet+ */}
@@ -607,10 +608,23 @@ export default function StudentDashboard() {
           {/* Mobile: Logo and User Info */}
           <div className="flex sm:hidden items-center flex-1 justify-center ml-12">
             <span className="text-lg font-bold text-gray-800">Dashboard</span>
+            
           </div>
           
           {/* Language Selector and User */}
           <div className="flex items-center gap-2 sm:gap-4">
+            {/* AI Buddy Icon Button with Caption */}
+            <div className="hidden sm:flex items-center mr-1">
+              <button
+                onClick={() => setIsChatOpen(true)}
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-purple-100 border border-purple-200 shadow hover:bg-purple-200 transition-all duration-200"
+                aria-label="Open AI Buddy Chat"
+                type="button"
+              >
+                <span className="text-2xl">🤖</span>
+              </button>
+              <span className="ml-2 text-sm font-medium text-purple-700 select-none">AI Buddy</span>
+            </div>
             {/* Language Selector - Hidden on mobile */}
             <select
               value={language}
@@ -778,41 +792,69 @@ export default function StudentDashboard() {
             </div>
           </main>
           
-          {/* Right Panel - Desktop Only */}
-          <aside className="dashboard-right-panel">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Upcoming Tests</h3>
-            <div className="space-y-3">
-              {tests.map((test, index) => (
-                <div key={index} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: test.color }}
-                  ></div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 text-sm">{test.title}</div>
-                    <div className="text-xs text-gray-500">{test.date}</div>
-                  </div>
-                  <span className="text-gray-400">→</span>
-                </div>
-              ))}
+          {/* Right Panel */}
+          <aside 
+            className={`dashboard-right-panel ${isRightPanelOpen ? 'open' : ''} flex flex-col justify-between`}
+            onMouseEnter={() => window.innerWidth >= 1024 && setIsRightPanelHovered(true)}
+            onMouseLeave={() => window.innerWidth >= 1024 && setIsRightPanelHovered(false)}
+          >
+            {/* Arrow indicator for expandability - centered in collapsed state */}
+            <div className={`flex justify-center items-center ${isRightPanelHovered ? 'h-16' : 'flex-1'}`}>
+              <div 
+                className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200 shadow-md"
+                style={{ transform: isRightPanelHovered ? 'rotate(180deg)' : 'rotate(0deg)' }}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
             </div>
-            <button 
-              className="btn btn-primary w-full mt-6"
-              onClick={() => setActiveTab('diagnostic')}
-            >
-              Take Diagnostic Test
-            </button>
+            {/* Panel Content */}
+            <div className="flex-1 flex flex-col transition-all duration-300 p-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 transition-opacity duration-200"
+                  style={{ opacity: isRightPanelHovered ? 1 : 0 }}>
+                Upcoming Tests
+              </h3>
+              <div className="space-y-3">
+                {tests.length === 0 && (
+                  <div className="text-center text-gray-400 text-sm py-8 transition-opacity duration-200" style={{ opacity: isRightPanelHovered ? 1 : 0 }}>
+                    No upcoming tests
+                  </div>
+                )}
+                {tests.map((test, index) => (
+                  <div key={index} className={`flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 shadow-sm hover:bg-purple-50 cursor-pointer transition-all duration-200 ${isRightPanelHovered ? '' : 'opacity-0 pointer-events-none'}`}> 
+                    <div 
+                      className="w-3 h-3 rounded-full flex-shrink-0" 
+                      style={{ backgroundColor: test.color }}
+                    ></div>
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900 text-sm">{test.title}</div>
+                      <div className="text-xs text-gray-500">{test.date}</div>
+                    </div>
+                    <span className="text-gray-400">→</span>
+                  </div>
+                ))}
+              </div>
+              <button 
+                className={`btn btn-primary w-full mt-6 transition-opacity duration-200 ${isRightPanelHovered ? '' : 'opacity-0 pointer-events-none'}`}
+                onClick={() => setActiveTab('diagnostic')}
+              >
+                Take Diagnostic Test
+              </button>
+            </div>
+            
           </aside>
+          
+          {/* Mobile Right Panel Overlay */}
+          {isRightPanelOpen && (
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
+              onClick={() => setIsRightPanelOpen(false)}
+            />
+          )}
+          
         </div>
       </div>
-
-      {/* Floating Chat Button */}
-      <button 
-        onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-all duration-300 flex items-center justify-center z-40 touch-manipulation hover:scale-105"
-      >
-        <span className="text-lg sm:text-xl">🤖</span>
-      </button>
 
       {/* Chat Modal */}
       <ChatModal 
@@ -820,6 +862,19 @@ export default function StudentDashboard() {
         onClose={() => setIsChatOpen(false)}
         studentData={user}
       />
+
+      {/* Floating FAB for right panel on mobile/tablet */}
+      {typeof window !== 'undefined' && window.innerWidth < 1024 && !isRightPanelOpen && (
+        <button
+          className="right-panel-fab"
+          aria-label="Open Upcoming Tests"
+          onClick={() => setIsRightPanelOpen(true)}
+        >
+          <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 } 
