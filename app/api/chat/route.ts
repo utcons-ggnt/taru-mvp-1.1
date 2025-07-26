@@ -13,6 +13,8 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
     let webhookUrl = process.env.N8N_WEBHOOK_URL || 'https://aviadigitalmind.app.n8n.cloud/webhook/AI-BUDDY';
     let query = '';
     let studentData: Record<string, unknown> = {};
+    let studentUniqueId = '';
+    let sessionId = '';
 
     if (method === 'POST') {
       const body = await request.json();
@@ -20,16 +22,20 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
 
       query = body.query || body.message;
       studentData = body.studentData || {};
+      studentUniqueId = body.studentUniqueId || '';
+      sessionId = body.sessionId || '';
       if (body.webhookUrl) webhookUrl = body.webhookUrl;
     } else {
       const { searchParams } = new URL(request.url);
       query = searchParams.get('query') || searchParams.get('message') || '';
+      studentUniqueId = searchParams.get('studentUniqueId') || '';
+      sessionId = searchParams.get('sessionId') || '';
       studentData = {
         name: searchParams.get('name') || '',
         email: searchParams.get('email') || '',
         grade: searchParams.get('grade') || '',
         school: searchParams.get('school') || '',
-        studentId: searchParams.get('studentId') || '',
+        uniqueId: searchParams.get('uniqueId') || '',
         timestamp: searchParams.get('timestamp') || new Date().toISOString()
       };
       if (searchParams.get('webhookUrl')) webhookUrl = searchParams.get('webhookUrl')!;
@@ -45,7 +51,11 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
     const payload = {
       query,
       studentData,
+      studentUniqueId,
+      sessionId,
     };
+
+    console.log('Payload being sent to N8N:', JSON.stringify(payload, null, 2));
 
     // Enhanced error handling with timeout
     let rawResponse;
@@ -65,8 +75,10 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
         email: payload.studentData.email as string,
         grade: payload.studentData.grade as string,
         school: payload.studentData.school as string,
-        studentId: payload.studentData.studentId as string,
-        timestamp: payload.studentData.timestamp as string
+        uniqueId: payload.studentData.uniqueId as string,
+        timestamp: payload.studentData.timestamp as string,
+        studentUniqueId: payload.studentUniqueId, // Add student unique ID to webhook
+        sessionId: payload.sessionId // Add session ID to webhook
       });
       
       const getUrl = `${webhookUrl}?${urlParams.toString()}`;
@@ -129,6 +141,7 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
           studentDataProvided: !!studentData,
           webhookUrl: webhookUrl,
           timestamp: new Date().toISOString(),
+          conversationId: '', // conversationId is no longer used
           error: `Webhook unreachable: ${errorMessage} - using fallback mode`
         }
       });
@@ -159,7 +172,10 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
           messageLength: query.length,
           studentDataProvided: !!studentData,
           webhookUrl: webhookUrl,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          conversationId: '', // conversationId is no longer used
+          studentUniqueId: studentUniqueId, // Add student unique ID to metadata
+          sessionId: sessionId // Add session ID to metadata
         }
       });
     } else {
@@ -190,6 +206,9 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
           studentDataProvided: !!studentData,
           webhookUrl: webhookUrl,
           timestamp: new Date().toISOString(),
+          conversationId: '', // conversationId is no longer used
+          studentUniqueId: studentUniqueId, // Add student unique ID to metadata
+          sessionId: sessionId, // Add session ID to metadata
           error: `Webhook returned ${webhookResponse.status} - using fallback mode`
         },
         n8nError: {

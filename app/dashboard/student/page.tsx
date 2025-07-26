@@ -22,6 +22,7 @@ interface StudentProfile {
     school?: string;
   };
   _id?: string; // Added for user ID
+  uniqueId?: string; // Added for student unique ID
 }
 
 interface Notification {
@@ -119,7 +120,23 @@ export default function StudentDashboard() {
             router.push('/login');
             return;
           }
-          setUser(userData.user);
+          
+          // Fetch student profile to get unique ID
+          try {
+            const studentResponse = await fetch('/api/student/profile');
+            if (studentResponse.ok) {
+              const studentData = await studentResponse.json();
+              setUser({
+                ...userData.user,
+                uniqueId: studentData.uniqueId
+              });
+            } else {
+              setUser(userData.user);
+            }
+          } catch (error) {
+            console.error('Error fetching student profile:', error);
+            setUser(userData.user);
+          }
         } else {
           router.push('/login');
         }

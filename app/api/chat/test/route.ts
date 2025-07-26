@@ -9,12 +9,14 @@ export async function GET(_request: NextRequest) {
     
     // Simple test query
     const testQuery = 'Hello, this is a test connection';
+    const testStudentUniqueId = 'STUDEMO1'; // Use existing demo student unique ID
+    const testSessionId = 'test_session_' + Date.now(); // Generate test session ID
     const testStudentData = {
       name: 'Test Student',
       email: 'test@example.com',
       grade: '7',
       school: 'Test School',
-      studentId: 'test_123',
+      uniqueId: 'STUDEMO1',
       timestamp: new Date().toISOString()
     };
     
@@ -28,12 +30,16 @@ export async function GET(_request: NextRequest) {
       email: testStudentData.email,
       grade: testStudentData.grade,
       school: testStudentData.school,
-      studentId: testStudentData.studentId,
-      timestamp: testStudentData.timestamp
+      uniqueId: testStudentData.uniqueId,
+      timestamp: testStudentData.timestamp,
+      studentUniqueId: testStudentUniqueId,
+      sessionId: testSessionId
     });
     
     const getUrl = `${webhookUrl}?${urlParams.toString()}`;
     console.log('Test URL:', getUrl);
+    console.log('Test Student Unique ID:', testStudentUniqueId);
+    console.log('Test Session ID:', testSessionId);
     
     const startTime = Date.now();
     
@@ -67,6 +73,8 @@ export async function GET(_request: NextRequest) {
       statusText: response.statusText,
       response: parsedResponse,
       testQuery: testQuery,
+      studentUniqueId: testStudentUniqueId,
+      sessionId: testSessionId,
       timestamp: new Date().toISOString()
     });
     

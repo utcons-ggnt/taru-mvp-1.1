@@ -25,6 +25,7 @@ interface StudentData {
   email?: string;
   school?: string;
   studentId?: string;
+  uniqueId?: string; // Add uniqueId field
 }
 
 interface ChatModalProps {
@@ -34,19 +35,56 @@ interface ChatModalProps {
 }
 
 export default function ChatModal({ isOpen, onClose, studentData }: ChatModalProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      content: `Hi ${studentData.name}! I'm your AI Learning Assistant. I'm here to help you with your studies, answer questions, and guide you through your learning journey. What would you like to know?`,
-      isUser: false,
-      timestamp: new Date(),
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [showN8nOutput, setShowN8nOutput] = useState(false);
+  const [studentUniqueId, setStudentUniqueId] = useState<string>('');
+  const [sessionId, setSessionId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Generate session ID and fetch student's unique ID when modal opens
+  useEffect(() => {
+    if (isOpen && !sessionId) {
+      // Generate a unique session ID for this chat session
+      const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      setSessionId(newSessionId);
+      
+      fetchStudentUniqueId();
+      
+      // Initialize with welcome message
+      setMessages([
+        {
+          id: '1',
+          content: `Hi ${studentData.name}! I'm your AI Learning Assistant. I'm here to help you with your studies, answer questions, and guide you through your learning journey. What would you like to know?`,
+          isUser: false,
+          timestamp: new Date(),
+        }
+      ]);
+    }
+  }, [isOpen, sessionId, studentData.name]);
+
+  const fetchStudentUniqueId = async () => {
+    try {
+      // If studentData already has uniqueId, use it
+      if (studentData.uniqueId) {
+        setStudentUniqueId(studentData.uniqueId);
+        return;
+      }
+
+      // Otherwise, fetch it from the API
+      const response = await fetch('/api/student/profile');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.uniqueId) {
+          setStudentUniqueId(data.uniqueId);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch student unique ID:', error);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -72,7 +110,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
     setIsLoading(true);
 
     try {
-      // Call your n8n API
+      // Call your n8n API with student unique ID
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -80,12 +118,14 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
         },
         body: JSON.stringify({
           query: currentMessage,
+          studentUniqueId: studentUniqueId, // Send student's unique ID
+          sessionId: sessionId, // Send session ID
           studentData: {
             name: studentData.name,
             email: studentData.email,
             grade: studentData.grade,
             school: studentData.school || 'JioWorld Learning',
-            studentId: studentData.studentId || 'student_' + Date.now(),
+            uniqueId: studentUniqueId, // Include unique ID in student data
             timestamp: new Date().toISOString()
           }
         }),

@@ -3,12 +3,14 @@ const TEST_CONFIG = {
   apiUrl: 'http://localhost:3000/api/chat',
   webhookUrl: process.env.N8N_WEBHOOK_URL || 'https://aviadigitalmind.app.n8n.cloud/webhook/AI-BUDDY',
   testMessage: 'Hello! Can you help me with my learning?',
+  studentUniqueId: 'STUDEMO1', // Use existing demo student unique ID
+  sessionId: 'test_session_' + Date.now(), // Generate test session ID
   studentData: {
     name: 'Test Student',
     email: 'test@example.com',
     grade: '7',
     school: 'Test School',
-    studentId: 'test123',
+    uniqueId: 'STUDEMO1',
     timestamp: new Date().toISOString()
   }
 };
@@ -16,6 +18,8 @@ const TEST_CONFIG = {
 async function testDirectWebhook() {
   console.log('🔗 Testing direct n8n webhook connection...');
   console.log('Webhook URL:', TEST_CONFIG.webhookUrl);
+  console.log('Student Unique ID:', TEST_CONFIG.studentUniqueId);
+  console.log('Session ID:', TEST_CONFIG.sessionId);
   
   try {
     // Convert to GET request with URL parameters
@@ -25,8 +29,10 @@ async function testDirectWebhook() {
       email: TEST_CONFIG.studentData.email,
       grade: TEST_CONFIG.studentData.grade,
       school: TEST_CONFIG.studentData.school,
-      studentId: TEST_CONFIG.studentData.studentId,
-      timestamp: TEST_CONFIG.studentData.timestamp
+      uniqueId: TEST_CONFIG.studentData.uniqueId,
+      timestamp: TEST_CONFIG.studentData.timestamp,
+      studentUniqueId: TEST_CONFIG.studentUniqueId,
+      sessionId: TEST_CONFIG.sessionId
     });
     
     const testUrl = `${TEST_CONFIG.webhookUrl}?${urlParams.toString()}`;
@@ -55,17 +61,23 @@ async function testDirectWebhook() {
 }
 
 async function testAPIEndpoint() {
-  console.log('\n🔌 Testing API endpoint...');
+  console.log('🔗 Testing API endpoint...');
   console.log('API URL:', TEST_CONFIG.apiUrl);
+  console.log('Student Unique ID:', TEST_CONFIG.studentUniqueId);
+  console.log('Session ID:', TEST_CONFIG.sessionId);
   
   try {
     const response = await fetch(TEST_CONFIG.apiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         query: TEST_CONFIG.testMessage,
+        studentUniqueId: TEST_CONFIG.studentUniqueId,
+        sessionId: TEST_CONFIG.sessionId,
         studentData: TEST_CONFIG.studentData
-      })
+      }),
     });
 
     console.log('API endpoint status:', response.status, response.statusText);
@@ -73,6 +85,21 @@ async function testAPIEndpoint() {
     if (response.ok) {
       const data = await response.json();
       console.log('✅ API endpoint response:', JSON.stringify(data, null, 2));
+      
+      // Check if student unique ID is included in metadata
+      if (data.metadata && data.metadata.studentUniqueId) {
+        console.log('✅ Student Unique ID included in response metadata:', data.metadata.studentUniqueId);
+      } else {
+        console.log('⚠️  Student Unique ID not found in response metadata');
+      }
+      
+      // Check if session ID is included in metadata
+      if (data.metadata && data.metadata.sessionId) {
+        console.log('✅ Session ID included in response metadata:', data.metadata.sessionId);
+      } else {
+        console.log('⚠️  Session ID not found in response metadata');
+      }
+      
       return true;
     } else {
       console.log('❌ API endpoint failed:', response.status, response.statusText);
