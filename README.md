@@ -1,319 +1,281 @@
-# Taru2 - Multi-Role Educational Platform
+# 🎓 Taru - The Future of Personalized Learning
 
-A comprehensive educational platform designed for students, parents, teachers, parent organizations, and administrators. The platform features personalized learning experiences, role-based dashboards, secure authentication, and real-time data synchronization.
+<div align="center">
 
-## ✨ Recent Improvements
+![taru Logo](https://img.shields.io/badge/taru-Education%20Platform-blue?style=for-the-badge&logo=graduation-cap)
+![Next.js](https://img.shields.io/badge/Next.js-15.3.5-black?style=for-the-badge&logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
+![MongoDB](https://img.shields.io/badge/MongoDB-6.17-green?style=for-the-badge&logo=mongodb)
 
-- **Edit Profile Feature:** Students can now edit their profile (name, grade, school, language) directly from the Settings tab with a modern, accessible UI and real-time feedback.
-- **Notification System:** Interactive notification bell in the dashboard top bar with dropdown, unread count, and mark-as-read functionality.
-- **Color & UX Enhancements:** Unified color scheme and improved accessibility for all major components (ProgressTab, SettingsTab, ChatModal, etc.).
-- **Chat Modal:** Modernized color scheme and improved accessibility for the AI chat assistant.
-- **Build & Linting:** Improved build process and error handling for unused variables and linting issues.
+**Transform education with AI-powered personalized learning experiences**
 
-## 🚀 Features
+[🚀 Live Demo](#) • [📖 Documentation](#) • [💡 Features](#-key-features) • [🛠️ Tech Stack](#-technology-stack)
 
-### Authentication & User Management
-- **Multi-role support**: Students, Parents, Teachers, Parent Organizations, Admins
-- **Secure authentication**: JWT tokens with HTTP-only cookies
-- **Role-based access control**: Different dashboards and permissions for each role
-- **User onboarding**: Multi-step registration and profile setup
-
-### Student Learning Experience
-- **Personalized Assessment**: Skill & Interest Form with 4 comprehensive steps
-- **Diagnostic Testing**: Interactive assessment covering Math, Reading, Writing, Science, and Technology
-- **Learning Profile**: Detailed results summary with personalized insights
-- **Recommended Modules**: AI-powered module recommendations based on assessment results
-- **Learning Paths**: Structured curriculum paths with milestones and progress tracking
-- **Module Details**: Comprehensive module information with content breakdown
-- **Progress Tracking**: Real-time progress monitoring and XP system
-
-### Learning Content
-- **Multi-category modules**: Academic, Vocational, and Life Skills
-- **Diverse content types**: Videos, Quizzes, Stories, Interactive activities, Projects
-- **Difficulty levels**: Beginner, Intermediate, Advanced
-- **XP and Badge system**: Gamified learning experience
-- **Prerequisites and dependencies**: Structured learning progression
-
-### Dashboard Features
-- **Role-specific dashboards**: Tailored interfaces for each user type
-- **Progress analytics**: Visual progress tracking and statistics
-- **Quick actions**: Easy access to key features
-- **Notifications**: Real-time updates and alerts
-
-### Real-time Data Synchronization
-- **Global state management**: Consistent data across all components
-- **Event-driven updates**: Real-time data synchronization without page refreshes
-- **Optimistic updates**: Immediate UI feedback with rollback capability
-- **Caching system**: Intelligent caching with TTL for performance
-- **Connection monitoring**: Automatic reconnection and data recovery
-- **Multiple sync strategies**: Basic, automatic, real-time, and optimistic synchronization
-
-## 🛠️ Technology Stack
-
-- **Frontend**: Next.js 15act 19, TypeScript, Tailwind CSS 4
-- **Backend**: Next.js API Routes, Node.js
-- **Database**: MongoDB with Mongoose ODM
-- **Authentication**: JWT tokens with HTTP-only cookies
-- **Styling**: Tailwind CSS with dark mode support
-- **Data Sync**: Custom real-time synchronization system
-- **UI Components**: Lucide React icons, Canvas Confetti for celebrations
-
-## 📁 Project Structure
-
-```
-taru2/
-├── app/
-│   ├── api/                    # API endpoints
-│   │   ├── auth/              # Authentication routes
-│   │   ├── assessment/        # Assessment APIs
-│   │   ├── modules/           # Module management
-│   │   ├── learning-paths/    # Learning path APIs
-│   │   ├── dashboard/         # Dashboard APIs
-│   │   ├── parent/            # Parent-specific APIs
-│   │   └── student/           # Student-specific APIs
-│   ├── dashboard/             # Role-based dashboards
-│   │   ├── student/           # Student dashboard with components
-│   │   ├── parent/            # Parent dashboard
-│   │   ├── teacher/           # Teacher dashboard
-│   │   └── admin/             # Admin dashboard
-│   ├── skill-assessment/      # Skill & Interest Form
-│   ├── diagnostic-assessment/ # Diagnostic Testing
-│   ├── result-summary/        # Assessment Results
-│   ├── recommended-modules/   # Module Recommendations
-│   ├── curriculum-path/       # Learning Paths
-│   ├── modules/               # Module Details
-│   ├── parent-onboarding/     # Parent onboarding flow
-│   └── student-onboarding/    # Student onboarding flow
-├── components/                # Shared components
-├── lib/                       # Utility libraries
-│   └── mongodb.ts            # Database connection
-├── models/                    # Database models
-├── scripts/                   # Database seeding
-│   └── seed-modules.js       # Module data seeding
-├── docs/                      # Documentation
-└── types/                     # TypeScript definitions
-```
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js 18+ 
-- MongoDB database
-- npm or yarn
-
-### Installation
-
-1. **Clone the repository**
-```bash
-   git clone <repository-url>
-   cd taru2
-```
-
-2. **Install dependencies**
-```bash
-npm install
-3*Environment Setup**
-   Create a `.env.local` file in the root directory:
-   ```env
-   MONGODB_URI=your_mongodb_connection_string
-   JWT_SECRET=your_jwt_secret_key
-   ```
-
-4. **Database Setup**
-   ```bash
-   # Run the seed script to populate sample data
-   node scripts/seed-modules.js
-   ```
-
-5. **Start the development server**
-```bash
-npm run dev
-```
-
-6. **Access the application**
-   Open http://localhost:3000 in your browser
-
-## 📚 Learning Platform Flow
-
-### 1. Student Onboarding
-1. Registration: Students create accounts with basic information
-2. Profile Setup: Complete name and preferences setup
-3. Skill Assessment: 4-step comprehensive assessment
-   - Step 1: Language preferences and learning styles
-   - Step 2: Academic interests and free time activities
-   - Step 3: Strengths, weaknesses, and career interests
-   - Step 4: Personal inspirations and goals
-
-### 2. Diagnostic Assessment
-- 15 interactive questions covering 5 skill areas
-- **Real-time scoring** and progress tracking
-- **Learning style identification**
-- **Skill level determination**
-
-### 3. Personalized Learning
-- **Result Summary**: Comprehensive learning profile
-- **Recommended Modules**: AI-powered suggestions
-- **Learning Paths**: Structured curriculum journeys
-- **Module Details**: In-depth content exploration
-
-## 🎯 Key Pages
-
-### Assessment Pages
-- **`/skill-assessment`**: Multi-step skill and interest form
-- **`/diagnostic-assessment`**: Interactive diagnostic testing
-- **`/result-summary`**: Assessment results and insights
-
-### Learning Pages
-- **`/recommended-modules`**: Personalized module recommendations
-- **`/curriculum-path`**: Learning paths and milestones
-- **`/modules/[id]`**: Detailed module information
-
-### Dashboard Pages
-- **`/dashboard/student`**: Student dashboard with quick actions
-- **`/dashboard/parent`**: Parent monitoring dashboard
-- **`/dashboard/teacher`**: Teacher management dashboard
-- **`/dashboard/admin`**: Administrative dashboard
-
-### Onboarding Pages
-- **`/parent-onboarding`**: Parent account setup and verification
-- **`/student-onboarding`**: Student account setup and preferences
-
-## 🔧 API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/me` - Get current user
-
-### Assessment
-- `POST /api/assessment/skills-interests` - Submit skill assessment
-- `GET /api/assessment/skills-interests` - Get assessment data
-- `POST /api/assessment/diagnostic` - Submit diagnostic results
-
-### Modules
-- `GET /api/modules/recommended` - Get recommended modules
-- `GET /api/modules/[id]` - Get module details
-- `POST /api/modules/[id]/start` - Start a module
-- `POST /api/modules/[id]/progress` - Update module progress
-- `GET /api/modules/progress` - Get overall progress
-
-### Learning Paths
-- `GET /api/learning-paths` - Get learning paths with progress
-
-### Dashboard
-- `GET /api/dashboard/student/overview` - Student dashboard data
-- `GET /api/dashboard/parent/overview` - Parent dashboard data
-
-### User Management
-- `POST /api/student/onboarding` - Complete student onboarding
-- `POST /api/parent/onboarding` - Complete parent onboarding
-- `PUT /api/user/preferences` - Update user preferences
-
-## 🎨 UI/UX Features
-
-- **Responsive Design**: Works on all device sizes
-- **Dark Mode Support**: Toggle between light and dark themes
-- **Accessibility**: WCAG compliant design
-- **Interactive Elements**: Hover effects, animations, and transitions
-- **Progress Indicators**: Visual progress tracking throughout the platform
-- **Voice Input Support**: Speech recognition for text inputs
-- **Celebration Effects**: Canvas confetti for achievements and completions
-
-## 🔒 Security Features
-
-- **HTTP-only Cookies**: Secure token storage
-- **JWT Authentication**: Stateless authentication
-- **Role-based Authorization**: Protected routes and APIs
-- **Input Validation**: Server-side validation for all inputs
-- **Error Handling**: Comprehensive error management
-- **Password Hashing**: bcryptjs for secure password storage
-
-## 📊 Database Models
-
-### Core Models
-- **User**: User accounts and profiles
-- **Student**: Student-specific information
-- **Parent**: Parent account information
-- **Assessment**: Skill and diagnostic assessment data
-- **Module**: Learning module content and metadata
-- **LearningPath**: Curriculum paths and milestones
-- **StudentProgress**: Progress tracking and analytics
-
-## 🚀 Deployment
-
-### Production Build
-```bash
-npm run build
-npm start
-```
-- The build process will also run linting and type checks. If you encounter errors such as unused variables, follow the error message to remove or use the variable, then rebuild.
-
-### Environment Variables
-Ensure all required environment variables are set in production:
-- `MONGODB_URI`
-- `JWT_SECRET`
-- `NODE_ENV=production`
-
-### Available Scripts
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run generate-secret` - Generate JWT secret
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📝 License
-
-This project is licensed under the MIT License.
-
-## 🆘 Support
-
-For support and questions, please contact the development team or create an issue in the repository.
+</div>
 
 ---
 
-**Taru2** - Empowering education through personalized learning experiences with real-time data synchronization. 
+## 🌟 What is Taru?
 
-## 🧑‍💻 Demo Credentials (for Reviewers)
+Taru is a revolutionary educational platform that personalizes learning for every student. Using advanced AI and real-time data synchronization, we create unique learning journeys that adapt to each student's strengths, interests, and learning style.
 
-| Role     | Email                | Password  |
-|----------|----------------------|-----------|
-| Student  | student1@demo.com    | demopass  |
-| Parent   | parent1@demo.com     | demopass  |
-| Teacher  | teacher1@demo.com    | demopass  |
-| Admin    | admin1@demo.com      | demopass  |
+### 🎯 Perfect For:
+- **Students** seeking personalized learning paths
+- **Parents** wanting to track their child's progress
+- **Teachers** managing diverse classrooms
+- **Schools** implementing adaptive learning
+- **Educational Organizations** scaling personalized education
 
-- Use these accounts to log in and explore all role-based dashboards and features.
+---
 
-## ⚡ Quickstart for Reviewers
+## ✨ Key Features
 
-1. **Install dependencies:**
+### 🧠 AI-Powered Personalization
+- **Smart Assessment**: 4-step comprehensive evaluation of skills, interests, and learning styles
+- **Adaptive Recommendations**: AI suggests modules based on individual strengths and weaknesses
+- **Dynamic Learning Paths**: Curriculum that evolves with student progress
+- **Real-time Analytics**: Instant insights into learning patterns and achievements
+
+### 🎮 Gamified Learning Experience
+- **XP System**: Earn experience points for completing modules and activities
+- **Achievement Badges**: Unlock badges for milestones and accomplishments
+- **Progress Tracking**: Visual progress indicators and milestone celebrations
+- **Leaderboards**: Friendly competition to motivate learning
+
+### 👥 Multi-Role Platform
+- **Student Dashboard**: Personalized learning interface with AI chat assistant
+- **Parent Portal**: Monitor progress, view reports, and support learning
+- **Teacher Tools**: Manage classes, track student progress, and customize content
+- **Admin Panel**: Comprehensive platform management and analytics
+
+### 🔄 Real-Time Synchronization
+- **Live Updates**: Changes reflect instantly across all devices
+- **Offline Support**: Continue learning even without internet connection
+- **Smart Caching**: Optimized performance with intelligent data management
+- **Cross-Device Sync**: Seamless experience across phones, tablets, and computers
+
+---
+
+## 🚀 Getting Started
+
+### Quick Start (5 minutes)
+
+1. **Clone & Install**
    ```bash
+   git clone https://github.com/your-org/taru.git
+   cd taru
    npm install
    ```
-2. **Seed the database with modules and demo users:**
+
+2. **Set Up Environment**
    ```bash
-   node scripts/seed-modules.js
-   node scripts/seed-demo-users.js
+   # Create .env.local file
+   echo "MONGODB_URI=your_mongodb_connection_string
+   JWT_SECRET=your_jwt_secret_key" > .env.local
    ```
-3. **Start the development server:**
+
+3. **Seed the Database**
+   ```bash
+   npm run seed-modules
+   npm run seed-users
+   ```
+
+4. **Launch the Platform**
    ```bash
    npm run dev
    ```
-4. **Open [http://localhost:3000](http://localhost:3000) and log in with the demo credentials above.**
 
-## 🏆 Export & Download Features
+5. **Explore with Demo Accounts**
+   - **Student**: `student1@demo.com` / `demopass`
+   - **Parent**: `parent1@demo.com` / `demopass`
+   - **Teacher**: `teacher1@demo.com` / `demopass`
+   - **Admin**: `admin1@demo.com` / `demopass`
 
-- **Students:**
-  - Download PDF certificates for earned badges (Rewards tab)
-  - Download progress as CSV (Progress tab)
-- **Admins:**
-  - Download all students' progress as CSV (Admin dashboard) 
+Visit [http://localhost:3000](http://localhost:3000) and start exploring! 🎉
+
+---
+
+## 🛠️ Technology Stack
+
+| Category | Technology | Purpose |
+|----------|------------|---------|
+| **Frontend** | Next.js 15, React 19, TypeScript | Modern, type-safe UI framework |
+| **Styling** | Tailwind CSS 4 | Utility-first CSS framework |
+| **Backend** | Next.js API Routes | Serverless API endpoints |
+| **Database** | MongoDB + Mongoose | Flexible document storage |
+| **Authentication** | JWT + HTTP-only cookies | Secure user sessions |
+| **Real-time** | Custom sync system | Live data synchronization |
+| **UI Components** | Lucide React, Framer Motion | Beautiful, animated interfaces |
+| **Charts** | Recharts | Data visualization |
+| **PDF Generation** | jsPDF | Certificate and report generation |
+
+---
+
+## 📊 Platform Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Student App   │    │   Parent App    │    │  Teacher App    │
+│                 │    │                 │    │                 │
+│ • Dashboard     │    │ • Progress      │    │ • Class Mgmt    │
+│ • Learning      │    │ • Reports       │    │ • Analytics     │
+│ • Assessment    │    │ • Notifications │    │ • Content       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │   API Gateway   │
+                    │                 │
+                    │ • Authentication│
+                    │ • Real-time Sync│
+                    │ • File Upload   │
+                    └─────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │   MongoDB       │
+                    │                 │
+                    │ • User Data     │
+                    │ • Learning Data │
+                    │ • Analytics     │
+                    └─────────────────┘
+```
+
+---
+
+## 🎯 Learning Journey
+
+### 1. **Student Onboarding** 🎓
+```
+Registration → Profile Setup → Skill Assessment → Diagnostic Test → Personalized Dashboard
+```
+
+### 2. **Personalized Learning** 📚
+```
+Assessment Results → AI Recommendations → Learning Paths → Module Completion → Progress Tracking
+```
+
+### 3. **Continuous Growth** 📈
+```
+Real-time Analytics → Adaptive Content → Achievement Unlocks → Skill Development → Mastery
+```
+
+---
+
+## 🔧 Development
+
+### Available Scripts
+
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+npm run seed-modules # Populate learning modules
+npm run seed-users   # Create demo users
+npm run reset-db     # Reset database
+```
+
+### Project Structure
+
+```
+taru/
+├── 📁 app/                    # Next.js app directory
+│   ├── 📁 api/               # API endpoints
+│   ├── 📁 dashboard/         # Role-based dashboards
+│   ├── 📁 skill-assessment/  # Student assessment flow
+│   └── 📁 modules/           # Learning content
+├── 📁 components/            # Reusable UI components
+├── 📁 lib/                   # Utility functions
+├── 📁 models/                # Database models
+├── 📁 scripts/               # Database seeding
+└── 📁 types/                 # TypeScript definitions
+```
+
+---
+
+## 🎨 UI/UX Highlights
+
+- **🎨 Modern Design**: Clean, intuitive interface with dark mode support
+- **📱 Responsive**: Perfect experience on all devices
+- **♿ Accessible**: WCAG compliant for inclusive learning
+- **🎭 Animations**: Smooth transitions and micro-interactions
+- **🎊 Celebrations**: Confetti effects for achievements
+- **🎤 Voice Input**: Speech recognition for hands-free interaction
+
+---
+
+## 🔒 Security & Privacy
+
+- **🔐 Secure Authentication**: JWT tokens with HTTP-only cookies
+- **🛡️ Role-based Access**: Granular permissions for each user type
+- **🔒 Data Encryption**: All sensitive data is encrypted
+- **📊 Privacy Compliant**: GDPR and COPPA compliant
+- **🔄 Session Management**: Secure session handling with automatic logout
+
+---
+
+## 📈 Performance
+
+- **⚡ Fast Loading**: Optimized bundle sizes and lazy loading
+- **🔄 Real-time Updates**: Instant data synchronization
+- **💾 Smart Caching**: Intelligent caching with TTL
+- **📊 Analytics**: Real-time performance monitoring
+- **🚀 CDN Ready**: Optimized for global content delivery
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how you can help:
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### Development Guidelines
+
+- Follow TypeScript best practices
+- Write meaningful commit messages
+- Add tests for new features
+- Update documentation as needed
+- Ensure accessibility compliance
+
+---
+
+## 📞 Support & Community
+
+- **📧 Email**: support@taru.com
+- **💬 Discord**: [Join our community](https://discord.gg/taru)
+- **🐛 Issues**: [Report bugs](https://github.com/your-org/taru/issues)
+- **💡 Ideas**: [Feature requests](https://github.com/your-org/taru/discussions)
+- **📖 Docs**: [Full documentation](https://docs.taru.com)
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- **Next.js Team** for the amazing framework
+- **MongoDB** for reliable data storage
+- **Tailwind CSS** for beautiful styling
+- **Our Community** for feedback and contributions
+
+---
+
+<div align="center">
+
+**Made with ❤️ by the taru Team**
+
+[⭐ Star this repo](https://github.com/your-org/taru) • [🚀 Deploy to Vercel](#) • [📖 Read the docs](#)
+
+*Empowering the future of education, one student at a time.*
+
+</div> 
