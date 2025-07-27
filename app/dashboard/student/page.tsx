@@ -585,20 +585,50 @@ export default function StudentDashboard() {
 
   if (isLoading || dashboardLoading || assessmentLoading) {
     return (
-      <main className="min-h-screen flex flex-col lg:flex-row bg-white overflow-hidden">
-        <div className="w-full lg:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-4 sm:px-6 py-8 text-white flex flex-col justify-between relative">
-          <Image src="/jio-logo.png" alt="Jio Logo" width={56} height={56} className="absolute top-4 left-4 w-12 h-12 sm:w-14 sm:h-14 object-contain" />
-          <div className="mt-16 sm:mt-20 lg:mt-32">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight px-2 sm:px-4 lg:px-10">
+      <main className="min-h-screen flex flex-col lg:flex-row overflow-hidden bg-gradient-to-br from-purple-700 via-purple-600 to-purple-800">
+        {/* 🟪 Left Section - Content */}
+        <section className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 text-white flex flex-col justify-between relative min-h-screen lg:min-h-0">
+          <div>
+            <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="absolute top-4 left-4 w-12 h-12 sm:w-16 sm:h-16 lg:w-18 lg:h-18 object-contain" />
+          </div>
+          
+          <div className="mt-16 sm:mt-20 lg:mt-32 px-2 sm:px-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
               Loading your <br />
-              student dashboard...
+              <span className="text-amber-400 font-extrabold">student dashboard...</span>
             </h2>
           </div>
-        </div>
-        <div className="w-full lg:w-1/2 bg-white px-4 sm:px-8 py-8 lg:py-10 flex flex-col justify-center">
-          <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="text-center text-gray-600 mt-4 text-sm sm:text-base">Preparing your learning experience...</p>
-      </div>
+          
+          <div className="w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-64 lg:h-64 mx-auto mt-4 sm:mt-6 lg:mt-2">
+            <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-full h-full object-contain" />
+          </div>
+        </section>
+
+        {/* ⬜ Right Section - White Card */}
+        <section className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center relative min-h-screen lg:min-h-screen">
+          <div className="max-w-2xl mx-auto w-full px-4 sm:px-0 h-full flex flex-col">
+            {/* Loading Container - White Card */}
+            <div 
+              className="bg-white rounded-4xl shadow-2xl p-4 sm:p-6 lg:p-8 border border-white/20 w-full backdrop-blur-sm flex-1 flex flex-col justify-center items-center relative"
+              style={{
+                backgroundImage: `
+                  linear-gradient(rgba(128, 128, 128, 0.05) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(128, 128, 128, 0.05) 1px, transparent 1px)
+                `,
+                backgroundSize: '50px 50px',
+                backgroundPosition: '0 0, 0 0'
+              }}
+            >
+              <div className="w-full max-w-md text-center">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
+                  Preparing your learning experience...
+                </h2>
+                <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                <p className="text-gray-600 text-sm sm:text-base">Loading your personalized dashboard</p>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
     );
   }

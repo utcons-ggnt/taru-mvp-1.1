@@ -195,7 +195,7 @@ export default function Home() {
 
   return (
     <motion.main 
-      className="min-h-screen flex flex-col md:flex-row overflow-hidden"
+      className="min-h-screen flex flex-col lg:flex-row overflow-hidden bg-gradient-to-br from-purple-700 via-purple-600 to-purple-800"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
@@ -243,9 +243,9 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* 🟪 Left Section - Deep Purple Gradient */}
+      {/* 🟪 Left Section - Content */}
       <motion.section 
-        className="w-full lg:w-1/2 bg-gradient-to-br from-[#7F00FF] to-[#E100FF] px-4 sm:px-6 py-6 sm:py-8 text-white flex flex-col justify-between relative min-h-screen lg:min-h-0"
+        className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 text-white flex flex-col justify-between relative min-h-screen lg:min-h-0"
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.8 }}
@@ -283,54 +283,54 @@ export default function Home() {
         </motion.div>
       </motion.section>
 
-      {/* ⬜ Right Section - White with Grid */}
+      {/* ⬜ Right Section - White Card */}
       <motion.section 
-        className="w-full lg:w-1/2 bg-white px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center relative min-h-screen lg:min-h-0" 
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px)
-          `,
-          backgroundSize: '20px 20px'
-        }}
+        className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center relative min-h-screen lg:min-h-screen"
         initial={{ x: 100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-        {/* Language Selector */}
         <motion.div 
-          className="absolute top-4 sm:top-6 right-4 sm:right-6 flex items-center gap-2 text-sm text-gray-700 z-20"
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.6 }}
-        >
-          <span role="img" aria-label="language" className="text-sm sm:text-base">🌐</span>
-          <motion.select
-            value={language}
-            onChange={(e) => handleLanguageChange(e.target.value)}
-            className="border border-gray-300 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
-            whileFocus={{ scale: 1.02 }}
-          >
-            {languages.map((lang) => (
-              <option key={lang} value={lang}>
-                {lang}
-              </option>
-            ))}
-          </motion.select>
-        </motion.div>
-
-        <motion.div 
-          className="max-w-md mx-auto w-full px-4 sm:px-0"
+          className="max-w-2xl mx-auto w-full px-4 sm:px-0 h-full flex flex-col"
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.6, duration: 0.8 }}
         >
-          {/* Registration Form Container */}
+          {/* Registration Form Container - White Card */}
           <motion.div 
-            className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 lg:p-8 border border-gray-100 w-full"
+            className="bg-white rounded-4xl shadow-2xl p-4 sm:p-6 lg:p-8 border border-white/20 w-full backdrop-blur-sm flex-1 flex flex-col relative"
+                    style={{
+          backgroundImage: `
+            linear-gradient(rgba(128, 128, 128, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(128, 128, 128, 0.05) 1px, transparent 1px)
+          `,
+          backgroundSize: '50px 50px',
+          backgroundPosition: '0 0, 0 0'
+        }}
             whileHover={{ y: -5, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
             transition={{ duration: 0.3 }}
           >
+            {/* Language Selector - Inside White Card */}
+            <motion.div 
+              className="absolute top-4 right-4 flex items-center gap-2 text-sm text-gray-700 z-20"
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+            >
+              <span role="img" aria-label="language" className="text-sm sm:text-base">🌐</span>
+              <motion.select
+                value={language}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                className="border border-gray-300 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                whileFocus={{ scale: 1.02 }}
+              >
+                {languages.map((lang) => (
+                  <option key={lang} value={lang} className="bg-white text-gray-900">
+                    {lang}
+                  </option>
+                ))}
+              </motion.select>
+            </motion.div>
             <motion.h2 
               className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 text-center"
               initial={{ y: 20, opacity: 0 }}
@@ -555,11 +555,11 @@ export default function Home() {
 
               {/* Register Button */}
               <motion.button
-                type="submit"
-                className="btn btn-primary w-full py-3 sm:py-3 text-sm sm:text-base font-semibold relative overflow-hidden touch-manipulation"
-                disabled={isLoading}
-                whileHover={{ scale: 1.02, boxShadow: "0 10px 25px -5px rgba(127, 0, 255, 0.4)" }}
-                whileTap={{ scale: 0.98 }}
+                 type="submit"
+                 className="btn btn-primary w-full mx-auto py-3 sm:py-3 text-sm sm:text-base font-extrabold relative overflow-hidden touch-manipulation rounded-full"
+                 disabled={isLoading}
+                 whileHover={{ scale: 1.02, boxShadow: "0 10px 25px -5px rgba(127, 0, 255, 0.4)" }}
+                 whileTap={{ scale: 0.98 }}
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 1.9, duration: 0.4 }}
