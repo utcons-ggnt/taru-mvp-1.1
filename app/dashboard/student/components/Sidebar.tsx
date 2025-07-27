@@ -3,13 +3,64 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Menu } from 'lucide-react';
 
+// Helper function to render icons with fallback
+const IconRenderer = ({ icon, label, size = 24, className = "", isActive = false }: { 
+  icon: string; 
+  label: string; 
+  size?: number;
+  className?: string;
+  isActive?: boolean;
+}) => {
+  const [imageError, setImageError] = useState(false);
+  
+  // Apply active/inactive color styling
+  const colorClass = isActive ? 'text-white' : 'text-gray-500';
+  const combinedClassName = `${className} ${colorClass}`;
+  
+  // If icon is an emoji (contains emoji characters), render as text
+  if (/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u.test(icon)) {
+    return <span className={combinedClassName}>{icon}</span>;
+  }
+  
+  // If image failed to load or doesn't start with '/', use emoji fallback
+  if (imageError || !icon.startsWith('/')) {
+    const fallbackEmojis: { [key: string]: string } = {
+      'overview': '📊',
+      'modules': '📦',
+      'diagnostic': '🧪',
+      'progress': '📈',
+      'rewards': '🏅',
+      'settings': '⚙️',
+      'logout': '🚪',
+      'ai-buddy': '🤖'
+    };
+    
+    const iconKey = label.toLowerCase().replace(/\s+/g, '-').replace(/[&]/g, '');
+    const fallbackEmoji = fallbackEmojis[iconKey] || '📄';
+    return <span className={combinedClassName}>{fallbackEmoji}</span>;
+  }
+  
+  // Render as Image component
+  return (
+    <Image 
+      src={icon} 
+      alt={label} 
+      width={size} 
+      height={size}
+      className={`${combinedClassName} object-contain`}
+      onError={() => setImageError(true)}
+      style={{ minWidth: size, minHeight: size }}
+    />
+  );
+};
+
 const navItems = [
-  { id: 'overview', label: 'Overview', icon: '📊' },
-  { id: 'modules', label: 'My Learning Modules', icon: '📦' },
-  { id: 'diagnostic', label: 'Take Diagnostic Test', icon: '🧪' },
-  { id: 'progress', label: 'My Progress Report', icon: '📈' },
-  { id: 'rewards', label: 'My Rewards & Badges', icon: '🏅' },
-  { id: 'settings', label: 'Profile & Settings', icon: '⚙️' },
+  { id: 'overview', label: 'Overview', icon: '/icons/overview.png' },
+  { id: 'modules', label: 'My Learning Modules', icon: '/icons/modules.png' },
+  { id: 'diagnostic', label: 'Take Diagnostic Test', icon: '/icons/diagnostic.png' },
+  { id: 'progress', label: 'My Progress Report', icon: '/icons/report.png' },
+  { id: 'rewards', label: 'My Rewards & Badges', icon: '/icons/rewards.png' },
+  { id: 'settings', label: 'Profile & Settings', icon: '/icons/profile.png' }
 ];
 
 interface SidebarProps {
@@ -202,7 +253,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
               </motion.div>
               
               {/* Navigation - Always show icons, but only show text when expanded */}
-              <nav className="flex flex-col gap-1">
+              <nav className="flex flex-col gap-4">
                 {navItems.map((item, index) => (
                   <motion.button
                     key={item.id}
@@ -212,7 +263,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                       font-medium text-gray-900 touch-manipulation
                       ${activeTab === item.id 
                         ? 'bg-purple-600 text-white shadow-md' 
-                        : 'hover:bg-purple-100 active:bg-purple-200'
+                        : 'hover:bg-purple-50 active:bg-purple-100'
                       }
                     `}
                     initial={{ x: -50, opacity: 0 }}
@@ -233,7 +284,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                       } : {}}
                       transition={{ duration: 0.5 }}
                     >
-                      {item.icon}
+                      <IconRenderer icon={item.icon} label={item.label} size={32} isActive={activeTab === item.id} />
                     </motion.span>
                     <motion.span 
                       className="text-sm"
@@ -273,7 +324,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                   whileHover={{ rotate: [0, -20, 20, 0] }}
                   transition={{ duration: 0.5 }}
                 >
-                  🚪
+                  <IconRenderer icon="🚪" label="Logout" size={32} isActive={activeTab === 'logout'} />
                 </motion.span> 
                 <motion.span 
                   className="text-sm"
@@ -321,7 +372,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                       repeatType: "reverse"
                     }}
                   >
-                    🤖
+                    <IconRenderer icon="🤖" label="AI Buddy" size={40} isActive={false} />
                   </motion.span>
                 </motion.div>
                 <motion.div 
@@ -388,13 +439,13 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
             </motion.div>
             
             {/* Navigation - Always show icons, but only show text when expanded */}
-            <nav className="flex flex-col gap-1">
+            <nav className="flex flex-col gap-4">
               {navItems.map((item, index) => (
                 <motion.button
                   key={item.id}
                   onClick={() => handleTabChange(item.id)}
                   className={`
-                    flex items-center gap-3 px-4 py-2 rounded-lg text-left transition-all duration-200 
+                    flex items-center gap-3 px-4 py-2 rounded-3xl text-left transition-all duration-200 
                     font-medium text-gray-900 touch-manipulation
                     ${activeTab === item.id 
                       ? 'bg-purple-600 text-white shadow-md' 
@@ -419,7 +470,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                     } : {}}
                     transition={{ duration: 0.5 }}
                   >
-                    {item.icon}
+                    <IconRenderer icon={item.icon} label={item.label} size={28} isActive={activeTab === item.id} />
                   </motion.span>
                   <motion.span 
                     className="text-sm"
@@ -459,7 +510,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                 whileHover={{ rotate: [0, -20, 20, 0] }}
                 transition={{ duration: 0.5 }}
               >
-                🚪
+                <IconRenderer icon="/icons/logout.png" label="Logout" size={28} isActive={activeTab === 'logout'} />
               </motion.span> 
               <motion.span 
                 className="text-sm"
@@ -506,7 +557,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                       repeatType: "reverse"
                     }}
                   >
-                    🤖
+                    <IconRenderer icon="🤖" label="AI Buddy" size={32} isActive={false} />
                   </motion.span>
                 </motion.div>
               </motion.div>
@@ -542,7 +593,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                       repeatType: "reverse"
                     }}
                   >
-                    🤖
+                    <IconRenderer icon="🤖" label="AI Buddy" size={40} isActive={false} />
                   </motion.span>
                 </motion.div>
                 <motion.div 

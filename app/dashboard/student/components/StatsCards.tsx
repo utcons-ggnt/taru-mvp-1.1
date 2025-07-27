@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 interface StatCard {
   icon: string;
@@ -71,20 +72,42 @@ export default function StatsCards({ stats }: StatsCardsProps) {
               transition: { duration: 0.5 }
             }}
           >
-            <motion.span 
-              className="text-white text-xs sm:text-sm"
-              animate={{ 
-                scale: [1, 1.1, 1],
-              }}
-              transition={{ 
-                duration: 2,
-                repeat: Infinity,
-                repeatType: "reverse",
-                delay: index * 0.2
-              }}
-            >
-              {stat.icon}
-            </motion.span>
+            {stat.icon.startsWith('/') ? (
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                }}
+                transition={{ 
+                  duration: 2,
+                  repeat: Infinity,
+                  repeatType: "reverse",
+                  delay: index * 0.2
+                }}
+              >
+                <Image 
+                  src={stat.icon} 
+                  alt={stat.title}
+                  width={20}
+                  height={20}
+                  className="w-5 h-5 sm:w-6 sm:h-6"
+                />
+              </motion.div>
+            ) : (
+              <motion.span 
+                className="text-white text-xs sm:text-sm"
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                }}
+                transition={{ 
+                  duration: 2,
+                  repeat: Infinity,
+                  repeatType: "reverse",
+                  delay: index * 0.2
+                }}
+              >
+                {stat.icon}
+              </motion.span>
+            )}
           </motion.div>
           
           <motion.span 
@@ -114,7 +137,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
           </motion.span>
           
           <motion.span 
-            className="text-xs text-gray-400 mt-1 leading-tight"
+            className="text-xs text-white mt-1 leading-tight bg-purple-500 rounded-lg px-2 py-1"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ 

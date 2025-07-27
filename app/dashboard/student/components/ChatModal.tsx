@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Bot, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -44,6 +44,27 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
   const [sessionId, setSessionId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const fetchStudentUniqueId = useCallback(async () => {
+    try {
+      // If studentData already has uniqueId, use it
+      if (studentData.uniqueId) {
+        setStudentUniqueId(studentData.uniqueId);
+        return;
+      }
+
+      // Otherwise, fetch it from the API
+      const response = await fetch('/api/student/profile');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.uniqueId) {
+          setStudentUniqueId(data.uniqueId);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch student unique ID:', error);
+    }
+  }, [studentData.uniqueId]);
+
   // Generate session ID and fetch student's unique ID when modal opens
   useEffect(() => {
     if (isOpen && !sessionId) {
@@ -63,28 +84,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
         }
       ]);
     }
-  }, [isOpen, sessionId, studentData.name]);
-
-  const fetchStudentUniqueId = async () => {
-    try {
-      // If studentData already has uniqueId, use it
-      if (studentData.uniqueId) {
-        setStudentUniqueId(studentData.uniqueId);
-        return;
-      }
-
-      // Otherwise, fetch it from the API
-      const response = await fetch('/api/student/profile');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.uniqueId) {
-          setStudentUniqueId(data.uniqueId);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch student unique ID:', error);
-    }
-  };
+  }, [isOpen, sessionId, studentData.name, fetchStudentUniqueId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

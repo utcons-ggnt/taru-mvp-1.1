@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from './components/Sidebar';
-import OverviewTab from './components/OverviewTab';
 import ModulesTab from './components/ModulesTab';
 import DiagnosticTestTab from './components/DiagnosticTestTab';
 import ProgressTab from './components/ProgressTab';
@@ -85,6 +84,27 @@ interface Test {
   date: string;
   color: string;
   score?: number;
+}
+
+// Define Course type for the courses section
+interface Course {
+  title: string;
+  lessonsCompleted: string;
+  duration: string;
+  xp: string;
+  color: string;
+  progress: number;
+  icon: string;
+}
+
+// Define Continue Learning Course type
+interface ContinueLearningCourse {
+  title: string;
+  duration: string;
+  xp: number;
+  isLocked: boolean;
+  icon: string;
+  color: string;
 }
 
 export default function StudentDashboard() {
@@ -182,7 +202,7 @@ export default function StudentDashboard() {
           {
             id: '2',
             title: 'Quiz Reminder',
-            message: 'Don\'t forget to complete your Science quiz before tomorrow.',
+            message: 'Don&apos;t forget to complete your Science quiz before tomorrow.',
             type: 'warning',
             date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
             read: false
@@ -190,7 +210,7 @@ export default function StudentDashboard() {
           {
             id: '3',
             title: 'Achievement Unlocked!',
-            message: 'Congratulations! You\'ve earned the "Quick Learner" badge.',
+            message: 'Congratulations! You&apos;ve earned the "Quick Learner" badge.',
             type: 'success',
             date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
             read: true
@@ -198,7 +218,7 @@ export default function StudentDashboard() {
           {
             id: '4',
             title: 'Study Streak',
-            message: 'Amazing! You\'ve maintained a 7-day learning streak. Keep it up!',
+            message: 'Amazing! You&apos;ve maintained a 7-day learning streak. Keep it up!',
             type: 'success',
             date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
             read: false
@@ -248,10 +268,6 @@ export default function StudentDashboard() {
     }
   };
 
-
-
-
-
   // Subject to color mapping
   const subjectColors: Record<string, string> = {
     Mathematics: '#FFD600',
@@ -266,96 +282,86 @@ export default function StudentDashboard() {
     Biology: '#06B6D4',
   };
 
-  // Dummy data for fallback
-  // const dummyLearningModules = [
-  //   {
-  //     image: '/math.png',
-  //     title: 'Mathematics basics',
-  //     xp: 60,
-  //     time: '20 min',
-  //     progress: 60,
-  //     enroll: false,
-  //     moduleId: 'math-001',
-  //   },
-  //   {
-  //     image: '/science.png',
-  //     title: 'Science Experiments',
-  //     xp: 50,
-  //     time: '15 min',
-  //     progress: 45,
-  //     enroll: false,
-  //     moduleId: 'science-001',
-  //   },
-  //   {
-  //     image: '/arts.png',
-  //     title: 'Creative Arts',
-  //     xp: 75,
-  //     time: '40 min',
-  //     progress: 75,
-  //     enroll: false,
-  //     moduleId: 'arts-001',
-  //   },
-  //   {
-  //     image: '/computer.png',
-  //     title: 'Basic Computer',
-  //     xp: 80,
-  //     time: '30 min',
-  //     progress: 80,
-  //     enroll: false,
-  //     moduleId: 'computer-001',
-  //   },
-  // ];
-  // const dummyCourses = [
-  //   { title: 'Mathematics basics', lessonsCompleted: '06/10 (60%)', duration: '20 min', xp: '60+ XP', color: '#FFD600' },
-  //   { title: 'Science Experiments', lessonsCompleted: '04/10 (40%)', duration: '15 min', xp: '50+ XP', color: '#00C49A' },
-  //   { title: 'Creative Arts', lessonsCompleted: '08/10 (80%)', duration: '40 min', xp: '75+ XP', color: '#2B6CB0' },
-  //   { title: 'Basic Computer', lessonsCompleted: '10/10 (100%)', duration: '30 min', xp: '80+ XP', color: '#7C3AED' },
-  // ];
-  // const dummyTests = [
-  //   { title: 'Mathematics basics', date: '30 Jul', color: '#FFD600' },
-  //   { title: 'Science Experiments', date: '20 Jul', color: '#00C49A' },
-  //   { title: 'Creative Arts', date: '10 Jul', color: '#2B6CB0' },
-  //   { title: 'Basic Computer', date: '05 Jul', color: '#FF6B6B' },
-  //   { title: 'AI Chat', date: '30 Jun', color: '#7C3AED' },
-  // ];
-  // const dummyProgress = {
-  //   completedModules: 8,
-  //   totalModules: 12,
-  //   progressHistory: [60, 65, 70, 75, 80, 85, 90, 95],
-  //   recentScores: [80, 85, 90, 88, 92],
-  //   totalTimeSpent: 240,
-  // };
-  // const dummyBadges = [
-  //   { name: 'Math Whiz', description: 'Completed all math modules', icon: '/math-badge.png', earnedAt: '2024-01-15' },
-  //   { name: 'Science Star', description: 'Top score in science', icon: '/science-badge.png', earnedAt: '2024-01-10' },
-  //   { name: 'Creative Champ', description: 'Excelled in creative arts', icon: '/arts-badge.png', earnedAt: '2024-01-05' },
-  //   { name: 'Tech Guru', description: 'Mastered computer basics', icon: '/computer-badge.png', earnedAt: '2024-01-01' },
-  // ];
-  // const dummyProfile = {
-  //   name: 'Aanya',
-  //   email: 'aanya@student.com',
-  //   grade: '7',
-  //   school: 'Jio World School',
-  //   language: 'English (USA)',
-  //   studentKey: 'STU12345',
-  // };
-
-
-
   // Map recent activity to courses with real module names, fallback to 'Coming soon'
-  const courses = dashboardData?.recentActivity && dashboardData.recentActivity.length > 0
+  const courses: Course[] = dashboardData?.recentActivity && dashboardData.recentActivity.length > 0
     ? dashboardData.recentActivity.map((activity: { moduleId: string; progress: number }) => {
         const matchedModule = dashboardData.recommendedModules.find((m: { id: string; name: string }) => m.id === activity.moduleId);
         return {
           title: matchedModule?.name || activity.moduleId,
           lessonsCompleted: `${activity.progress || 0}%`,
-          duration: '',
-          xp: '',
+          duration: `${Math.round((activity.progress || 0) * 0.3)} min`,
+          xp: `${Math.round((activity.progress || 0) * 0.8)}+ XP`,
           color: subjectColors[matchedModule?.subject || 'Mathematics'] || '#FFD600',
           progress: activity.progress,
+          icon: getSubjectIcon(matchedModule?.subject || 'Mathematics')
         };
       })
-    : [];
+    : [
+        {
+          title: 'Mathematics Basics',
+          lessonsCompleted: '06/10 (60%)',
+          duration: '20 min',
+          xp: '60+ XP',
+          color: '#FFD600',
+          progress: 60,
+          icon: '📐'
+        },
+        {
+          title: 'Science Experiments',
+          lessonsCompleted: '04/10 (40%)',
+          duration: '15 min',
+          xp: '50+ XP',
+          color: '#00C49A',
+          progress: 40,
+          icon: '🧪'
+        },
+        {
+          title: 'Creative Arts',
+          lessonsCompleted: '08/10 (80%)',
+          duration: '40 min',
+          xp: '75+ XP',
+          color: '#2B6CB0',
+          progress: 80,
+          icon: '🎨'
+        },
+        {
+          title: 'Basic Computer',
+          lessonsCompleted: '10/10 (100%)',
+          duration: '30 min',
+          xp: '80+ XP',
+          color: '#7C3AED',
+          progress: 100,
+          icon: '💻'
+        }
+      ];
+
+  // Continue Learning courses
+  const continueLearningCourses: ContinueLearningCourse[] = [
+    {
+      title: 'Mathematics Basics',
+      duration: '20 min',
+      xp: 60,
+      isLocked: false,
+      icon: '📐',
+      color: '#FFD600'
+    },
+    {
+      title: 'Science Experiments',
+      duration: '15 min',
+      xp: 50,
+      isLocked: false,
+      icon: '🧪',
+      color: '#00C49A'
+    },
+    {
+      title: 'Creative Arts',
+      duration: '40 min',
+      xp: 75,
+      isLocked: true,
+      icon: '🎨',
+      color: '#2B6CB0'
+    }
+  ];
 
   // Map assessment data to tests, fallback to empty
   const tests: Test[] = assessmentData?.diagnosticCompleted
@@ -365,7 +371,12 @@ export default function StudentDashboard() {
         color: '#7C3AED',
         score: assessmentData.diagnosticScore || 0
       }]
-    : [];
+    : [
+        { title: 'Basic Computer', date: '30 Jul', color: '#7C3AED' },
+        { title: 'Mathematics Basics', date: '20 Jul', color: '#FFD600' },
+        { title: 'Science Experiments', date: '10 Jul', color: '#00C49A' },
+        { title: 'Creative Arts', date: '05 Jul', color: '#2B6CB0' }
+      ];
 
   // Calculate real progress data, fallback to empty/default
   const progressData = dashboardData?.overview 
@@ -399,6 +410,23 @@ export default function StudentDashboard() {
         studentKey: dashboardData.overview.studentKey || 'Not available',
       }
     : { name: '', email: '', grade: '', school: '', language, studentKey: 'Not available' };
+
+  // Helper function to get subject icon
+  function getSubjectIcon(subject: string): string {
+    const iconMap: Record<string, string> = {
+      'Mathematics': '📐',
+      'Science': '🧪',
+      'Arts': '🎨',
+      'Computer': '💻',
+      'English': '📚',
+      'History': '🏛️',
+      'Geography': '🌍',
+      'Physics': '⚡',
+      'Chemistry': '🧬',
+      'Biology': '🌱'
+    };
+    return iconMap[subject] || '📄';
+  }
 
   // Handle profile updates
   const handleProfileUpdate = async (updatedProfile: Partial<typeof profileData>) => {
@@ -483,29 +511,29 @@ export default function StudentDashboard() {
     {
       title: 'Courses in Progress',
       value: String(dashboardData.overview.inProgressModules || 0),
-      subtitle: `${Math.round((dashboardData.overview.inProgressModules || 0) * 7.5)}+ XP`,
-      icon: '📚',
+      subtitle: `${Math.round((dashboardData.overview.inProgressModules || 0) * 7.5)}+ XP`, 
+      icon: '/icons/courseinprogress.png',
       color: 'bg-orange-500'
     },
     {
       title: 'Courses Completed',
       value: String(dashboardData.overview.completedModules || 0),
       subtitle: `${Math.round((dashboardData.overview.completedModules || 0) * 10)}+ XP`,
-      icon: '✅',
+      icon: '/icons/coursescompleted.png',
       color: 'bg-green-500'
     },
     {
       title: 'Certificates Earned',
       value: String(dashboardData.progress?.badgesEarned?.length || 0),
       subtitle: 'Achievement Level',
-      icon: '🎓',
+      icon: '/icons/certificatesearned.png',
       color: 'bg-blue-500'
     },
     {
-      title: 'AI Chat Available',
+      title: 'AI Avatar Support',
       value: '24/7',
       subtitle: 'Learning Support',
-      icon: '🤖',
+      icon: '/icons/bot.png',
       color: 'bg-yellow-500'
     }
   ] : [
@@ -513,7 +541,7 @@ export default function StudentDashboard() {
       title: 'Getting Started',
       value: '0',
       subtitle: 'Complete setup first',
-      icon: '🚀',
+      icon: '/icons/overview.png',
       color: 'bg-gray-400'
     }
   ];
@@ -599,7 +627,7 @@ export default function StudentDashboard() {
               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
               <input
                 type="text"
-                placeholder="Search"
+                placeholder="Search courses, modules, or topics..."
                 className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm text-gray-900"
               />
             </div>
@@ -608,7 +636,6 @@ export default function StudentDashboard() {
           {/* Mobile: Logo and User Info */}
           <div className="flex sm:hidden items-center flex-1 justify-center ml-12">
             <span className="text-lg font-bold text-gray-800">Dashboard</span>
-            
           </div>
           
           {/* Language Selector and User */}
@@ -766,8 +793,96 @@ export default function StudentDashboard() {
                       <StatsCards stats={statsCardsData} />
                     </div>
                   </div>
-                  {/* OverviewTab content */}
-                  <OverviewTab courses={courses} tests={tests} onTabChange={setActiveTab} />
+
+                  {/* Courses You're Taking Section */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Courses You&apos;re Taking</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">Course</th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">Progress</th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">Duration</th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">XP Points</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {courses.map((course, index) => (
+                            <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-3">
+                                  <div 
+                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-medium"
+                                    style={{ backgroundColor: course.color }}
+                                  >
+                                    {course.icon}
+                                  </div>
+                                  <span className="font-medium text-gray-900">{course.title}</span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className="h-2 rounded-full transition-all duration-300"
+                                      style={{ 
+                                        width: `${course.progress}%`, 
+                                        backgroundColor: course.color 
+                                      }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-sm text-gray-600">{course.lessonsCompleted}</span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 text-sm text-gray-600">{course.duration}</td>
+                              <td className="py-3 px-4 text-sm font-medium text-purple-600">{course.xp}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Continue Learning Section */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Continue Learning</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {continueLearningCourses.map((course, index) => (
+                        <div 
+                          key={index} 
+                          className="bg-gray-50 rounded-xl p-4 border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div 
+                              className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg"
+                              style={{ backgroundColor: course.color }}
+                            >
+                              {course.icon}
+                            </div>
+                            {course.isLocked && (
+                              <span className="text-gray-400 text-lg">🔒</span>
+                            )}
+                          </div>
+                          <h4 className="font-semibold text-gray-900 mb-2">{course.title}</h4>
+                          <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
+                            <span>{course.duration}</span>
+                            <span className="font-medium text-purple-600">{course.xp} XP</span>
+                          </div>
+                          <button 
+                            className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
+                              course.isLocked 
+                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                                : 'bg-purple-600 text-white hover:bg-purple-700'
+                            }`}
+                            disabled={course.isLocked}
+                          >
+                            {course.isLocked ? 'Locked' : 'Enroll Now'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </>
               )}
               {activeTab === 'modules' && <ModulesTab />}
@@ -839,7 +954,7 @@ export default function StudentDashboard() {
                 className={`btn btn-primary w-full mt-6 transition-opacity duration-200 ${isRightPanelHovered ? '' : 'opacity-0 pointer-events-none'}`}
                 onClick={() => setActiveTab('diagnostic')}
               >
-                Take Diagnostic Test
+                See all upcoming tests
               </button>
             </div>
             
