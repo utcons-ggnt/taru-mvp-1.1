@@ -54,7 +54,8 @@ const IconRenderer = ({ icon, label, size = 24, className = "", isActive = false
   );
 };
 
-const navItems = [
+// Default student navigation items
+const defaultNavItems = [
   { id: 'overview', label: 'Overview', icon: '/icons/overview.png' },
   { id: 'modules', label: 'My Learning Modules', icon: '/icons/modules.png' },
   { id: 'diagnostic', label: 'Take Diagnostic Test', icon: '/icons/diagnostic.png' },
@@ -68,9 +69,13 @@ interface SidebarProps {
   onTabChange: (tab: string) => void;
   isOpen?: boolean;
   onToggle?: () => void;
+  navItems?: Array<{ id: string; label: string; icon: string }>;
+  role?: 'student' | 'parent' | 'teacher' | 'admin';
 }
 
-export default function Sidebar({ activeTab, onTabChange, isOpen = false, onToggle }: SidebarProps) {
+export default function Sidebar({ activeTab, onTabChange, isOpen = false, onToggle, navItems }: SidebarProps) {
+  // Use provided navItems or fall back to default student items
+  const items = navItems || defaultNavItems;
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -254,7 +259,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
               
               {/* Navigation - Always show icons, but only show text when expanded */}
               <nav className="flex flex-col gap-4">
-                {navItems.map((item, index) => (
+                {items.map((item, index) => (
                   <motion.button
                     key={item.id}
                     onClick={() => handleTabChange(item.id)}
@@ -311,7 +316,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                 className="flex items-center gap-3 px-4 py-3 mt-6 rounded-lg text-left text-red-600 hover:bg-red-100 active:bg-red-200 font-medium touch-manipulation transition-all duration-200"
                 initial={{ x: -50, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.4 + navItems.length * 0.1, duration: 0.4 }}
+                transition={{ delay: 0.4 + items.length * 0.1, duration: 0.4 }}
                 whileHover={{ 
                   scale: 1.02,
                   x: 5,
@@ -440,7 +445,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
             
             {/* Navigation - Always show icons, but only show text when expanded */}
             <nav className="flex flex-col gap-4">
-              {navItems.map((item, index) => (
+                              {items.map((item, index) => (
                 <motion.button
                   key={item.id}
                   onClick={() => handleTabChange(item.id)}
@@ -497,7 +502,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
               className="flex items-center gap-3 px-4 py-2 mt-6 rounded-lg text-left text-red-600 hover:bg-red-100 active:bg-red-200 font-medium touch-manipulation transition-all duration-200"
               initial={{ x: -50, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.4 + navItems.length * 0.1, duration: 0.4 }}
+              transition={{ delay: 0.4 + items.length * 0.1, duration: 0.4 }}
               whileHover={{ 
                 scale: 1.02,
                 x: 0,

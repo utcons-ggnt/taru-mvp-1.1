@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Sidebar from '../student/components/Sidebar';
 import Image from 'next/image';
 import { Dialog } from '@headlessui/react';
-import ChatModal from '../student/components/ChatModal';
 
 interface TeacherProfile {
   name: string;
@@ -71,13 +71,17 @@ export default function TeacherDashboard() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [language, setLanguage] = useState('English (USA)');
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  // const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isRightPanelHovered, setIsRightPanelHovered] = useState(false);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [assignmentInstructions, setAssignmentInstructions] = useState('');
   const [assignmentDueDate, setAssignmentDueDate] = useState('');
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const router = useRouter();
+  const logoutTriggered = useRef(false);
 
   // Teacher-specific navigation items
   const navItems = [
@@ -89,24 +93,35 @@ export default function TeacherDashboard() {
     { id: 'settings', label: 'Settings', icon: '⚙️' },
   ];
 
-  const handleLanguageChange = (lang: string) => {
-    setLanguage(lang);
-    localStorage.setItem('lang', lang);
-  };
+  useEffect(() => {
+    const savedLang = localStorage.getItem('lang')
+    if (savedLang) setLanguage(savedLang)
+  }, [])
 
-  const handleLogout = async () => {
+  const handleLanguageChange = (lang: string) => {
+    setLanguage(lang)
+    localStorage.setItem('lang', lang)
+  }
+
+  const handleLogout = useCallback(async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
     }
-  };
+  }, [router]);
 
+  // Fix React Hook dependency
   useEffect(() => {
-    const savedLang = localStorage.getItem('lang');
-    if (savedLang) setLanguage(savedLang);
-  }, []);
+    if (activeTab === 'logout' && !logoutTriggered.current) {
+      logoutTriggered.current = true;
+      handleLogout();
+    }
+    if (activeTab !== 'logout') {
+      logoutTriggered.current = false;
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -262,9 +277,51 @@ export default function TeacherDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600"></div>
-      </div>
+      <main className="min-h-screen flex flex-col lg:flex-row overflow-hidden bg-gradient-to-br from-purple-700 via-purple-600 to-purple-800">
+        {/* 🟪 Left Section - Content */}
+        <section className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 text-white flex flex-col justify-between relative min-h-screen lg:min-h-0">
+          <div>
+            <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="absolute top-4 left-4 w-12 h-12 sm:w-16 sm:h-16 lg:w-18 lg:h-18 object-contain" />
+          </div>
+          
+          <div className="mt-16 sm:mt-20 lg:mt-32 px-2 sm:px-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
+              Loading your <br />
+              <span className="text-amber-400 font-extrabold">teacher dashboard...</span>
+            </h2>
+          </div>
+          
+          <div className="w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-64 lg:h-64 mx-auto mt-4 sm:mt-6 lg:mt-2">
+            <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-full h-full object-contain" />
+          </div>
+        </section>
+
+        {/* ⬜ Right Section - White Card */}
+        <section className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center relative min-h-screen lg:min-h-screen">
+          <div className="max-w-2xl mx-auto w-full px-4 sm:px-0 h-full flex flex-col">
+            {/* Loading Container - White Card */}
+            <div 
+              className="bg-white rounded-4xl shadow-2xl p-4 sm:p-6 lg:p-8 border border-white/20 w-full backdrop-blur-sm flex-1 flex flex-col justify-center items-center relative"
+              style={{
+                backgroundImage: `
+                  linear-gradient(rgba(128, 128, 128, 0.05) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(128, 128, 128, 0.05) 1px, transparent 1px)
+                `,
+                backgroundSize: '50px 50px',
+                backgroundPosition: '0 0, 0 0'
+              }}
+            >
+              <div className="w-full max-w-md text-center">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
+                  Preparing your teaching portal...
+                </h2>
+                <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                <p className="text-gray-600 text-sm sm:text-base">Loading your classroom management dashboard</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
     );
   }
 
@@ -273,7 +330,7 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="dashboard-container">
       {/* Onboarding Modal */}
       <Dialog open={showOnboarding} onClose={() => {}} className="fixed z-50 inset-0 overflow-y-auto">
         <div className="flex items-center justify-center min-h-screen px-4">
@@ -372,10 +429,7 @@ export default function TeacherDashboard() {
                         }}
                         className="mr-2"
                       />
-                      <div className="text-sm">
-                        <div className="font-medium">{module.title}</div>
-                        <div className="text-gray-500">{module.subject} • {module.duration} min • {module.points} pts</div>
-                      </div>
+                      <span className="text-sm">{module.title} ({module.subject})</span>
                     </label>
                   ))}
                 </div>
@@ -387,28 +441,28 @@ export default function TeacherDashboard() {
               <div>
                 <label className="block text-sm font-medium mb-1">Due Date (Optional)</label>
                 <input
-                  type="date"
+                  type="datetime-local"
                   value={assignmentDueDate}
                   onChange={e => setAssignmentDueDate(e.target.value)}
                   className="w-full border rounded px-3 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Instructions</label>
+                <label className="block text-sm font-medium mb-1">Instructions (Optional)</label>
                 <textarea
                   value={assignmentInstructions}
                   onChange={e => setAssignmentInstructions(e.target.value)}
-                  placeholder="Optional instructions for students..."
-                  className="w-full border rounded px-3 py-2 h-20"
+                  rows={3}
+                  className="w-full border rounded px-3 py-2"
+                  placeholder="Add any specific instructions for the students..."
                 />
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="mt-6 flex gap-3">
               <button
                 onClick={() => setShowAssignmentModal(false)}
-                className="px-4 py-2 text-gray-600 border rounded hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </button>
@@ -423,486 +477,380 @@ export default function TeacherDashboard() {
         </div>
       </Dialog>
 
-      {/* Sidebar */}
-      <aside className="flex flex-col h-full w-64 bg-white border-r border-gray-300 py-6 px-4 justify-between">
-        <div>
-          <div className="flex items-center mb-10">
-            <Image src="/jio-logo.png" alt="Jio Logo" width={48} height={48} className="w-12 h-12 mr-2" />
-          </div>
-          <nav className="flex flex-col gap-1">
-            {navItems.map(item => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg text-left transition-colors font-medium text-gray-900 ${activeTab === item.id ? 'bg-purple-600 text-white' : 'hover:bg-purple-100'}`}
-              >
-                <span className="text-lg">{item.icon}</span>
-                {item.label}
-              </button>
-            ))}
-          </nav>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-2 mt-6 rounded-lg text-left text-red-600 hover:bg-red-100 font-medium"
-          >
-            <span className="text-lg">🚪</span> Logout
-          </button>
-        </div>
-        <div className="mt-10">
-          <div className="bg-purple-100 rounded-xl p-4 flex flex-col items-center cursor-pointer hover:bg-purple-200 transition-colors" onClick={() => setIsChatOpen(true)}>
-            <div className="w-16 h-16 bg-purple-600 rounded-full mb-2 flex items-center justify-center text-white text-2xl">🤖</div>
-            <div className="text-sm font-semibold text-gray-900">Ask <span className="text-purple-600">AI Buddy</span></div>
-            <div className="text-xs text-gray-600 text-center mt-1">Get teaching insights and support</div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      {/* Responsive Sidebar */}
+      <Sidebar 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab}
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        navItems={navItems}
+        role="teacher"
+      />
+      
+      {/* Main Dashboard Content */}
+      <div className="dashboard-main">
         {/* Top Bar */}
-        <div className="flex items-center justify-between w-full px-6 py-4 bg-white border-b border-gray-200">
-          {/* Search Bar */}
-          <div className="flex-1 flex items-center">
-            <input
-              type="text"
-              placeholder="Search students, modules..."
-              className="w-80 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm text-gray-900"
-            />
-          </div>
-          {/* Language Selector */}
+        <header className="dashboard-top-bar">
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="lg:hidden p-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all duration-200"
+            >
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <h1 className="text-2xl font-bold text-white">Teacher Dashboard</h1>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            {/* Language Selector */}
             <select
               value={language}
-              onChange={e => handleLanguageChange(e.target.value)}
-              className="border border-gray-400 px-3 py-1.5 rounded-md text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300 text-gray-900"
+              onChange={(e) => handleLanguageChange(e.target.value)}
+              className="px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
             >
-              <option value="English (USA)">English (USA)</option>
-              <option value="हिन्दी">हिन्दी</option>
-              <option value="मराठी">मराठी</option>
+              <option value="English (USA)">🇺🇸 English (USA)</option>
+              <option value="Hindi">🇮🇳 Hindi</option>
+              <option value="Gujarati">🇮🇳 Gujarati</option>
             </select>
-            {/* Notification Bell */}
-            <button className="relative text-gray-900 hover:text-purple-600">
-              <span className="text-2xl">🔔</span>
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-            {/* User Avatar */}
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900 text-sm">
-                {user.profile?.subjectSpecialization || 'Teacher'}
-              </span>
+            
+            {/* User Menu */}
+            <div className="relative">
+              <button className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/20 transition-all duration-200">
+                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                  {user.name?.charAt(0).toUpperCase()}
+                </div>
+                <span className="hidden sm:block">{user.name}</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
             </div>
           </div>
-        </div>
+        </header>
 
-        <main className="flex-1 p-8 overflow-y-auto">
-          {/* Welcome Section */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-            <div className="flex items-center gap-4 mb-4 md:mb-0">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Welcome back, {user.name}!</h2>
-                <p className="text-gray-700 text-sm">
-                  {user.profile?.subjectSpecialization} Teacher • {user.profile?.experienceYears} years experience
-                </p>
-              </div>
-            </div>
-            {/* Stats Cards */}
-            <div className="flex gap-4">
-              <div className="bg-white rounded-lg shadow p-4 flex flex-col items-center border border-gray-100">
-                <span className="text-2xl mb-1">👥</span>
-                <span className="font-bold text-lg text-blue-600">{stats.totalStudents}</span>
-                <span className="text-xs text-gray-500 text-center">Total Students</span>
-              </div>
-              <div className="bg-white rounded-lg shadow p-4 flex flex-col items-center border border-gray-100">
-                <span className="text-2xl mb-1">📈</span>
-                <span className="font-bold text-lg text-green-600">{stats.averageProgress}</span>
-                <span className="text-xs text-gray-500 text-center">Avg Modules</span>
-              </div>
-              <div className="bg-white rounded-lg shadow p-4 flex flex-col items-center border border-gray-100">
-                <span className="text-2xl mb-1">🎯</span>
-                <span className="font-bold text-lg text-purple-600">{stats.averageScore}%</span>
-                <span className="text-xs text-gray-500 text-center">Avg Score</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Tab Content */}
-          <div className="mt-8">
-            {activeTab === 'overview' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Class Overview</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-600 mb-2">{stats.totalStudents}</div>
-                      <div className="text-sm text-gray-500">Total Students</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-green-600 mb-2">{stats.activeStudents}</div>
-                      <div className="text-sm text-gray-500">Active Learners</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-purple-600 mb-2">{stats.averageScore}%</div>
-                      <div className="text-sm text-gray-500">Class Average</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Student Activity</h3>
-                  {students.length > 0 ? (
-                    <div className="space-y-3">
-                      {students.slice(0, 5).map(student => (
-                        <div key={student.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-semibold">
-                              {student.fullName.charAt(0)}
-                            </div>
-                            <div>
-                              <div className="font-medium text-gray-900">{student.fullName}</div>
-                              <div className="text-sm text-gray-500">{student.classGrade} • {student.schoolName}</div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className={`font-semibold ${getProgressColor(student.totalModulesCompleted)}`}>
-                              {student.totalModulesCompleted} modules
-                            </div>
-                            <div className="text-sm text-gray-500">{student.learningStreak} day streak</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center text-gray-500 py-8">
-                      <div className="text-4xl mb-2">👥</div>
-                      <p>No students enrolled yet</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'students' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Student Management</h3>
-                    <button
-                      onClick={() => setShowAssignmentModal(true)}
-                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-                    >
-                      Assign Test
-                    </button>
-                  </div>
-                  
-                  {students.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left py-3 px-4">Student</th>
-                            <th className="text-left py-3 px-4">Grade</th>
-                            <th className="text-left py-3 px-4">Progress</th>
-                            <th className="text-left py-3 px-4">Score</th>
-                            <th className="text-left py-3 px-4">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {students.map(student => (
-                            <tr key={student.id} className="border-b hover:bg-gray-50">
-                              <td className="py-3 px-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-semibold text-sm">
-                                    {student.fullName.charAt(0)}
-                                  </div>
-                                  <div>
-                                    <div className="font-medium">{student.fullName}</div>
-                                    <div className="text-sm text-gray-500">{student.email}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4">{student.classGrade}</td>
-                              <td className="py-3 px-4">
-                                <div className={`font-semibold ${getProgressColor(student.totalModulesCompleted)}`}>
-                                  {student.totalModulesCompleted} modules
-                                </div>
-                              </td>
-                              <td className="py-3 px-4">
-                                <span className={`px-2 py-1 rounded text-sm ${getPerformanceColor(student.diagnosticScore)}`}>
-                                  {student.diagnosticScore}%
-                                </span>
-                              </td>
-                              <td className="py-3 px-4">
-                                <span className={`px-2 py-1 rounded text-sm ${
-                                  student.learningStreak > 0 ? 'text-green-600 bg-green-50' : 'text-gray-600 bg-gray-50'
-                                }`}>
-                                  {student.learningStreak > 0 ? 'Active' : 'Inactive'}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="text-center text-gray-500 py-8">
-                      <div className="text-4xl mb-2">👥</div>
-                      <p>No students enrolled yet</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'assignments' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Test Assignments</h3>
-                    <button
-                      onClick={() => setShowAssignmentModal(true)}
-                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-                    >
-                      Create New Assignment
-                    </button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {modules.slice(0, 6).map(module => (
-                      <div key={module.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-medium text-gray-900">{module.title}</h4>
-                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
-                            {module.subject}
-                          </span>
-                        </div>
-                        <div className="text-sm text-gray-600 space-y-1">
-                          <div>Grade: {module.grade}</div>
-                          <div>Duration: {module.duration} min</div>
-                          <div>Points: {module.points}</div>
-                          <div>Difficulty: {module.difficulty}</div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setSelectedModules([module.id]);
-                            setShowAssignmentModal(true);
-                          }}
-                          className="w-full mt-3 bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition-colors text-sm"
-                        >
-                          Assign to Students
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'analytics' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Analytics</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <h4 className="font-medium text-blue-900 mb-2">Class Performance</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Average Score:</span>
-                          <span className="font-semibold">{stats.averageScore}%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Active Students:</span>
-                          <span className="font-semibold">{stats.activeStudents}/{stats.totalStudents}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Average Progress:</span>
-                          <span className="font-semibold">{stats.averageProgress} modules</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 bg-green-50 rounded-lg">
-                      <h4 className="font-medium text-green-900 mb-2">Top Performers</h4>
-                      <div className="space-y-2">
-                        {students
-                          .sort((a, b) => b.diagnosticScore - a.diagnosticScore)
-                          .slice(0, 3)
-                          .map((student, index) => (
-                            <div key={student.id} className="flex items-center justify-between text-sm">
-                              <span>#{index + 1} {student.fullName}</span>
-                              <span className="font-semibold text-green-700">{student.diagnosticScore}%</span>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'reports' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Class Reports</h3>
-                  
-                  <div className="space-y-6">
-                    <div className="border-b pb-6">
-                      <h4 className="font-medium text-gray-700 mb-4">Performance Summary</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="text-center p-4 bg-gray-50 rounded">
-                          <div className="text-2xl font-bold text-gray-900">{stats.totalStudents}</div>
-                          <div className="text-sm text-gray-600">Total Students</div>
-                        </div>
-                        <div className="text-center p-4 bg-green-50 rounded">
-                          <div className="text-2xl font-bold text-green-600">{stats.averageScore}%</div>
-                          <div className="text-sm text-gray-600">Class Average</div>
-                        </div>
-                        <div className="text-center p-4 bg-blue-50 rounded">
-                          <div className="text-2xl font-bold text-blue-600">{stats.activeStudents}</div>
-                          <div className="text-sm text-gray-600">Active Learners</div>
-                        </div>
-                        <div className="text-center p-4 bg-purple-50 rounded">
-                          <div className="text-2xl font-bold text-purple-600">{stats.averageProgress}</div>
-                          <div className="text-sm text-gray-600">Avg Modules</div>
-                        </div>
-                      </div>
-                    </div>
-
+        {/* Main Content Area */}
+        <main className="dashboard-content">
+          {/* Overview Tab */}
+          {activeTab === 'overview' && (
+            <div className="space-y-6">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-medium text-gray-700 mb-4">Student Progress Report</h4>
-                      <div className="space-y-3">
-                        {students.map(student => (
-                          <div key={student.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-medium text-gray-600">Total Students</p>
+                      <p className="text-3xl font-bold text-gray-900">{stats.totalStudents}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <span className="text-2xl">👥</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Active Students</p>
+                      <p className="text-3xl font-bold text-gray-900">{stats.activeStudents}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                      <span className="text-2xl">📈</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Avg Progress</p>
+                      <p className="text-3xl font-bold text-gray-900">{stats.averageProgress}%</p>
+                    </div>
+                    <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                      <span className="text-2xl">📊</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Avg Score</p>
+                      <p className="text-3xl font-bold text-gray-900">{stats.averageScore}%</p>
+                    </div>
+                    <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                      <span className="text-2xl">🏆</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <button
+                    onClick={() => setShowAssignmentModal(true)}
+                    className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-xl hover:bg-purple-100 transition-colors"
+                  >
+                    <span className="text-2xl">📝</span>
+                    <div className="text-left">
+                      <p className="font-medium text-gray-900">Assign Test</p>
+                      <p className="text-sm text-gray-600">Create new assignment</p>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => setActiveTab('students')}
+                    className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-colors"
+                  >
+                    <span className="text-2xl">👥</span>
+                    <div className="text-left">
+                      <p className="font-medium text-gray-900">Manage Students</p>
+                      <p className="text-sm text-gray-600">View student progress</p>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => setActiveTab('analytics')}
+                    className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 transition-colors"
+                  >
+                    <span className="text-2xl">📈</span>
+                    <div className="text-left">
+                      <p className="font-medium text-gray-900">Analytics</p>
+                      <p className="text-sm text-gray-600">Performance insights</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Recent Activity */}
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                <div className="space-y-4">
+                  {students.slice(0, 5).map(student => (
+                    <div key={student.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                      <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                        {student.fullName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{student.fullName}</p>
+                        <p className="text-sm text-gray-600">Completed {student.totalModulesCompleted} modules</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-gray-900">{student.diagnosticScore}%</p>
+                        <p className="text-xs text-gray-500">Diagnostic Score</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Students Tab */}
+          {activeTab === 'students' && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Student Management</h3>
+                  <button
+                    onClick={() => setShowAssignmentModal(true)}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    Assign Test
+                  </button>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">Student</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">Grade</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">Modules Completed</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">Diagnostic Score</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students.map(student => (
+                        <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-semibold">
-                                {student.fullName.charAt(0)}
+                              <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                                {student.fullName.charAt(0).toUpperCase()}
                               </div>
                               <div>
-                                <div className="font-medium text-gray-900">{student.fullName}</div>
-                                <div className="text-sm text-gray-500">{student.classGrade}</div>
+                                <p className="font-medium text-gray-900">{student.fullName}</p>
+                                <p className="text-sm text-gray-600">{student.email}</p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-6 text-sm">
-                              <div className="text-center">
-                                <div className={`font-semibold ${getProgressColor(student.totalModulesCompleted)}`}>
-                                  {student.totalModulesCompleted}
-                                </div>
-                                <div className="text-gray-500">Modules</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="font-semibold text-yellow-600">{student.totalXpEarned}</div>
-                                <div className="text-gray-500">XP</div>
-                              </div>
-                              <div className="text-center">
-                                <div className={`font-semibold ${getPerformanceColor(student.diagnosticScore).split(' ')[0]}`}>
-                                  {student.diagnosticScore}%
-                                </div>
-                                <div className="text-gray-500">Score</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="font-semibold text-blue-600">{student.learningStreak}</div>
-                                <div className="text-gray-500">Streak</div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                          </td>
+                          <td className="py-3 px-4 text-gray-900">{student.classGrade}</td>
+                          <td className="py-3 px-4">
+                            <span className={`font-medium ${getProgressColor(student.totalModulesCompleted)}`}>
+                              {student.totalModulesCompleted}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPerformanceColor(student.diagnosticScore)}`}>
+                              {student.diagnosticScore}%
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              student.totalModulesCompleted > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {student.totalModulesCompleted > 0 ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {activeTab === 'settings' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile Settings</h3>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                        <div className="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">{user.name}</div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <div className="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">{user.email}</div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Subject Specialization</label>
-                        <div className="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
-                          {user.profile?.subjectSpecialization || 'Not set'}
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
-                        <div className="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
-                          {user.profile?.experienceYears || 'Not set'} years
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+          {/* Other tabs can be implemented similarly */}
+          {activeTab === 'assignments' && (
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Assign Tests</h3>
+              <p className="text-gray-600">Assignment management interface will be implemented here.</p>
+            </div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Analytics</h3>
+              <p className="text-gray-600">Analytics dashboard will be implemented here.</p>
+            </div>
+          )}
+
+          {activeTab === 'reports' && (
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Reports</h3>
+              <p className="text-gray-600">Report generation interface will be implemented here.</p>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Settings</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
+                  <select
+                    value={language}
+                    onChange={(e) => handleLanguageChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="English (USA)">🇺🇸 English (USA)</option>
+                    <option value="Hindi">🇮🇳 Hindi</option>
+                    <option value="Gujarati">🇮🇳 Gujarati</option>
+                  </select>
                 </div>
-
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Preferences</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Language Preference</label>
-                      <select
-                        value={language}
-                        onChange={e => handleLanguageChange(e.target.value)}
-                        className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
-                      >
-                        <option value="English (USA)">English (USA)</option>
-                        <option value="हिन्दी">हिन्दी</option>
-                        <option value="मराठी">मराठी</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Notification Preferences</label>
-                      <div className="space-y-2">
-                        <label className="flex items-center">
-                          <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" defaultChecked />
-                          <span className="ml-2 text-sm text-gray-700">Email notifications for student progress</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" defaultChecked />
-                          <span className="ml-2 text-sm text-gray-700">Weekly class performance reports</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
-                          <span className="ml-2 text-sm text-gray-700">SMS notifications for urgent updates</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Subject Specialization</label>
+                  <input
+                    type="text"
+                    value={subjectSpecialization}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Years of Experience</label>
+                  <input
+                    type="text"
+                    value={experienceYears}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                  />
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </main>
+        
+        {/* Right Panel */}
+        <aside 
+          className={`dashboard-right-panel ${isRightPanelOpen ? 'open' : ''} flex flex-col justify-between`}
+          onMouseEnter={() => window.innerWidth >= 1024 && setIsRightPanelHovered(true)}
+          onMouseLeave={() => window.innerWidth >= 1024 && setIsRightPanelHovered(false)}
+        >
+          {/* Arrow indicator for expandability - centered in collapsed state */}
+          <div className={`flex justify-center items-center ${isRightPanelHovered ? 'h-16' : 'flex-1'}`}>
+            <div 
+              className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200 shadow-md"
+              style={{ transform: isRightPanelHovered ? 'rotate(180deg)' : 'rotate(0deg)' }}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+          {/* Panel Content */}
+          <div className="flex-1 flex flex-col transition-all duration-300 p-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 transition-opacity duration-200"
+                style={{ opacity: isRightPanelHovered ? 1 : 0 }}>
+              Quick Actions
+            </h3>
+            <div className="space-y-3">
+              <div className={`flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 shadow-sm hover:bg-purple-50 cursor-pointer transition-all duration-200 ${isRightPanelHovered ? '' : 'opacity-0 pointer-events-none'}`}> 
+                <div className="w-3 h-3 rounded-full flex-shrink-0 bg-blue-500"></div>
+                <div className="flex-1">
+                  <div className="font-medium text-gray-900 text-sm">Assign Test</div>
+                  <div className="text-xs text-gray-500">Create assignment</div>
+                </div>
+                <span className="text-gray-400">→</span>
+              </div>
+              <div className={`flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 shadow-sm hover:bg-purple-50 cursor-pointer transition-all duration-200 ${isRightPanelHovered ? '' : 'opacity-0 pointer-events-none'}`}> 
+                <div className="w-3 h-3 rounded-full flex-shrink-0 bg-green-500"></div>
+                <div className="flex-1">
+                  <div className="font-medium text-gray-900 text-sm">View Reports</div>
+                  <div className="text-xs text-gray-500">Class analytics</div>
+                </div>
+                <span className="text-gray-400">→</span>
+              </div>
+            </div>
+            <button 
+              className={`btn btn-primary w-full mt-6 transition-opacity duration-200 ${isRightPanelHovered ? '' : 'opacity-0 pointer-events-none'}`}
+              onClick={() => setActiveTab('assignments')}
+            >
+              Manage assignments
+            </button>
+          </div>
+          
+        </aside>
+        
+        {/* Mobile Right Panel Overlay */}
+        {isRightPanelOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
+            onClick={() => setIsRightPanelOpen(false)}
+          />
+        )}
+        
       </div>
 
-      {/* Floating Chat Button */}
-      <button 
-        onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-colors flex items-center justify-center z-40"
-      >
-        <span className="text-xl">🤖</span>
-      </button>
-
-      {/* Chat Modal for AI Buddy */}
-      <ChatModal
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        studentData={{
-          name: user.name || 'Teacher',
-          grade: user.profile?.subjectSpecialization,
-          email: user.email,
-          school: 'JioWorld Learning',
-          studentId: 'teacher_' + user.name?.toLowerCase().replace(/\s+/g, '_'),
-        }}
-      />
+      {/* Floating FAB for right panel on mobile/tablet */}
+      {typeof window !== 'undefined' && window.innerWidth < 1024 && !isRightPanelOpen && (
+        <button
+          className="right-panel-fab"
+          aria-label="Open Quick Actions"
+          onClick={() => setIsRightPanelOpen(true)}
+        >
+          <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 } 

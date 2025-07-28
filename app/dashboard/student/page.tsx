@@ -645,6 +645,7 @@ export default function StudentDashboard() {
         onTabChange={setActiveTab}
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        role="student"
       />
       
       {/* Main Content Area */}
