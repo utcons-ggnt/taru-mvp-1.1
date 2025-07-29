@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, CheckCircle, Star, Brain, Trophy, Target } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CheckCircle, Star, Brain, Trophy, Rocket, Sparkles, Zap, Palette, Puzzle, BookOpen, Heart, Smile, Lightbulb } from 'lucide-react';
 
 interface DiagnosticQuestion {
   id: string;
@@ -12,13 +13,6 @@ interface DiagnosticQuestion {
   category: string;
   points: number;
   timeLimit?: number;
-}
-
-interface StudentInfo {
-  grade: string;
-  level: string;
-  totalQuestions: number;
-  estimatedTime: number;
 }
 
 interface AssessmentResults {
@@ -36,7 +30,6 @@ interface AssessmentResults {
 
 export default function DiagnosticTestTab() {
   const [questions, setQuestions] = useState<DiagnosticQuestion[]>([]);
-  const [studentInfo, setStudentInfo] = useState<StudentInfo | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | number | string[]>>({});
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -119,7 +112,6 @@ export default function DiagnosticTestTab() {
       const data = await response.json();
       
       setQuestions(data.questions);
-      setStudentInfo(data.studentInfo);
       
       // Check if assessment already completed
       if (data.existingAssessment?.completed) {
@@ -167,72 +159,69 @@ export default function DiagnosticTestTab() {
       case 'multiple_choice':
       case 'pattern_choice':
         return (
-          <div className="space-y-3">
-            {question.options?.map((option, index) => (
-              <label key={index} className="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
-                <input
-                  type="radio"
-                  name={question.id}
-                  value={option}
-                  checked={currentAnswer === option}
-                  onChange={(e) => handleAnswerChange(e.target.value)}
-                  className="text-blue-600"
-                />
-                <span className="text-gray-800">{option}</span>
-              </label>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {question.options?.map((option, index) => {
+              const getIcon = (option: string) => {
+                if (option.includes('story') || option.includes('watching')) return <BookOpen className="w-8 h-8" />;
+                if (option.includes('puzzle') || option.includes('solving')) return <Puzzle className="w-8 h-8" />;
+                if (option.includes('color') || option.includes('draw')) return <Palette className="w-8 h-8" />;
+                if (option.includes('happy') || option.includes('excited')) return <Smile className="w-8 h-8" />;
+                if (option.includes('calm') || option.includes('curious')) return <Heart className="w-8 h-8" />;
+                return <Lightbulb className="w-8 h-8" />;
+              };
+
+              return (
+                <motion.button
+                  key={index}
+                  onClick={() => handleAnswerChange(option)}
+                  className={`relative p-6 rounded-2xl border-2 transition-all duration-300 ${
+                    currentAnswer === option
+                      ? 'border-[#6D18CE] bg-gradient-to-br from-purple-50 to-pink-50 shadow-lg scale-105'
+                      : 'border-gray-200 bg-white hover:border-[#6D18CE] hover:shadow-md'
+                  }`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1, duration: 0.4 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className="text-center space-y-3">
+                    <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center ${
+                      currentAnswer === option ? 'bg-[#6D18CE] text-white' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {getIcon(option)}
+                    </div>
+                    <p className={`font-medium text-sm ${
+                      currentAnswer === option ? 'text-[#6D18CE]' : 'text-gray-700'
+                    }`}>
+                      {option}
+                    </p>
+                  </div>
+                  {currentAnswer === option && (
+                    <motion.div
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-[#6D18CE] rounded-full flex items-center justify-center"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <CheckCircle className="w-4 h-4 text-white" />
+                    </motion.div>
+                  )}
+                </motion.button>
+              );
+            })}
           </div>
         );
 
       case 'open_text':
         return (
-          <textarea
-            value={currentAnswer}
-            onChange={(e) => handleAnswerChange(e.target.value)}
-            placeholder="Type your answer here..."
-            className="w-full h-32 p-4 border rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-            maxLength={500}
-          />
-        );
-
-      case 'fill_blanks':
-        return (
           <div className="space-y-4">
-            <p className="text-gray-700">Fill in the missing values:</p>
-            <input
-              type="text"
-              value={currentAnswer}
-              onChange={(e) => handleAnswerChange(e.target.value)}
-              placeholder="Enter your answers separated by commas"
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-            />
-          </div>
-        );
-
-      case 'image_text':
-        return (
-          <div className="space-y-4">
-            <p className="text-gray-600">You can draw, sketch, or describe your answer:</p>
             <textarea
               value={currentAnswer}
               onChange={(e) => handleAnswerChange(e.target.value)}
-              placeholder="Describe or sketch your idea here..."
-              className="w-full h-40 p-4 border rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              maxLength={1000}
-            />
-          </div>
-        );
-
-      case 'scenario_steps':
-        return (
-          <div className="space-y-4">
-            <p className="text-gray-600">List the steps you would take (separate each step with a comma):</p>
-            <textarea
-              value={currentAnswer}
-              onChange={(e) => handleAnswerChange(e.target.value)}
-              placeholder="Step 1: ..., Step 2: ..., Step 3: ..."
-              className="w-full h-32 p-4 border rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              maxLength={800}
+              placeholder="Tell me more about yourself..."
+              className="w-full h-32 p-4 border-2 border-gray-200 rounded-2xl resize-none focus:ring-2 focus:ring-[#6D18CE] focus:border-[#6D18CE] text-gray-900"
+              maxLength={500}
             />
           </div>
         );
@@ -243,178 +232,254 @@ export default function DiagnosticTestTab() {
             type="text"
             value={currentAnswer}
             onChange={(e) => handleAnswerChange(e.target.value)}
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-[#6D18CE] focus:border-[#6D18CE]"
           />
         );
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getProgressPercentage = () => {
-    return Math.round(((currentQuestionIndex + 1) / questions.length) * 100);
+  const renderProgressSteps = () => {
+    const totalSteps = questions.length;
+    return (
+      <div className="flex items-center justify-between mb-8">
+        {Array.from({ length: totalSteps }, (_, index) => (
+          <div key={index} className="flex flex-col items-center">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
+              index <= currentQuestionIndex 
+                ? 'bg-[#6D18CE] text-white' 
+                : 'bg-gray-200 text-gray-500'
+            }`}>
+              {index + 1}
+            </div>
+            <span className="text-xs mt-1 text-gray-600">
+              Step {index + 1}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <motion.div 
+        className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center px-4 py-6 md:px-8 md:py-12"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="max-w-md lg:max-w-lg w-full">
+          <div className="bg-white rounded-3xl shadow-xl p-8 text-center">
+            <motion.div 
+              className="w-20 h-20 bg-gradient-to-r from-[#6D18CE] to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            >
+              <Sparkles className="w-10 h-10 text-white" />
+            </motion.div>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">Loading Magic...</h2>
+            <p className="text-gray-600">Preparing your magical learning adventure!</p>
+          </div>
+        </div>
+      </motion.div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-        <p className="text-red-700">{error}</p>
-        <button
-          onClick={loadDiagnosticQuestions}
-          className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-        >
-          Try Again
-        </button>
-      </div>
+      <motion.div 
+        className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center px-4 py-6 md:px-8 md:py-12"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="max-w-md lg:max-w-lg w-full">
+          <div className="bg-white rounded-3xl shadow-xl p-8 text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Zap className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">Oops! Magic Mishap</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button
+              onClick={loadDiagnosticQuestions}
+              className="bg-[#6D18CE] text-white px-6 py-3 rounded-2xl font-medium hover:bg-purple-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </motion.div>
     );
   }
 
   // Results view
   if (testCompleted && results) {
+    const getPersonalityType = (learningStyle: string) => {
+      switch (learningStyle) {
+        case 'visual-spatial': return { title: "Visual Superstar!", description: "You learn best with fun visuals and bright colors!", icon: <Palette className="w-8 h-8" /> };
+        case 'logical-mathematical': return { title: "Puzzle Master!", description: "You love solving problems and thinking logically!", icon: <Puzzle className="w-8 h-8" /> };
+        case 'reading-writing': return { title: "Story Explorer!", description: "You learn best through reading and writing adventures!", icon: <BookOpen className="w-8 h-8" /> };
+        default: return { title: "Learning Champion!", description: "You have a balanced approach to learning!", icon: <Star className="w-8 h-8" /> };
+      }
+    };
+
+    const personality = getPersonalityType(results.learningStyle);
+
     return (
-      <div className="space-y-6">
-        <div className="bg-gradient-to-r from-green-500 to-blue-500 rounded-lg p-6 text-white">
-          <div className="flex items-center space-x-3">
-            <Trophy className="w-8 h-8" />
-            <div>
-              <h2 className="text-2xl font-bold">Diagnostic Assessment Complete!</h2>
-              <p className="text-green-100">Overall Score: {results.overallScore}%</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Learning Style */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <Brain className="w-6 h-6 text-purple-600" />
-              <h3 className="text-lg font-semibold">Learning Style</h3>
-            </div>
-            <p className="text-2xl font-bold text-purple-600">{results.learningStyle}</p>
-            <p className="text-gray-600 mt-2">Your preferred way of learning</p>
-          </div>
-
-          {/* Strengths */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <Star className="w-6 h-6 text-yellow-600" />
-              <h3 className="text-lg font-semibold">Top Strengths</h3>
-            </div>
-            <ul className="space-y-2">
-              {results.detailedAnalysis.strengths.map((strength, index) => (
-                <li key={index} className="text-green-600 font-medium">• {strength}</li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Areas for Improvement */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <Target className="w-6 h-6 text-blue-600" />
-              <h3 className="text-lg font-semibold">Growth Areas</h3>
-            </div>
-            <ul className="space-y-2">
-              {results.detailedAnalysis.areasForImprovement.map((area, index) => (
-                <li key={index} className="text-blue-600 font-medium">• {area}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Section Scores */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Detailed Scores by Category</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {Object.entries(results.sectionScores).map(([category, score]) => (
-              <div key={category} className="text-center">
-                <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-2">
-                  <span className="text-blue-600 font-bold">{score}</span>
-                </div>
-                <p className="text-sm font-medium text-gray-700">{category}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recommendations */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Recommended Learning Modules</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {results.recommendations.map((recommendation, index) => (
-              <div key={index} className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-blue-600" />
-                <span className="text-gray-700">{recommendation}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="text-center">
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+      <motion.div 
+        className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center px-4 py-6 md:px-8 md:py-12"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="max-w-4xl w-full">
+          <motion.div 
+            className="bg-white rounded-3xl shadow-xl p-8"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
           >
-            Retake Assessment
-          </button>
+            {/* Progress Steps - All Completed */}
+            <div className="flex items-center justify-between mb-8">
+              {Array.from({ length: questions.length }, (_, index) => (
+                <div key={index} className="flex flex-col items-center">
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold text-white">
+                    <CheckCircle className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs mt-1 text-green-600 font-medium">Completed</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Result Banner */}
+            <motion.div 
+              className="bg-gradient-to-r from-[#6D18CE] to-purple-600 rounded-3xl p-8 text-white text-center mb-8"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+            >
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <Sparkles className="w-8 h-8" />
+                <h1 className="text-3xl font-bold">{personality.title}</h1>
+                <Trophy className="w-8 h-8" />
+              </div>
+              <p className="text-xl opacity-90">{personality.description}</p>
+            </motion.div>
+
+            {/* Magical Suggestions */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Magical Suggestions!</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {results.recommendations.slice(0, 3).map((recommendation, index) => (
+                  <motion.div 
+                    key={index}
+                    className="bg-white border-2 border-gray-200 rounded-2xl p-6 text-center hover:border-[#6D18CE] transition-colors"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 + index * 0.1, duration: 0.4 }}
+                  >
+                    <h3 className="font-bold text-gray-800 mb-2">{recommendation}</h3>
+                    <div className="bg-[#6D18CE] text-white text-xs px-3 py-1 rounded-full inline-block">
+                      {Math.floor(Math.random() * 50) + 30}+ XP
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-[#6D18CE] text-white px-6 py-3 rounded-2xl font-medium hover:bg-purple-700 transition-colors flex items-center gap-2"
+              >
+                <Rocket className="w-5 h-5" />
+                Try Again with Me!
+              </button>
+            </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   // Pre-test info
   if (!testStarted) {
     return (
-      <div className="bg-white rounded-lg shadow p-8">
-        <div className="text-center space-y-6">
-          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-            <Brain className="w-10 h-10 text-blue-600" />
-          </div>
-          
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {studentInfo?.level} Level Diagnostic Assessment
-            </h2>
-            <p className="text-gray-600">
-              Grade {studentInfo?.grade} • {studentInfo?.totalQuestions} Questions
-            </p>
-          </div>
+      <motion.div 
+        className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center px-4 py-6 md:px-8 md:py-12"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="max-w-md lg:max-w-lg w-full">
+          <motion.div 
+            className="bg-white rounded-3xl shadow-xl p-8"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            {/* Progress Steps - First Step */}
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-col items-center">
+                <div className="w-10 h-10 bg-[#6D18CE] rounded-full flex items-center justify-center text-sm font-bold text-white">
+                  1
+                </div>
+                <span className="text-xs mt-1 text-[#6D18CE] font-medium">In Progress</span>
+              </div>
+              {Array.from({ length: questions.length - 1 }, (_, index) => (
+                <div key={index} className="flex flex-col items-center">
+                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-500">
+                    {index + 2}
+                  </div>
+                  <span className="text-xs mt-1 text-gray-500">Pending</span>
+                </div>
+              ))}
+            </div>
 
-          <div className="bg-blue-50 rounded-lg p-6 space-y-4">
-            <h3 className="font-semibold text-blue-900">What to Expect:</h3>
-            <ul className="text-left space-y-2 text-blue-800">
-              <li>• Questions adapted to your grade level</li>
-              <li>• Multiple question types: multiple choice, short answers, creative tasks</li>
-              <li>• Estimated time: {Math.round((studentInfo?.estimatedTime || 0) / 60)} minutes</li>
-              <li>• Each question has a time limit</li>
-              <li>• Your answers help us understand your learning style</li>
-            </ul>
-          </div>
+            {/* Robot and Stars */}
+            <div className="text-center mb-8">
+              <motion.div 
+                className="w-24 h-24 bg-gradient-to-r from-[#6D18CE] to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4"
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Brain className="w-12 h-12 text-white" />
+              </motion.div>
+              <div className="flex justify-center gap-4 mb-4">
+                <Star className="w-6 h-6 text-yellow-400" />
+                <Star className="w-6 h-6 text-yellow-400" />
+              </div>
+            </div>
 
-          <div className="space-y-4">
-            <button
+            {/* Heading */}
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gray-800 mb-3">
+                Let&apos;s discover how you love to learn!
+              </h1>
+              <p className="text-gray-600 text-lg">
+                Answer my magical questions and I&apos;ll find the perfect learning adventure for you!
+              </p>
+            </div>
+
+            {/* Start Button */}
+            <motion.button
               onClick={startTest}
-              className="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg"
+              className="w-full bg-gradient-to-r from-[#6D18CE] to-purple-600 text-white px-8 py-4 rounded-2xl font-bold text-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-300 flex items-center justify-center gap-3"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              Start Diagnostic Test
-            </button>
-            <p className="text-sm text-gray-500">
-              Make sure you have a quiet environment and stable internet connection
-            </p>
-          </div>
+              <Rocket className="w-6 h-6" />
+              Start the Magical Game
+            </motion.button>
+
+            {/* Decorative Star */}
+            <div className="text-center mt-6">
+              <Star className="w-6 h-6 text-yellow-400 mx-auto" />
+            </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
@@ -423,74 +488,78 @@ export default function DiagnosticTestTab() {
   if (!currentQuestion) return null;
 
   return (
-    <div className="space-y-6">
-      {/* Progress bar */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">
-            Question {currentQuestionIndex + 1} of {questions.length}
-          </span>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <Clock className="w-4 h-4" />
-              <span>{formatTime(timeRemaining)}</span>
+    <motion.div 
+      className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center px-4 py-6 md:px-8 md:py-12"
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="max-w-4xl w-full">
+        <motion.div 
+          className="bg-white rounded-3xl shadow-xl p-8"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          {/* Progress Steps */}
+          {renderProgressSteps()}
+
+          {/* Robot and Stars */}
+          <div className="text-center mb-8">
+            <motion.div 
+              className="w-20 h-20 bg-gradient-to-r from-[#6D18CE] to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4"
+              animate={{ y: [0, -5, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <Brain className="w-10 h-10 text-white" />
+            </motion.div>
+            <div className="flex justify-center gap-4 mb-4">
+              <Star className="w-5 h-5 text-yellow-400" />
+              <Star className="w-5 h-5 text-yellow-400" />
             </div>
-            <span className="text-sm font-medium text-blue-600">
-              {getProgressPercentage()}% Complete
-            </span>
           </div>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${getProgressPercentage()}%` }}
-          ></div>
-        </div>
+
+          {/* Question */}
+          <AnimatePresence mode="wait">
+            <motion.div 
+              key={currentQuestion.id}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="text-center mb-8"
+            >
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                {currentQuestion.prompt}
+              </h2>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Answer Options */}
+          <div className="mb-8">
+            {renderQuestionInput(currentQuestion)}
+          </div>
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between items-center">
+            <button
+              onClick={handlePreviousQuestion}
+              disabled={currentQuestionIndex === 0}
+              className="bg-white border-2 border-[#6D18CE] text-[#6D18CE] px-6 py-3 rounded-2xl font-medium hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+
+            <button
+              onClick={handleNextQuestion}
+              disabled={!answers[currentQuestion.id]}
+              className="bg-[#6D18CE] text-white px-6 py-3 rounded-2xl font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {currentQuestionIndex === questions.length - 1 ? 'Finish' : 'Next'}
+            </button>
+          </div>
+        </motion.div>
       </div>
-
-      {/* Question */}
-      <div className="bg-white rounded-lg shadow p-8">
-        <div className="mb-6">
-          <div className="flex items-center space-x-2 mb-3">
-            <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
-              {currentQuestion.section}
-            </span>
-            <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">
-              {currentQuestion.category}
-            </span>
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">
-            {currentQuestion.prompt}
-          </h3>
-        </div>
-
-        {renderQuestionInput(currentQuestion)}
-
-        {/* Navigation buttons */}
-        <div className="flex justify-between mt-8">
-          <button
-            onClick={handlePreviousQuestion}
-            disabled={currentQuestionIndex === 0}
-            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
-          
-          <div className="text-center">
-            <p className="text-sm text-gray-500 mb-2">
-              Points: {currentQuestion.points}
-            </p>
-          </div>
-
-          <button
-            onClick={handleNextQuestion}
-            disabled={!answers[currentQuestion.id]}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {currentQuestionIndex === questions.length - 1 ? 'Complete Test' : 'Next'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </motion.div>
   );
 } 

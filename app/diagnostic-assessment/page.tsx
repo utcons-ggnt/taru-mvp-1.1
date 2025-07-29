@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Circle, Trophy, Star, Zap, ChevronLeft, ChevronRight, Target, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Question {
   id: number;
@@ -23,11 +22,11 @@ const diagnosticQuestions: Question[] = [
   {
     id: 1,
     category: 'Mathematics',
-    question: 'How confident are you with basic arithmetic (addition, subtraction, multiplication, division)?',
+    question: 'How confident are you with basic algebra?',
     options: [
-      { id: 'very-confident', text: 'Very confident - I can do this easily', score: 5 },
-      { id: 'confident', text: 'Confident - I can do this most of the time', score: 4 },
-      { id: 'somewhat', text: 'Somewhat confident - I can do this sometimes', score: 3 },
+      { id: 'very-confident', text: 'Very confident - I can solve most problems easily', score: 5 },
+      { id: 'confident', text: 'Confident - I can solve most problems', score: 4 },
+      { id: 'somewhat', text: 'Somewhat confident - I can solve some problems', score: 3 },
       { id: 'not-confident', text: 'Not very confident - I struggle with this', score: 2 },
       { id: 'need-help', text: 'I need help with this', score: 1 }
     ],
@@ -51,8 +50,8 @@ const diagnosticQuestions: Question[] = [
     category: 'Mathematics',
     question: 'Do you understand fractions and decimals?',
     options: [
-      { id: 'true', text: 'True', score: 5 },
-      { id: 'false', text: 'False', score: 1 }
+      { id: 'true', text: 'Yes, I understand them well', score: 5 },
+      { id: 'false', text: 'No, I need more practice', score: 1 }
     ],
     type: 'true-false'
   },
@@ -89,8 +88,8 @@ const diagnosticQuestions: Question[] = [
     category: 'Reading',
     question: 'Do you enjoy reading books for fun?',
     options: [
-      { id: 'true', text: 'True', score: 5 },
-      { id: 'false', text: 'False', score: 2 }
+      { id: 'true', text: 'Yes, I love reading', score: 5 },
+      { id: 'false', text: 'No, I prefer other activities', score: 2 }
     ],
     type: 'true-false'
   },
@@ -127,8 +126,8 @@ const diagnosticQuestions: Question[] = [
     category: 'Writing',
     question: 'Do you like writing stories or essays?',
     options: [
-      { id: 'true', text: 'True', score: 5 },
-      { id: 'false', text: 'False', score: 2 }
+      { id: 'true', text: 'Yes, I enjoy writing', score: 5 },
+      { id: 'false', text: 'No, I find it challenging', score: 2 }
     ],
     type: 'true-false'
   },
@@ -165,8 +164,8 @@ const diagnosticQuestions: Question[] = [
     category: 'Science',
     question: 'Do you enjoy doing science experiments?',
     options: [
-      { id: 'true', text: 'True', score: 5 },
-      { id: 'false', text: 'False', score: 2 }
+      { id: 'true', text: 'Yes, I love experiments', score: 5 },
+      { id: 'false', text: 'No, I prefer other activities', score: 2 }
     ],
     type: 'true-false'
   },
@@ -203,8 +202,8 @@ const diagnosticQuestions: Question[] = [
     category: 'Technology',
     question: 'Do you enjoy learning about new technology?',
     options: [
-      { id: 'true', text: 'True', score: 5 },
-      { id: 'false', text: 'False', score: 2 }
+      { id: 'true', text: 'Yes, I love learning about tech', score: 5 },
+      { id: 'false', text: 'No, I prefer other subjects', score: 2 }
     ],
     type: 'true-false'
   }
@@ -215,16 +214,7 @@ interface AssessmentResults {
   skillLevel: string;
   categoryScores: { [category: string]: number };
   learningStyle: string;
-  // Add other properties as needed
 }
-
-const categoryConfig = {
-  Mathematics: { icon: Target, gradient: 'from-blue-500 to-purple-600', color: 'bg-blue-100 text-blue-600' },
-  Reading: { icon: Star, gradient: 'from-green-500 to-emerald-600', color: 'bg-green-100 text-green-600' },
-  Writing: { icon: Zap, gradient: 'from-purple-500 to-pink-600', color: 'bg-purple-100 text-purple-600' },
-  Science: { icon: Trophy, gradient: 'from-orange-500 to-red-600', color: 'bg-orange-100 text-orange-600' },
-  Technology: { icon: Clock, gradient: 'from-teal-500 to-cyan-600', color: 'bg-teal-100 text-teal-600' }
-};
 
 export default function DiagnosticAssessment() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -236,7 +226,6 @@ export default function DiagnosticAssessment() {
 
   const currentQuestion = diagnosticQuestions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / diagnosticQuestions.length) * 100;
-  const categoryInfo = categoryConfig[currentQuestion.category as keyof typeof categoryConfig];
 
   const handleAnswer = (answerId: string) => {
     setAnswers(prev => ({
@@ -343,614 +332,183 @@ export default function DiagnosticAssessment() {
     router.push('/result-summary');
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600 bg-green-100';
-    if (score >= 60) return 'text-blue-600 bg-blue-100';
-    if (score >= 40) return 'text-yellow-600 bg-yellow-100';
-    return 'text-red-600 bg-red-100';
-  };
-
-  const getSkillLevelColor = (level: string) => {
-    switch (level) {
-      case 'advanced': return 'from-green-500 to-emerald-600';
-      case 'intermediate': return 'from-blue-500 to-purple-600';
-      default: return 'from-orange-500 to-red-600';
-    }
-  };
-
   if (showResults && assessmentResults) {
     const results: AssessmentResults = assessmentResults as AssessmentResults;
     return (
-      <>
-        {/* Skip Link for Accessibility */}
-        <a href="#assessment-results" className="skip-link">
-          Skip to assessment results
-        </a>
+      <motion.div 
+        className="min-h-screen bg-white flex items-center justify-center px-4 py-6 md:px-8 md:py-12"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="max-w-md lg:max-w-lg w-full">
+          <motion.div 
+            className="bg-white rounded-2xl shadow-lg p-6 md:p-8"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            {/* Results Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-2xl md:text-3xl font-bold text-[#6D18CE] mb-2">
+                Assessment Complete! 🎉
+              </h1>
+              <p className="text-gray-500 text-sm md:text-base">
+                Here are your personalized results
+              </p>
+            </div>
 
-        <motion.div 
-          className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="max-w-4xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-            <motion.div 
-              id="assessment-results"
-              className="card-glass p-6 sm:p-8 border-gradient relative overflow-hidden"
-              initial={{ scale: 0.9, y: 50, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              transition={{ duration: 0.6, type: "spring", stiffness: 300, damping: 30 }}
-            >
-              {/* Decorative elements */}
-              <div className="absolute top-0 right-0 w-48 sm:w-64 h-48 sm:h-64 gradient-primary rounded-full blur-3xl opacity-10" aria-hidden="true"></div>
-              <div className="absolute bottom-0 left-0 w-32 sm:w-48 h-32 sm:h-48 gradient-accent rounded-full blur-2xl opacity-10" aria-hidden="true"></div>
+            {/* Overall Score */}
+            <div className="bg-gradient-to-r from-[#6D18CE] to-purple-600 text-white rounded-xl p-6 mb-6 text-center">
+              <div className="text-4xl font-bold mb-2">{results.overallScore}%</div>
+              <div className="text-lg font-semibold capitalize">{results.skillLevel} Level</div>
+            </div>
 
-              <motion.div 
-                className="text-center mb-8 sm:mb-12 relative z-10"
-                initial={{ y: 30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.6 }}
-              >
-                <div className="flex justify-center mb-4 sm:mb-6">
-                  <motion.div 
-                    className="w-16 h-16 sm:w-20 sm:h-20 gradient-primary rounded-2xl flex items-center justify-center"
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ delay: 0.5, duration: 0.6, type: "spring" }}
-                  >
-                    <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-                  </motion.div>
+            {/* Category Scores */}
+            <div className="space-y-4 mb-8">
+              {Object.entries(results.categoryScores).map(([category, score]) => (
+                <div key={category} className="flex justify-between items-center">
+                  <span className="font-medium text-gray-800">{category}</span>
+                  <span className="text-[#6D18CE] font-bold">{score as number}%</span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gradient mb-3 sm:mb-4">
-                  Assessment Complete! 🎉
-                </h1>
-                <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto px-4">
-                  Great job! Here are your personalized results and learning recommendations
-                </p>
-              </motion.div>
+              ))}
+            </div>
 
-              {/* Overall Score Card */}
-              <motion.div 
-                className={`card-modern p-6 sm:p-8 mb-6 sm:mb-8 bg-gradient-to-r ${getSkillLevelColor(results.skillLevel)} text-white relative overflow-hidden`}
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
-              >
-                <div className="absolute inset-0 bg-black bg-opacity-10"></div>
-                <div className="absolute top-4 right-4 opacity-20" aria-hidden="true">
-                  <Star className="w-24 h-24 sm:w-32 sm:h-32" />
-                </div>
-                <div className="relative z-10 text-center">
-                  <motion.div 
-                    className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.7, duration: 0.5, type: "spring", stiffness: 300 }}
-                  >
-                    {results.overallScore}%
-                  </motion.div>
-                  <div className="text-xl sm:text-2xl font-bold mb-2 capitalize">
-                    {results.skillLevel} Level
-                  </div>
-                  <div className="text-white/90 text-sm sm:text-base">
-                    Overall Performance Score
-                  </div>
-                </div>
-              </motion.div>
+            {/* Learning Style */}
+            <div className="bg-gray-50 rounded-xl p-4 mb-8">
+              <h3 className="font-semibold text-gray-800 mb-2">Your Learning Style</h3>
+              <p className="text-gray-600 text-sm">
+                {results.learningStyle.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              </p>
+            </div>
 
-              {/* Category Scores */}
-              <motion.div 
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.7, duration: 0.5 }}
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <button
+                onClick={handleSaveResults}
+                disabled={isSubmitting}
+                className="flex-1 bg-[#6D18CE] text-white px-4 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
               >
-                {Object.entries(results.categoryScores).map(([category, score], index) => {
-                  const config = categoryConfig[category as keyof typeof categoryConfig];
-                  return (
-                    <motion.div 
-                      key={category}
-                      className="card-modern p-4 sm:p-6 group hover:shadow-xl transition-all duration-300"
-                      initial={{ x: -50, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: 0.8 + index * 0.1, duration: 0.4 }}
-                      whileHover={{ scale: 1.02, y: -4 }}
-                    >
-                      <div className="flex items-center justify-between mb-3 sm:mb-4">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${config.color} group-hover:scale-110 transition-transform duration-200`}>
-                            <config.icon className="w-5 h-5 sm:w-6 sm:h-6" />
-                          </div>
-                          <div>
-                            <h3 className="text-base sm:text-lg font-bold text-gray-900">{category}</h3>
-                            <p className="text-xs sm:text-sm text-gray-600">Skill Assessment</p>
-                          </div>
-                        </div>
-                        <div className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold ${getScoreColor(score as number)}`}>
-                          {score as number}%
-                        </div>
-                      </div>
-                      
-                      {/* Progress bar */}
-                      <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 overflow-hidden">
-                        <motion.div
-                          className={`h-2 sm:h-3 rounded-full bg-gradient-to-r ${config.gradient}`}
-                          initial={{ width: "0%" }}
-                          animate={{ width: `${score as number}%` }}
-                          transition={{ delay: 1.0 + index * 0.2, duration: 1 }}
-                        />
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </motion.div>
-
-              {/* Learning Style */}
-              <motion.div 
-                className="card-modern p-4 sm:p-6 mb-6 sm:mb-8 bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.0, duration: 0.5 }}
+                {isSubmitting ? 'Saving...' : 'Save & Continue'}
+              </button>
+              <button
+                onClick={handleSkip}
+                className="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900">Your Learning Style</h3>
-                    <p className="text-sm sm:text-base text-gray-600">Personalized learning approach</p>
-                  </div>
-                </div>
-                <p className="text-base sm:text-lg text-gray-700">
-                  Based on your responses, your learning style is{' '}
-                  <span className="font-bold text-yellow-700 capitalize">
-                    {results.learningStyle.replace('-', ' ')}
-                  </span>
-                  . This helps us recommend the best learning methods for you.
-                </p>
-              </motion.div>
-
-              {/* Action Buttons */}
-              <motion.div 
-                className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center"
-                initial={{ y: 30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.2, duration: 0.5 }}
-              >
-                <motion.button
-                  onClick={handleSaveResults}
-                  disabled={isSubmitting}
-                  className="btn-modern btn-primary flex-1 max-w-xs"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  aria-label={isSubmitting ? 'Saving results, please wait' : 'Save results and continue'}
-                >
-                  <AnimatePresence mode="wait">
-                    {isSubmitting ? (
-                      <motion.div
-                        key="loading"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="flex items-center justify-center gap-2"
-                      >
-                        <motion.div
-                          className="w-5 h-5 border-2 border-white border-t-transparent rounded-full loading-spin"
-                          aria-hidden="true"
-                        />
-                        Saving Results...
-                      </motion.div>
-                    ) : (
-                      <motion.span
-                        key="save"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="flex items-center justify-center gap-2"
-                      >
-                        <Star className="w-5 h-5" aria-hidden="true" />
-                        Save & Continue
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </motion.button>
-                
-                <motion.button
-                  onClick={handleSkip}
-                  className="btn-secondary flex-1 max-w-xs"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Skip for Now
-                </motion.button>
-              </motion.div>
-            </motion.div>
-          </div>
-        </motion.div>
-      </>
+                Skip
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
     );
   }
 
   return (
-    <>
-      {/* Skip Link for Accessibility */}
-      <a href="#assessment-form" className="skip-link">
-        Skip to assessment form
-      </a>
-
-      <motion.main 
-        className="min-h-screen flex flex-col lg:flex-row overflow-hidden relative"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6 }}
-      >
-        {/* Background effects */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-          <div className="absolute top-0 right-0 w-64 sm:w-96 h-64 sm:h-96 gradient-accent rounded-full blur-3xl opacity-20"></div>
-          <div className="absolute bottom-0 left-0 w-56 sm:w-80 h-56 sm:h-80 gradient-warm rounded-full blur-2xl opacity-20"></div>
-        </div>
-
-        {/* 🟪 Left Section - Enhanced Gradient */}
-        <motion.section 
-          className="w-full lg:w-1/2 gradient-primary px-4 sm:px-6 lg:px-8 py-6 sm:py-8 text-white flex flex-col justify-between relative overflow-hidden min-h-screen lg:min-h-auto"
-          initial={{ x: -100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.8 }}
+    <motion.div 
+      className="min-h-screen bg-white flex items-center justify-center px-4 py-6 md:px-8 md:py-12"
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="max-w-md lg:max-w-lg w-full">
+        <motion.div 
+          className="bg-white rounded-2xl shadow-lg p-6 md:p-8"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
         >
-          {/* Decorative elements */}
-          <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-            <div className="absolute top-20 left-10 w-24 sm:w-32 h-24 sm:h-32 bg-white bg-opacity-10 rounded-full blur-2xl"></div>
-            <div className="absolute bottom-20 right-10 w-20 sm:w-24 h-20 sm:h-24 bg-yellow-400 bg-opacity-20 rounded-full blur-xl"></div>
-          </div>
-
-          <motion.div
-            className="relative z-10"
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-          >
-            <div className="glass-dark rounded-2xl p-3 sm:p-4 w-fit">
-              <Image src="/jio-logo.png" alt="Jio Logo" width={48} height={48} className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
-            </div>
-          </motion.div>
-          
-          <motion.div 
-            className="mt-8 sm:mt-16 relative z-10"
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 sm:mb-6">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-400 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <Target className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-800" />
-              </div>
-              <div>
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
-                  Diagnostic Assessment
-                </h1>
-                <p className="text-lg sm:text-xl text-white/90 mt-2">
-                  Let&apos;s understand your skills and
-                  <span className="text-gradient-warm block font-bold">Learning Preferences</span>
-                </p>
-              </div>
-            </div>
-            
-            {/* Assessment info */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-6 sm:mt-8">
-              {[
-                { icon: Clock, text: '15 Questions', subtext: 'Quick & Easy' },
-                { icon: Target, text: 'Personalized', subtext: 'Just for You' },
-                { icon: Star, text: 'No Wrong Answers', subtext: 'Be Honest' },
-                { icon: Trophy, text: 'Get Results', subtext: 'Instant Feedback' }
-              ].map((item, index) => (
-                <motion.div 
-                  key={index}
-                  className="glass-dark rounded-lg sm:rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3"
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.8 + index * 0.1, duration: 0.3 }}
-                  whileHover={{ scale: 1.05 }}
-                >
-                  <item.icon className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400 flex-shrink-0" />
-                  <div className="text-left">
-                    <div className="font-semibold text-sm sm:text-base">{item.text}</div>
-                    <div className="text-xs text-white/70">{item.subtext}</div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-          
-          <motion.div
-            className="relative z-10 mt-6 sm:mt-8 lg:mt-0"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.7, duration: 0.6 }}
-            whileHover={{ scale: 1.05, rotate: 2 }}
-          >
-            <div className="relative flex justify-center">
-              <div className="absolute inset-0 bg-yellow-400 rounded-full blur-xl opacity-30"></div>
-              <Image 
-                src="/landingPage.png" 
-                alt="Learning assessment illustration" 
-                width={280} 
-                height={280} 
-                className="w-48 h-48 sm:w-64 sm:h-64 relative z-10" 
-                priority
+          {/* Progress Bar */}
+          <div className="mb-6">
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <motion.div
+                className="bg-[#6D18CE] h-2 rounded-full"
+                initial={{ width: "0%" }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.5 }}
               />
             </div>
-          </motion.div>
-        </motion.section>
+          </div>
 
-        {/* ⬜ Right Section - Enhanced Form */}
-        <motion.section 
-          className="w-full lg:w-1/2 bg-gradient-to-br from-gray-50 to-white px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col justify-center relative overflow-hidden min-h-screen lg:min-h-auto"
-          initial={{ x: 100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.8 }}
-        >
-          {/* Grid Pattern */}
-          <div className="absolute inset-0" style={{
-            backgroundImage: `
-              linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px)
-            `,
-            backgroundSize: '20px 20px'
-          }} aria-hidden="true"></div>
+          {/* Heading Section */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-[#6D18CE] mb-2">
+              Take Diagnostic Test
+            </h1>
+            <p className="text-gray-500 text-sm md:text-base">
+              Let&apos;s assess your current skill level.
+            </p>
+          </div>
 
-          <motion.div 
-            className="max-w-md mx-auto w-full relative z-10"
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.6, duration: 0.8 }}
-          >
-            {/* Assessment Form Container */}
+          {/* Question Box */}
+          <AnimatePresence mode="wait">
             <motion.div 
-              id="assessment-form"
-              className="card-glass p-6 sm:p-8 border-gradient"
-              whileHover={{ y: -5 }}
+              key={currentQuestion.id}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
             >
-              {/* Enhanced Progress Bar */}
-              <motion.div 
-                className="mb-6 sm:mb-8"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.8, duration: 0.5 }}
-              >
-                <div className="flex justify-between items-center mb-3 sm:mb-4">
-                  <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                    <Target className="w-4 h-4 text-purple-600" />
-                    Question {currentQuestionIndex + 1} of {diagnosticQuestions.length}
-                  </span>
-                  <motion.span 
-                    className="text-sm font-bold text-purple-600 bg-purple-100 px-2 sm:px-3 py-1 rounded-full"
-                    key={Math.round(progress)}
-                    initial={{ scale: 1.2 }}
-                    animate={{ scale: 1 }}
-                    transition={{ duration: 0.3 }}
+              <h2 className="text-lg font-medium mb-6 text-gray-800">
+                {currentQuestion.question}
+              </h2>
+
+              {/* Answer Options */}
+              <div className="space-y-3 mb-8">
+                {currentQuestion.options.map((option, index) => (
+                  <motion.button
+                    key={option.id}
+                    onClick={() => handleAnswer(option.id)}
+                    className={`w-full border border-gray-300 rounded-xl p-4 text-left cursor-pointer transition-all duration-200 ${
+                      answers[currentQuestion.id] === option.id
+                        ? 'bg-[#6D18CE] text-white border-[#6D18CE]'
+                        : 'hover:shadow-md hover:border-[#6D18CE]'
+                    }`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1, duration: 0.3 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    {Math.round(progress)}%
-                  </motion.span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 overflow-hidden shadow-inner">
-                  <motion.div
-                    className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 sm:h-3 rounded-full shadow-sm"
-                    initial={{ width: "0%" }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                    role="progressbar"
-                    aria-valuenow={Math.round(progress)}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-label={`Assessment progress: ${Math.round(progress)}% complete`}
-                  />
-                </div>
-              </motion.div>
-
-              <motion.div 
-                className="text-center mb-6 sm:mb-8"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.9, duration: 0.5 }}
-              >
-                <h1 className="text-2xl sm:text-3xl font-bold text-gradient mb-2 sm:mb-3">
-                  Diagnostic Assessment
-                </h1>
-                <p className="text-sm sm:text-base text-gray-600">
-                  Help us understand your learning preferences
-                </p>
-              </motion.div>
-
-              {/* Enhanced Category Badge */}
-              <motion.div 
-                className="text-center mb-6 sm:mb-8"
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 1.0, duration: 0.4, type: "spring", stiffness: 300 }}
-              >
-                <motion.div 
-                  className={`inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-2xl font-semibold text-sm ${categoryInfo.color} shadow-lg`}
-                  key={currentQuestion.category}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                  whileHover={{ scale: 1.05 }}
-                >
-                  <categoryInfo.icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  {currentQuestion.category}
-                </motion.div>
-              </motion.div>
-
-              {/* Enhanced Question */}
-              <AnimatePresence mode="wait">
-                <motion.div 
-                  key={currentQuestion.id}
-                  className="mb-6 sm:mb-8"
-                  initial={{ x: 50, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: -50, opacity: 0 }}
-                  transition={{ duration: 0.4, ease: "easeInOut" }}
-                >
-                  <motion.h2 
-                    className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 text-center leading-relaxed px-2"
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2, duration: 0.4 }}
-                  >
-                    {currentQuestion.question}
-                  </motion.h2>
-
-                  {/* Enhanced Answer Options */}
-                  <motion.div 
-                    className="space-y-3"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3, duration: 0.5 }}
-                  >
-                    {currentQuestion.options.map((option, index) => (
-                      <motion.button
-                        key={option.id}
-                        onClick={() => handleAnswer(option.id)}
-                        className={`w-full p-3 sm:p-4 rounded-xl text-left transition-all duration-300 group relative overflow-hidden ${
-                          answers[currentQuestion.id] === option.id
-                            ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg border-2 border-purple-300'
-                            : 'bg-white border-2 border-gray-200 hover:border-purple-300 hover:shadow-md text-gray-700'
-                        }`}
-                        initial={{ x: -20, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: 0.4 + index * 0.1, duration: 0.3 }}
-                        whileHover={{ 
-                          scale: 1.02,
-                          transition: { duration: 0.2 }
-                        }}
-                        whileTap={{ scale: 0.98 }}
-                        aria-pressed={answers[currentQuestion.id] === option.id}
-                        aria-label={`Select option: ${option.text}`}
-                      >
-                        {/* Shimmer effect */}
-                        {answers[currentQuestion.id] === option.id && (
-                          <motion.div
-                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30"
-                            initial={{ x: '-100%' }}
-                            animate={{ x: '100%' }}
-                            transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
-                            aria-hidden="true"
-                          />
-                        )}
-                        
-                        <div className="flex items-center justify-between relative z-10">
-                          <span className="font-medium text-sm sm:text-base pr-2">{option.text}</span>
-                          <div className="flex items-center flex-shrink-0">
-                            {answers[currentQuestion.id] === option.id ? (
-                              <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ duration: 0.2 }}
-                              >
-                                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                              </motion.div>
-                            ) : (
-                              <Circle className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 group-hover:text-purple-400 transition-colors duration-200" />
-                            )}
-                          </div>
-                        </div>
-                      </motion.button>
-                    ))}
-                  </motion.div>
-                </motion.div>
-              </AnimatePresence>
-
-              {/* Enhanced Navigation Buttons */}
-              <motion.div 
-                className="flex justify-between items-center mb-4 sm:mb-6"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.2, duration: 0.5 }}
-              >
-                <motion.button
-                  onClick={handlePrevious}
-                  disabled={currentQuestionIndex === 0}
-                  className="btn-secondary flex items-center gap-2 disabled:opacity-50 text-sm sm:text-base px-3 sm:px-4"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  aria-label="Go to previous question"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline">Previous</span>
-                  <span className="sm:hidden">Prev</span>
-                </motion.button>
-
-                <div className="flex gap-1 sm:gap-2" role="tablist" aria-label="Question progress indicators">
-                  {diagnosticQuestions.map((_, index) => (
-                    <motion.div
-                      key={index}
-                      className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                        index === currentQuestionIndex 
-                          ? 'bg-purple-600' 
-                          : index < currentQuestionIndex 
-                            ? 'bg-green-500' 
-                            : 'bg-gray-300'
-                      }`}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 1.3 + index * 0.02, duration: 0.2 }}
-                      role="tab"
-                      aria-selected={index === currentQuestionIndex}
-                      aria-label={`Question ${index + 1} ${
-                        index < currentQuestionIndex ? 'completed' : 
-                        index === currentQuestionIndex ? 'current' : 'upcoming'
-                      }`}
-                    />
-                  ))}
-                </div>
-
-                <motion.button
-                  onClick={handleNext}
-                  disabled={!answers[currentQuestion.id]}
-                  className="btn-modern btn-primary flex items-center gap-2 disabled:opacity-50 text-sm sm:text-base px-3 sm:px-4"
-                  whileHover={{ 
-                    scale: 1.02,
-                  }}
-                  whileTap={{ scale: 0.98 }}
-                  aria-label={currentQuestionIndex === diagnosticQuestions.length - 1 ? 'Finish assessment' : 'Go to next question'}
-                >
-                  {currentQuestionIndex === diagnosticQuestions.length - 1 ? (
-                    <>
-                      <Trophy className="w-4 h-4" />
-                      <span className="hidden sm:inline">Finish</span>
-                      <span className="sm:hidden">Done</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="hidden sm:inline">Next</span>
-                      <span className="sm:hidden">Next</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </>
-                  )}
-                </motion.button>
-              </motion.div>
-
-              {/* Skip Option */}
-              <motion.div 
-                className="text-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.4, duration: 0.5 }}
-              >
-                <motion.button
-                  onClick={handleSkip}
-                  className="text-gray-500 hover:text-gray-700 underline text-sm transition-colors duration-200 flex items-center gap-1 mx-auto focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded px-2 py-1"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Skip assessment for now
-                </motion.button>
-              </motion.div>
+                    {option.text}
+                  </motion.button>
+                ))}
+              </div>
             </motion.div>
-          </motion.div>
-        </motion.section>
-      </motion.main>
-    </>
+          </AnimatePresence>
+
+          {/* Bottom Navigation Buttons */}
+          <div className="flex justify-between items-center">
+            <button
+              onClick={handlePrevious}
+              disabled={currentQuestionIndex === 0}
+              className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Back
+            </button>
+
+            <button
+              onClick={handleNext}
+              disabled={!answers[currentQuestion.id]}
+              className="bg-[#6D18CE] text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {currentQuestionIndex === diagnosticQuestions.length - 1 ? 'Finish' : 'Continue'}
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Skip Option */}
+          <div className="text-center mt-6">
+            <button
+              onClick={handleSkip}
+              className="text-gray-500 hover:text-gray-700 underline text-sm transition-colors"
+            >
+              Skip assessment for now
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </motion.div>
   );
 } 
