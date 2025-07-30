@@ -79,35 +79,35 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Check if we're on mobile on component mount
+  // Check if we're on mobile on component mount and window resize
   React.useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
       
+
+      
       // If switching from mobile to desktop, ensure sidebar is visible
       if (!mobile && !isOpen) {
-        // On desktop, sidebar should always be visible
         setIsHovered(false);
       }
     };
     
+    // Initial check
     checkMobile();
-    window.addEventListener('resize', checkMobile);
     
-    // Add touch event handling for better mobile experience
-    const handleTouchStart = (e: TouchEvent) => {
-      // Prevent default touch behavior on sidebar elements
-      if (e.target && (e.target as Element).closest('.sidebar-touch-area')) {
-        e.preventDefault();
-      }
+    // Add resize listener with debouncing
+    let timeoutId: NodeJS.Timeout;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(checkMobile, 100);
     };
     
-    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    window.addEventListener('resize', handleResize);
     
     return () => {
-      window.removeEventListener('resize', checkMobile);
-      document.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timeoutId);
     };
   }, [isOpen]);
 
@@ -178,12 +178,13 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
       {isMobile && (
         <motion.button
           onClick={onToggle}
-          className="fixed top-4 left-4 z-60 p-2 bg-white rounded-lg shadow-lg border border-gray-200 md:hidden"
+          className="fixed top-4 left-4 z-[60] p-2 bg-white rounded-lg shadow-lg border border-gray-200 md:hidden"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
+          title={`Mobile Mode - ${isOpen ? 'Open' : 'Closed'}`}
         >
           <Menu className="w-6 h-6 text-gray-700" />
         </motion.button>
@@ -193,7 +194,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
       <AnimatePresence>
         {isMobile && isOpen && (
           <motion.div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+            className="fixed inset-0 bg-black bg-opacity-50 z-[45] md:hidden"
             variants={overlayVariants}
             initial="closed"
             animate="open"
@@ -208,21 +209,19 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
         <AnimatePresence>
           <motion.aside 
             className={`
-              fixed top-0 left-0 bottom-0 z-50 
+              fixed top-0 left-0 bottom-0 z-[50] 
               bg-white border-r border-gray-300 
               flex flex-col justify-between py-6 px-4
-              sidebar-touch-area
               w-80
               ${isSidebarExpanded ? 'shadow-2xl' : ''}
             `}
             variants={sidebarVariants}
             initial={isOpen ? "open" : "closed"}
             animate={isOpen ? "open" : "closed"}
-            onMouseEnter={() => !isMobile && setIsHovered(true)}
-            onMouseLeave={() => !isMobile && setIsHovered(false)}
+            style={{ touchAction: 'pan-y' }}
           >
             <div>
-              {/* Header with Logo and Close Button - Always show logo, but only show text when expanded */}
+              {/* Header with Logo and Close Button */}
               <motion.div 
                 className="flex items-center justify-between mb-10"
                 initial={{ y: -20, opacity: 0 }}
@@ -257,7 +256,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                 </motion.button>
               </motion.div>
               
-              {/* Navigation - Always show icons, but only show text when expanded */}
+              {/* Navigation */}
               <nav className="flex flex-col gap-4">
                 {items.map((item, index) => (
                   <motion.button
@@ -265,7 +264,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                     onClick={() => handleTabChange(item.id)}
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 
-                      font-medium text-gray-900 touch-manipulation
+                      font-medium text-gray-900
                       ${activeTab === item.id 
                         ? 'bg-purple-600 text-white shadow-md' 
                         : 'hover:bg-purple-50 active:bg-purple-100'
@@ -310,10 +309,10 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                 ))}
               </nav>
               
-              {/* Logout Button - Always show icon, but only show text when expanded */}
+              {/* Logout Button */}
               <motion.button
                 onClick={() => handleTabChange('logout')}
-                className="flex items-center gap-3 px-4 py-3 mt-6 rounded-lg text-left text-red-600 hover:bg-red-100 active:bg-red-200 font-medium touch-manipulation transition-all duration-200"
+                className="flex items-center gap-3 px-4 py-3 mt-6 rounded-lg text-left text-red-600 hover:bg-red-100 active:bg-red-200 font-medium transition-all duration-200"
                 initial={{ x: -50, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.4 + items.length * 0.1, duration: 0.4 }}
@@ -348,9 +347,8 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.6 }}
             >
-              {/* Expanded state - Full AI Buddy section */}
               <motion.div 
-                className="bg-purple-100 rounded-xl p-4 flex flex-col items-center cursor-pointer touch-manipulation"
+                className="bg-purple-100 rounded-xl p-4 flex flex-col items-center cursor-pointer"
                 whileHover={{ 
                   scale: 1.05,
                   boxShadow: "0 10px 25px -5px rgba(147, 51, 234, 0.3)",
@@ -404,10 +402,9 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
         // Desktop sidebar - always visible
         <motion.aside 
           className={`
-            fixed top-0 left-0 bottom-0 z-50 
+            fixed top-0 left-0 bottom-0 z-[50] 
             bg-white border-r border-gray-300 
             flex flex-col justify-between py-6 px-4
-            sidebar-touch-area
             w-20
             ${isSidebarExpanded ? 'shadow-2xl' : ''}
           `}
@@ -416,9 +413,10 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
           animate={isHovered ? "expanded" : "collapsed"}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
+          style={{ touchAction: 'pan-y' }}
         >
           <div>
-            {/* Header with Logo and Close Button - Always show logo, but only show text when expanded */}
+            {/* Header with Logo */}
             <motion.div 
               className="flex items-center justify-between mb-10"
               initial={{ y: -20, opacity: 0 }}
@@ -443,15 +441,15 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
               </div>
             </motion.div>
             
-            {/* Navigation - Always show icons, but only show text when expanded */}
+            {/* Navigation */}
             <nav className="flex flex-col gap-4">
-                              {items.map((item, index) => (
+              {items.map((item, index) => (
                 <motion.button
                   key={item.id}
                   onClick={() => handleTabChange(item.id)}
                   className={`
                     flex items-center gap-3 px-4 py-2 rounded-3xl text-left transition-all duration-200 
-                    font-medium text-gray-900 touch-manipulation
+                    font-medium text-gray-900
                     ${activeTab === item.id 
                       ? 'bg-purple-600 text-white shadow-md' 
                       : 'hover:bg-purple-100 active:bg-purple-200'
@@ -496,10 +494,10 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
               ))}
             </nav>
             
-            {/* Logout Button - Always show icon, but only show text when expanded */}
+            {/* Logout Button */}
             <motion.button
               onClick={() => handleTabChange('logout')}
-              className="flex items-center gap-3 px-4 py-2 mt-6 rounded-lg text-left text-red-600 hover:bg-red-100 active:bg-red-200 font-medium touch-manipulation transition-all duration-200"
+              className="flex items-center gap-3 px-4 py-2 mt-6 rounded-lg text-left text-red-600 hover:bg-red-100 active:bg-red-200 font-medium transition-all duration-200"
               initial={{ x: -50, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.4 + items.length * 0.1, duration: 0.4 }}
@@ -571,7 +569,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
             {/* Expanded state - Full AI Buddy section */}
             {isSidebarExpanded && (
               <motion.div 
-                className="bg-purple-100 rounded-xl p-4 flex flex-col items-center cursor-pointer touch-manipulation"
+                className="bg-purple-100 rounded-xl p-4 flex flex-col items-center cursor-pointer"
                 whileHover={{ 
                   scale: 1.05,
                   boxShadow: "0 10px 25px -5px rgba(147, 51, 234, 0.3)",

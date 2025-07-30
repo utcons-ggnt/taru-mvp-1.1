@@ -24,4 +24,6 @@ export function isValidProfilePictureUrl(url: string | null | undefined): boolea
  */
 export function sanitizeProfilePictureUrl(url: string | null | undefined): string | null {
   return isValidProfilePictureUrl(url) ? (url as string) : null;
-} 
+}
+
+ 

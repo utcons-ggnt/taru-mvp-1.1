@@ -12,6 +12,31 @@ import ChatModal from './components/ChatModal';
 import StatsCards from './components/StatsCards';
 import Image from 'next/image';
 
+// Add custom hook for responsive behavior
+function useWindowSize() {
+  const [windowSize, setWindowSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    height: typeof window !== 'undefined' ? window.innerHeight : 768,
+  });
+
+  useEffect(() => {
+    function handleResize() {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', handleResize);
+      handleResize(); // Call once to set initial size
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
+
+  return windowSize;
+}
+
 interface StudentProfile {
   name: string;
   email: string;
@@ -120,7 +145,11 @@ export default function StudentDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const router = useRouter();
   const logoutTriggered = useRef(false);
+  const { width: windowWidth } = useWindowSize();
+  const isMobile = windowWidth < 1024;
   
+
+
   useEffect(() => {
     const savedLang = localStorage.getItem('lang')
     if (savedLang) setLanguage(savedLang)
@@ -189,41 +218,35 @@ export default function StudentDashboard() {
         const data = await response.json();
         setDashboardData(data);
         
-        // Set sample notifications (in a real app, this would come from the API)
-        setNotifications([
-          {
-            id: '1',
-            title: 'New Module Available!',
-            message: 'Mathematics Advanced Topics is now available in your learning path.',
-            type: 'info',
-            date: new Date().toISOString(),
-            read: false
-          },
-          {
-            id: '2',
-            title: 'Quiz Reminder',
-            message: 'Don&apos;t forget to complete your Science quiz before tomorrow.',
-            type: 'warning',
-            date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-            read: false
-          },
-          {
-            id: '3',
-            title: 'Achievement Unlocked!',
-            message: 'Congratulations! You&apos;ve earned the "Quick Learner" badge.',
-            type: 'success',
-            date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-            read: true
-          },
-          {
-            id: '4',
-            title: 'Study Streak',
-            message: 'Amazing! You&apos;ve maintained a 7-day learning streak. Keep it up!',
-            type: 'success',
-            date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
-            read: false
+        // Fetch real notifications
+        try {
+          const notificationsResponse = await fetch('/api/notifications');
+          if (notificationsResponse.ok) {
+            const notificationsData = await notificationsResponse.json();
+            setNotifications(notificationsData.notifications || []);
           }
-        ]);
+        } catch (error) {
+          console.error('Error fetching notifications:', error);
+          // Fallback to sample notifications if API fails
+          setNotifications([
+            {
+              id: '1',
+              title: 'New Module Available!',
+              message: 'Mathematics Advanced Topics is now available in your learning path.',
+              type: 'info',
+              date: new Date().toISOString(),
+              read: false
+            },
+            {
+              id: '2',
+              title: 'Quiz Reminder',
+              message: 'Don&apos;t forget to complete your Science quiz before tomorrow.',
+              type: 'warning',
+              date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+              read: false
+            }
+          ]);
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -282,7 +305,7 @@ export default function StudentDashboard() {
     Biology: '#06B6D4',
   };
 
-  // Map recent activity to courses with real module names, fallback to 'Coming soon'
+  // Map recent activity to courses with real module names, show empty state if no data
   const courses: Course[] = dashboardData?.recentActivity && dashboardData.recentActivity.length > 0
     ? dashboardData.recentActivity.map((activity: { moduleId: string; progress: number }) => {
         const matchedModule = dashboardData.recommendedModules.find((m: { id: string; name: string }) => m.id === activity.moduleId);
@@ -296,74 +319,21 @@ export default function StudentDashboard() {
           icon: getSubjectIcon(matchedModule?.subject || 'Mathematics')
         };
       })
-    : [
-        {
-          title: 'Mathematics Basics',
-          lessonsCompleted: '06/10 (60%)',
-          duration: '20 min',
-          xp: '60+ XP',
-          color: '#FFD600',
-          progress: 60,
-          icon: '📐'
-        },
-        {
-          title: 'Science Experiments',
-          lessonsCompleted: '04/10 (40%)',
-          duration: '15 min',
-          xp: '50+ XP',
-          color: '#00C49A',
-          progress: 40,
-          icon: '🧪'
-        },
-        {
-          title: 'Creative Arts',
-          lessonsCompleted: '08/10 (80%)',
-          duration: '40 min',
-          xp: '75+ XP',
-          color: '#2B6CB0',
-          progress: 80,
-          icon: '🎨'
-        },
-        {
-          title: 'Basic Computer',
-          lessonsCompleted: '10/10 (100%)',
-          duration: '30 min',
-          xp: '80+ XP',
-          color: '#7C3AED',
-          progress: 100,
-          icon: '💻'
-        }
-      ];
+    : [];
 
-  // Continue Learning courses
-  const continueLearningCourses: ContinueLearningCourse[] = [
-    {
-      title: 'Mathematics Basics',
-      duration: '20 min',
-      xp: 60,
-      isLocked: false,
-      icon: '📐',
-      color: '#FFD600'
-    },
-    {
-      title: 'Science Experiments',
-      duration: '15 min',
-      xp: 50,
-      isLocked: false,
-      icon: '🧪',
-      color: '#00C49A'
-    },
-    {
-      title: 'Creative Arts',
-      duration: '40 min',
-      xp: 75,
-      isLocked: true,
-      icon: '🎨',
-      color: '#2B6CB0'
-    }
-  ];
+  // Continue Learning courses - use real recommended modules or show empty state
+  const continueLearningCourses: ContinueLearningCourse[] = dashboardData?.recommendedModules && dashboardData.recommendedModules.length > 0
+    ? dashboardData.recommendedModules.slice(0, 6).map((module) => ({
+        title: module.name,
+        duration: `${module.estimatedDuration || 30} min`,
+        xp: module.xpPoints || 50,
+        isLocked: false,
+        icon: getSubjectIcon(module.subject),
+        color: subjectColors[module.subject] || '#FFD600'
+      }))
+    : [];
 
-  // Map assessment data to tests, fallback to empty
+  // Map assessment data to tests, show empty if no assessment completed
   const tests: Test[] = assessmentData?.diagnosticCompleted
     ? [{
         title: 'Learning Profile Assessment',
@@ -371,12 +341,7 @@ export default function StudentDashboard() {
         color: '#7C3AED',
         score: assessmentData.diagnosticScore || 0
       }]
-    : [
-        { title: 'Basic Computer', date: '30 Jul', color: '#7C3AED' },
-        { title: 'Mathematics Basics', date: '20 Jul', color: '#FFD600' },
-        { title: 'Science Experiments', date: '10 Jul', color: '#00C49A' },
-        { title: 'Creative Arts', date: '05 Jul', color: '#2B6CB0' }
-      ];
+    : [];
 
   // Calculate real progress data, fallback to empty/default
   const progressData = dashboardData?.overview 
@@ -540,9 +505,30 @@ export default function StudentDashboard() {
     {
       title: 'Getting Started',
       value: '0',
-      subtitle: 'Complete setup first',
+      subtitle: 'Start your learning journey',
       icon: '/icons/overview.png',
       color: 'bg-gray-400'
+    },
+    {
+      title: 'Available Modules',
+      value: '0',
+      subtitle: 'Explore learning content',
+      icon: '/icons/modules.png',
+      color: 'bg-purple-400'
+    },
+    {
+      title: 'Diagnostic Test',
+      value: '0',
+      subtitle: 'Assess your skills',
+      icon: '/icons/diagnostic.png',
+      color: 'bg-blue-400'
+    },
+    {
+      title: 'AI Avatar Support',
+      value: '24/7',
+      subtitle: 'Learning Support',
+      icon: '/icons/bot.png',
+      color: 'bg-yellow-500'
     }
   ];
 
@@ -828,91 +814,123 @@ export default function StudentDashboard() {
                   {/* Courses You're Taking Section */}
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Courses You&apos;re Taking</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-gray-200">
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Course</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Progress</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Duration</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">XP Points</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {courses.map((course, index) => (
-                            <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                              <td className="py-3 px-4">
-                                <div className="flex items-center gap-3">
-                                  <div 
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-medium"
-                                    style={{ backgroundColor: course.color }}
-                                  >
-                                    {course.icon}
-                                  </div>
-                                  <span className="font-medium text-gray-900">{course.title}</span>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-20 bg-gray-200 rounded-full h-2">
-                                    <div 
-                                      className="h-2 rounded-full transition-all duration-300"
-                                      style={{ 
-                                        width: `${course.progress}%`, 
-                                        backgroundColor: course.color 
-                                      }}
-                                    ></div>
-                                  </div>
-                                  <span className="text-sm text-gray-600">{course.lessonsCompleted}</span>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4 text-sm text-gray-600">{course.duration}</td>
-                              <td className="py-3 px-4 text-sm font-medium text-purple-600">{course.xp}</td>
+                    {courses.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              <th className="text-left py-3 px-4 font-medium text-gray-700">Course</th>
+                              <th className="text-left py-3 px-4 font-medium text-gray-700">Progress</th>
+                              <th className="text-left py-3 px-4 font-medium text-gray-700">Duration</th>
+                              <th className="text-left py-3 px-4 font-medium text-gray-700">XP Points</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {courses.map((course, index) => (
+                              <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                <td className="py-3 px-4">
+                                  <div className="flex items-center gap-3">
+                                    <div 
+                                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-medium"
+                                      style={{ backgroundColor: course.color }}
+                                    >
+                                      {course.icon}
+                                    </div>
+                                    <span className="font-medium text-gray-900">{course.title}</span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                                      <div 
+                                        className="h-2 rounded-full transition-all duration-300"
+                                        style={{ 
+                                          width: `${course.progress}%`, 
+                                          backgroundColor: course.color 
+                                        }}
+                                      ></div>
+                                    </div>
+                                    <span className="text-sm text-gray-600">{course.lessonsCompleted}</span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4 text-sm text-gray-600">{course.duration}</td>
+                                <td className="py-3 px-4 text-sm font-medium text-purple-600">{course.xp}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                          <span className="text-2xl">📚</span>
+                        </div>
+                        <h4 className="text-lg font-medium text-gray-900 mb-2">No courses in progress</h4>
+                        <p className="text-gray-600 mb-4">Start your learning journey by exploring available modules</p>
+                        <button 
+                          onClick={() => setActiveTab('modules')}
+                          className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                        >
+                          Browse Modules
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Continue Learning Section */}
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Continue Learning</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {continueLearningCourses.map((course, index) => (
-                        <div 
-                          key={index} 
-                          className="bg-gray-50 rounded-xl p-4 border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer"
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <div 
-                              className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg"
-                              style={{ backgroundColor: course.color }}
-                            >
-                              {course.icon}
-                            </div>
-                            {course.isLocked && (
-                              <span className="text-gray-400 text-lg">🔒</span>
-                            )}
-                          </div>
-                          <h4 className="font-semibold text-gray-900 mb-2">{course.title}</h4>
-                          <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
-                            <span>{course.duration}</span>
-                            <span className="font-medium text-purple-600">{course.xp} XP</span>
-                          </div>
-                          <button 
-                            className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
-                              course.isLocked 
-                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-                                : 'bg-purple-600 text-white hover:bg-purple-700'
-                            }`}
-                            disabled={course.isLocked}
+                    {continueLearningCourses.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {continueLearningCourses.map((course, index) => (
+                          <div 
+                            key={index} 
+                            className="bg-gray-50 rounded-xl p-4 border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer"
                           >
-                            {course.isLocked ? 'Locked' : 'Enroll Now'}
-                          </button>
+                            <div className="flex items-center justify-between mb-3">
+                              <div 
+                                className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg"
+                                style={{ backgroundColor: course.color }}
+                              >
+                                {course.icon}
+                              </div>
+                              {course.isLocked && (
+                                <span className="text-gray-400 text-lg">🔒</span>
+                              )}
+                            </div>
+                            <h4 className="font-semibold text-gray-900 mb-2">{course.title}</h4>
+                            <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
+                              <span>{course.duration}</span>
+                              <span className="font-medium text-purple-600">{course.xp} XP</span>
+                            </div>
+                            <button 
+                              className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
+                                course.isLocked 
+                                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                                  : 'bg-purple-600 text-white hover:bg-purple-700'
+                              }`}
+                              disabled={course.isLocked}
+                            >
+                              {course.isLocked ? 'Locked' : 'Enroll Now'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                          <span className="text-2xl">🎯</span>
                         </div>
-                      ))}
-                    </div>
+                        <h4 className="text-lg font-medium text-gray-900 mb-2">No recommended modules</h4>
+                        <p className="text-gray-600 mb-4">Complete your diagnostic test to get personalized recommendations</p>
+                        <button 
+                          onClick={() => setActiveTab('diagnostic')}
+                          className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                        >
+                          Take Diagnostic Test
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -941,34 +959,54 @@ export default function StudentDashboard() {
           {/* Right Panel */}
           <aside 
             className={`dashboard-right-panel ${isRightPanelOpen ? 'open' : ''} flex flex-col justify-between`}
-            onMouseEnter={() => window.innerWidth >= 1024 && setIsRightPanelHovered(true)}
-            onMouseLeave={() => window.innerWidth >= 1024 && setIsRightPanelHovered(false)}
+            onMouseEnter={() => !isMobile && setIsRightPanelHovered(true)}
+            onMouseLeave={() => !isMobile && setIsRightPanelHovered(false)}
           >
-            {/* Arrow indicator for expandability - centered in collapsed state */}
-            <div className={`flex justify-center items-center ${isRightPanelHovered ? 'h-16' : 'flex-1'}`}>
-              <div 
-                className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200 shadow-md"
-                style={{ transform: isRightPanelHovered ? 'rotate(180deg)' : 'rotate(0deg)' }}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+            {/* Arrow indicator for expandability - centered in collapsed state (desktop only) */}
+            {!isMobile && (
+              <div className={`flex justify-center items-center ${isRightPanelHovered ? 'h-16' : 'flex-1'}`}>
+                <div 
+                  className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200 shadow-md"
+                  style={{ transform: isRightPanelHovered ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
-            </div>
+            )}
             {/* Panel Content */}
             <div className="flex-1 flex flex-col transition-all duration-300 p-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 transition-opacity duration-200"
-                  style={{ opacity: isRightPanelHovered ? 1 : 0 }}>
-                Upcoming Tests
-              </h3>
+              {/* Close button for mobile */}
+              {isMobile && (
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Upcoming Tests</h3>
+                  <button 
+                    onClick={() => setIsRightPanelOpen(false)}
+                    className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+              {/* Desktop title */}
+              {!isMobile && (
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 transition-opacity duration-200"
+                    style={{ opacity: isRightPanelHovered ? 1 : 0 }}>
+                  Upcoming Tests
+                </h3>
+              )}
               <div className="space-y-3">
                 {tests.length === 0 && (
-                  <div className="text-center text-gray-400 text-sm py-8 transition-opacity duration-200" style={{ opacity: isRightPanelHovered ? 1 : 0 }}>
+                  <div className={`text-center text-gray-400 text-sm py-8 transition-opacity duration-200 ${isMobile ? '' : 'opacity-0 pointer-events-none'}`} 
+                       style={!isMobile ? { opacity: isRightPanelHovered ? 1 : 0 } : {}}>
                     No upcoming tests
                   </div>
                 )}
                 {tests.map((test, index) => (
-                  <div key={index} className={`flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 shadow-sm hover:bg-purple-50 cursor-pointer transition-all duration-200 ${isRightPanelHovered ? '' : 'opacity-0 pointer-events-none'}`}> 
+                  <div key={index} className={`flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 shadow-sm hover:bg-purple-50 cursor-pointer transition-all duration-200 ${isMobile ? '' : (isRightPanelHovered ? '' : 'opacity-0 pointer-events-none')}`}> 
                     <div 
                       className="w-3 h-3 rounded-full flex-shrink-0" 
                       style={{ backgroundColor: test.color }}
@@ -982,7 +1020,7 @@ export default function StudentDashboard() {
                 ))}
               </div>
               <button 
-                className={`btn btn-primary w-full mt-6 transition-opacity duration-200 ${isRightPanelHovered ? '' : 'opacity-0 pointer-events-none'}`}
+                className={`btn btn-primary w-full mt-6 transition-opacity duration-200 ${isMobile ? '' : (isRightPanelHovered ? '' : 'opacity-0 pointer-events-none')}`}
                 onClick={() => setActiveTab('diagnostic')}
               >
                 See all upcoming tests
@@ -1010,17 +1048,37 @@ export default function StudentDashboard() {
       />
 
       {/* Floating FAB for right panel on mobile/tablet */}
-      {typeof window !== 'undefined' && window.innerWidth < 1024 && !isRightPanelOpen && (
+      {isMobile && !isRightPanelOpen && (
         <button
           className="right-panel-fab"
           aria-label="Open Upcoming Tests"
           onClick={() => setIsRightPanelOpen(true)}
+          onTouchStart={(e) => e.preventDefault()}
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 9999,
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            background: '#f3e8ff',
+            border: '2px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(124,58,237,0.25)',
+            animation: 'pulse 2s infinite'
+          }}
         >
           <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
       )}
+
+      
     </div>
   );
 } 

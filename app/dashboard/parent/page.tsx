@@ -7,6 +7,31 @@ import Image from 'next/image';
 import { isValidProfilePictureUrl } from '@/lib/utils';
 import ChatModal from '../student/components/ChatModal';
 
+// Add custom hook for responsive behavior
+function useWindowSize() {
+  const [windowSize, setWindowSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    height: typeof window !== 'undefined' ? window.innerHeight : 768,
+  });
+
+  useEffect(() => {
+    function handleResize() {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', handleResize);
+      handleResize(); // Call once to set initial size
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
+
+  return windowSize;
+}
+
 interface ChildProfile {
   name: string;
   grade: string;
@@ -92,6 +117,8 @@ export default function ParentDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const router = useRouter();
   const logoutTriggered = useRef(false);
+  const { width: windowWidth } = useWindowSize();
+  const isMobile = windowWidth < 1024;
 
   // Parent-specific navigation items
   const navItems = [
@@ -207,41 +234,35 @@ export default function ParentDashboard() {
             setAnalytics([20, 35, 45, 60, 55, 70, 80]);
           }
 
-          // Set sample notifications
-          setNotifications([
-            {
-              id: '1',
-              title: 'Child Progress Update',
-              message: `${dashData.student?.name || 'Your child'} completed Mathematics Basics module.`,
-              type: 'success',
-              date: new Date().toISOString(),
-              read: false
-            },
-            {
-              id: '2',
-              title: 'Weekly Report Available',
-              message: 'Your child\'s weekly learning report is now available for review.',
-              type: 'info',
-              date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-              read: false
-            },
-            {
-              id: '3',
-              title: 'Achievement Unlocked!',
-              message: 'Congratulations! Your child earned the "Quick Learner" badge.',
-              type: 'success',
-              date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-              read: true
-            },
-            {
-              id: '4',
-              title: 'Study Reminder',
-              message: 'Encourage your child to maintain their 7-day learning streak.',
-              type: 'warning',
-              date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-              read: false
+          // Fetch real notifications
+          try {
+            const notificationsResponse = await fetch('/api/notifications');
+            if (notificationsResponse.ok) {
+              const notificationsData = await notificationsResponse.json();
+              setNotifications(notificationsData.notifications || []);
             }
-          ]);
+          } catch (error) {
+            console.error('Error fetching notifications:', error);
+            // Fallback to sample notifications if API fails
+            setNotifications([
+              {
+                id: '1',
+                title: 'Child Progress Update',
+                message: `${dashData.student?.name || 'Your child'} completed Mathematics Basics module.`,
+                type: 'success',
+                date: new Date().toISOString(),
+                read: false
+              },
+              {
+                id: '2',
+                title: 'Weekly Report Available',
+                message: 'Your child\'s weekly learning report is now available for review.',
+                type: 'info',
+                date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                read: false
+              }
+            ]);
+          }
         } else {
           setChild(null);
           setStats([]);
@@ -833,28 +854,47 @@ export default function ParentDashboard() {
           {/* Right Panel */}
           <aside 
             className={`dashboard-right-panel ${isRightPanelOpen ? 'open' : ''} flex flex-col justify-between`}
-            onMouseEnter={() => window.innerWidth >= 1024 && setIsRightPanelHovered(true)}
-            onMouseLeave={() => window.innerWidth >= 1024 && setIsRightPanelHovered(false)}
+            onMouseEnter={() => !isMobile && setIsRightPanelHovered(true)}
+            onMouseLeave={() => !isMobile && setIsRightPanelHovered(false)}
           >
-            {/* Arrow indicator for expandability - centered in collapsed state */}
-            <div className={`flex justify-center items-center ${isRightPanelHovered ? 'h-16' : 'flex-1'}`}>
-              <div 
-                className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200 shadow-md"
-                style={{ transform: isRightPanelHovered ? 'rotate(180deg)' : 'rotate(0deg)' }}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+            {/* Arrow indicator for expandability - centered in collapsed state (desktop only) */}
+            {!isMobile && (
+              <div className={`flex justify-center items-center ${isRightPanelHovered ? 'h-16' : 'flex-1'}`}>
+                <div 
+                  className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200 shadow-md"
+                  style={{ transform: isRightPanelHovered ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
-            </div>
+            )}
             {/* Panel Content */}
             <div className="flex-1 flex flex-col transition-all duration-300 p-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 transition-opacity duration-200"
-                  style={{ opacity: isRightPanelHovered ? 1 : 0 }}>
-                Quick Actions
-              </h3>
+              {/* Close button for mobile */}
+              {isMobile && (
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+                  <button 
+                    onClick={() => setIsRightPanelOpen(false)}
+                    className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+              {/* Desktop title */}
+              {!isMobile && (
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 transition-opacity duration-200"
+                    style={{ opacity: isRightPanelHovered ? 1 : 0 }}>
+                  Quick Actions
+                </h3>
+              )}
               <div className="space-y-3">
-                <div className={`flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 shadow-sm hover:bg-purple-50 cursor-pointer transition-all duration-200 ${isRightPanelHovered ? '' : 'opacity-0 pointer-events-none'}`}> 
+                <div className={`flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 shadow-sm hover:bg-purple-50 cursor-pointer transition-all duration-200 ${isMobile ? '' : (isRightPanelHovered ? '' : 'opacity-0 pointer-events-none')}`}> 
                   <div className="w-3 h-3 rounded-full flex-shrink-0 bg-blue-500"></div>
                   <div className="flex-1">
                     <div className="font-medium text-gray-900 text-sm">View Progress Report</div>
@@ -862,7 +902,7 @@ export default function ParentDashboard() {
                   </div>
                   <span className="text-gray-400">→</span>
                 </div>
-                <div className={`flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 shadow-sm hover:bg-purple-50 cursor-pointer transition-all duration-200 ${isRightPanelHovered ? '' : 'opacity-0 pointer-events-none'}`}> 
+                <div className={`flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 shadow-sm hover:bg-purple-50 cursor-pointer transition-all duration-200 ${isMobile ? '' : (isRightPanelHovered ? '' : 'opacity-0 pointer-events-none')}`}> 
                   <div className="w-3 h-3 rounded-full flex-shrink-0 bg-green-500"></div>
                   <div className="flex-1">
                     <div className="font-medium text-gray-900 text-sm">Contact Teacher</div>
@@ -872,7 +912,7 @@ export default function ParentDashboard() {
                 </div>
               </div>
               <button 
-                className={`btn btn-primary w-full mt-6 transition-opacity duration-200 ${isRightPanelHovered ? '' : 'opacity-0 pointer-events-none'}`}
+                className={`btn btn-primary w-full mt-6 transition-opacity duration-200 ${isMobile ? '' : (isRightPanelHovered ? '' : 'opacity-0 pointer-events-none')}`}
                 onClick={() => setActiveTab('reports')}
               >
                 View all reports
@@ -908,7 +948,7 @@ export default function ParentDashboard() {
       )}
 
       {/* Floating FAB for right panel on mobile/tablet */}
-      {typeof window !== 'undefined' && window.innerWidth < 1024 && !isRightPanelOpen && (
+      {isMobile && !isRightPanelOpen && (
         <button
           className="right-panel-fab"
           aria-label="Open Quick Actions"

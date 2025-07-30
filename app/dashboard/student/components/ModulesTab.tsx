@@ -589,12 +589,12 @@ export default function ModulesTab() {
     return (
       <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-12 text-center">
         <div className="text-6xl mb-6">📚</div>
-        <h3 className="text-2xl font-bold text-gray-800 mb-4">Learning Modules Coming Soon!</h3>
+        <h3 className="text-2xl font-bold text-gray-800 mb-4">No Learning Modules Available</h3>
         <p className="text-gray-600 mb-8 max-w-md mx-auto">
-          Our learning modules are being prepared for you. Complete your diagnostic assessment to get personalized module recommendations.
+          There are currently no learning modules available. Please check back later or contact your administrator.
         </p>
         <div className="space-y-4">
-                      <div className="flex items-center justify-center space-x-8 text-sm text-gray-600">
+          <div className="flex items-center justify-center space-x-8 text-sm text-gray-600">
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
               <span>Video lessons</span>
@@ -606,48 +606,6 @@ export default function ModulesTab() {
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-green-400 rounded-full"></div>
               <span>Progress tracking</span>
-            </div>
-          </div>
-                      <div className="text-sm text-gray-600 mt-4">
-            Meanwhile, explore sample learning content below:
-          </div>
-          
-          {/* Sample modules */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                <span className="text-2xl">📊</span>
-              </div>
-              <h4 className="font-semibold text-gray-900 mb-2">Mathematics Basics</h4>
-              <p className="text-sm text-gray-600 mb-4">Build strong foundation in math concepts</p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-600">30 min • 50 XP</span>
-                <button className="text-blue-600 text-sm font-medium">Coming Soon</button>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                <span className="text-2xl">🔬</span>
-              </div>
-              <h4 className="font-semibold text-gray-900 mb-2">Science Experiments</h4>
-              <p className="text-sm text-gray-600 mb-4">Explore the world through experiments</p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-600">25 min • 40 XP</span>
-                <button className="text-green-600 text-sm font-medium">Coming Soon</button>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                <span className="text-2xl">🎨</span>
-              </div>
-              <h4 className="font-semibold text-gray-900 mb-2">Creative Arts</h4>
-              <p className="text-sm text-gray-600 mb-4">Express yourself through creative projects</p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-600">45 min • 60 XP</span>
-                <button className="text-purple-600 text-sm font-medium">Coming Soon</button>
-              </div>
             </div>
           </div>
         </div>

@@ -75,10 +75,10 @@ export default function DiagnosticTestTab() {
   }, [answers, totalTimeSpent, setLoading, setResults, setTestCompleted, setTestStarted, setError]);
 
   const handleNextQuestion = useCallback(() => {
-    if (currentQuestionIndex < questions.length - 1) {
+    if (currentQuestionIndex < (questions?.length || 0) - 1) {
       const nextIndex = currentQuestionIndex + 1;
       setCurrentQuestionIndex(nextIndex);
-      setTimeRemaining(questions[nextIndex]?.timeLimit || 120);
+      setTimeRemaining(questions?.[nextIndex]?.timeLimit || 120);
     } else {
       completeTest();
     }
@@ -128,32 +128,66 @@ export default function DiagnosticTestTab() {
     }
   };
 
+  const resetTest = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/assessment/diagnostic/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to reset diagnostic test');
+      }
+      
+      // Reset component state
+      setTestCompleted(false);
+      setTestStarted(false);
+      setResults(null);
+      setAnswers({});
+      setCurrentQuestionIndex(0);
+      setTimeRemaining(0);
+      setTotalTimeSpent(0);
+      setError('');
+      
+      // Reload questions
+      await loadDiagnosticQuestions();
+    } catch (err) {
+      setError('Failed to reset test. Please try again.');
+      console.error('Reset test error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const startTest = () => {
     setTestStarted(true);
     setCurrentQuestionIndex(0);
-    if (questions[0]?.timeLimit) {
+    if (questions?.[0]?.timeLimit) {
       setTimeRemaining(questions[0].timeLimit);
     }
   };
 
   const handleAnswerChange = (value: string | number | string[]) => {
-    const currentQuestion = questions[currentQuestionIndex];
-    setAnswers(prev => ({
-      ...prev,
-      [currentQuestion.id]: value
-    }));
+    const currentQuestion = questions?.[currentQuestionIndex];
+    if (currentQuestion) {
+      setAnswers(prev => ({
+        ...prev,
+        [currentQuestion.id]: value
+      }));
+    }
   };
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
       const prevIndex = currentQuestionIndex - 1;
       setCurrentQuestionIndex(prevIndex);
-      setTimeRemaining(questions[prevIndex]?.timeLimit || 120);
+      setTimeRemaining(questions?.[prevIndex]?.timeLimit || 120);
     }
   };
 
   const renderQuestionInput = (question: DiagnosticQuestion) => {
-    const currentAnswer = answers[question.id] || '';
+    const currentAnswer = answers[question?.id] || '';
 
     switch (question.inputType) {
       case 'multiple_choice':
@@ -239,7 +273,7 @@ export default function DiagnosticTestTab() {
   };
 
   const renderProgressSteps = () => {
-    const totalSteps = questions.length;
+    const totalSteps = questions?.length || 0;
     return (
       <div className="flex items-center justify-between mb-8">
         {Array.from({ length: totalSteps }, (_, index) => (
@@ -323,7 +357,7 @@ export default function DiagnosticTestTab() {
       }
     };
 
-    const personality = getPersonalityType(results.learningStyle);
+    const personality = getPersonalityType(results.learningStyle || 'balanced');
 
     return (
       <motion.div 
@@ -341,7 +375,7 @@ export default function DiagnosticTestTab() {
           >
             {/* Progress Steps - All Completed */}
             <div className="flex items-center justify-between mb-8">
-              {Array.from({ length: questions.length }, (_, index) => (
+              {Array.from({ length: questions?.length || 0 }, (_, index) => (
                 <div key={index} className="flex flex-col items-center">
                   <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold text-white">
                     <CheckCircle className="w-5 h-5" />
@@ -370,7 +404,7 @@ export default function DiagnosticTestTab() {
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Magical Suggestions!</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {results.recommendations.slice(0, 3).map((recommendation, index) => (
+                {(results.recommendations || []).slice(0, 3).map((recommendation, index) => (
                   <motion.div 
                     key={index}
                     className="bg-white border-2 border-gray-200 rounded-2xl p-6 text-center hover:border-[#6D18CE] transition-colors"
@@ -390,11 +424,25 @@ export default function DiagnosticTestTab() {
             {/* Action Buttons */}
             <div className="flex gap-4 justify-center">
               <button
-                onClick={() => window.location.reload()}
-                className="bg-[#6D18CE] text-white px-6 py-3 rounded-2xl font-medium hover:bg-purple-700 transition-colors flex items-center gap-2"
+                onClick={resetTest}
+                disabled={loading}
+                className="bg-[#6D18CE] text-white px-6 py-3 rounded-2xl font-medium hover:bg-purple-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Rocket className="w-5 h-5" />
-                Try Again with Me!
+                {loading ? (
+                  <>
+                    <motion.div
+                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    />
+                    Resetting...
+                  </>
+                ) : (
+                  <>
+                    <Rocket className="w-5 h-5" />
+                    Try Again with Me!
+                  </>
+                )}
               </button>
             </div>
           </motion.div>
@@ -427,7 +475,7 @@ export default function DiagnosticTestTab() {
                 </div>
                 <span className="text-xs mt-1 text-[#6D18CE] font-medium">In Progress</span>
               </div>
-              {Array.from({ length: questions.length - 1 }, (_, index) => (
+              {Array.from({ length: (questions?.length || 1) - 1 }, (_, index) => (
                 <div key={index} className="flex flex-col items-center">
                   <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-500">
                     {index + 2}
@@ -484,8 +532,8 @@ export default function DiagnosticTestTab() {
   }
 
   // Test in progress
-  const currentQuestion = questions[currentQuestionIndex];
-  if (!currentQuestion) return null;
+  const currentQuestion = questions?.[currentQuestionIndex];
+  if (!currentQuestion || !questions?.length) return null;
 
   return (
     <motion.div 
@@ -552,10 +600,10 @@ export default function DiagnosticTestTab() {
 
             <button
               onClick={handleNextQuestion}
-              disabled={!answers[currentQuestion.id]}
+              disabled={!answers[currentQuestion?.id]}
               className="bg-[#6D18CE] text-white px-6 py-3 rounded-2xl font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {currentQuestionIndex === questions.length - 1 ? 'Finish' : 'Next'}
+              {currentQuestionIndex === (questions?.length || 0) - 1 ? 'Finish' : 'Next'}
             </button>
           </div>
         </motion.div>
