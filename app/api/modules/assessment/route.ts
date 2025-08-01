@@ -6,7 +6,7 @@ import Module from '@/models/Module';
 import StudentProgress from '@/models/StudentProgress';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const N8N_WEBHOOK_URL = process.env.N8N_MODULE_ASSESSMENT_WEBHOOK_URL || 'https://aviadigitalmind.app.n8n.cloud/webhook/MODULE-ASSESSMENT';
+const N8N_WEBHOOK_URL = process.env.N8N_MODULE_ASSESSMENT_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook/MCQ/Flash/questions';
 
 interface DecodedToken {
   userId: string;

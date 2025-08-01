@@ -6,7 +6,7 @@ import Assessment from '@/models/Assessment';
 import LearningPath from '@/models/LearningPath';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const N8N_WEBHOOK_URL = process.env.N8N_LEARNING_PATH_WEBHOOK_URL || 'https://aviadigitalmind.app.n8n.cloud/webhook/LEARNING-PATH-GENERATOR';
+const N8N_WEBHOOK_URL = process.env.N8N_LEARNING_PATH_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook/learnign-path';
 
 interface DecodedToken {
   userId: string;

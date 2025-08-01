@@ -1,30 +1,32 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Star, CheckCircle, XCircle, Users, Code, FileText, Trophy, Brain, Target, Award } from 'lucide-react';
+import { Clock, Star, CheckCircle, XCircle, Users, Code, FileText, Trophy, Brain, Target, Award, MessageCircle, BookOpen, Lightbulb, Mic, Volume2 } from 'lucide-react';
+import YouTube from 'react-youtube';
 
-// YouTube API types
-declare global {
-  interface Window {
-    YT: {
-      Player: {
-        new (element: string | HTMLElement, config: Record<string, unknown>): {
-          getCurrentTime(): number;
-          getDuration(): number;
-          getPlaybackRate(): number;
-          getPlayerState(): number;
-        };
-      };
-      PlayerState: {
-        ENDED: number;
-        PLAYING: number;
-        PAUSED: number;
-        BUFFERING: number;
-        CUED: number;
-      };
-    };
-  }
-}
+// Import AI-powered components
+import AIAssistant from '../../../modules/[id]/components/AIAssistant';
+import VideoLearningInterface from '../../../modules/[id]/components/VideoLearningInterface';
+import AdvancedLearningInterface from '../../../modules/[id]/components/AdvancedLearningInterface';
+import FlashCard from '../../../modules/[id]/components/FlashCard';
+import BookmarksPanel from '../../../modules/[id]/components/BookmarksPanel';
+import AdvancedFeaturePanel from '../../../modules/[id]/components/AdvancedFeaturePanel';
+import { N8NService } from '../../../modules/[id]/services/N8NService';
+import { SpeechService } from '../../../modules/[id]/services/SpeechService';
+
+// Import types
+import { 
+  ActionType, 
+  Message, 
+  VideoData, 
+  FlashCardType, 
+  BookmarkItem, 
+  ExplanationResult, 
+  SpeechProgress, 
+  MCQQuestion, 
+  LearningContext, 
+  AIResponse 
+} from '../../../modules/[id]/types';
 
 interface Module {
   id: string;
@@ -163,6 +165,13 @@ interface ModuleProgress {
   completed: boolean;
 }
 
+// Helper function to extract YouTube video ID from URL
+const extractYouTubeId = (url: string): string => {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : '';
+};
+
 export default function ModulesTab() {
   const [modules, setModules] = useState<Module[]>([]);
   const [selectedModule, setSelectedModule] = useState<Module | null>(null);
@@ -180,6 +189,31 @@ export default function ModulesTab() {
   const [loading, setLoading] = useState(true);
   const [savingProgress, setSavingProgress] = useState(false);
   const [moduleProgress, setModuleProgress] = useState<{ [key: string]: ModuleProgress }>({});
+  
+  // AI-Powered Learning State
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showAdvancedLearning, setShowAdvancedLearning] = useState(false);
+  const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
+  const [learningMode, setLearningMode] = useState<'video' | 'pdf' | 'interactive'>('video');
+  const [selectedText, setSelectedText] = useState('');
+  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [flashcards, setFlashcards] = useState<FlashCardType[]>([]);
+  const [mcqQuestions, setMcqQuestions] = useState<MCQQuestion[]>([]);
+  const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
+  const [currentMcqIndex, setCurrentMcqIndex] = useState(0);
+  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+  const [speechProgress, setSpeechProgress] = useState<SpeechProgress>({
+    isPlaying: false,
+    currentTime: 0,
+    duration: 0,
+    progress: 0,
+    status: 'idle'
+  });
+  
+  // AI Services
+  const n8nService = useRef<N8NService | null>(null);
+  const speechService = useRef<SpeechService | null>(null);
   
   // Enhanced video tracking state
   const [videoEngagement, setVideoEngagement] = useState({
@@ -223,13 +257,108 @@ export default function ModulesTab() {
     lastActivityAt: new Date()
   });
   
-  const playerRef = useRef<{
-    getCurrentTime(): number;
-    getDuration(): number;
-    getPlaybackRate(): number;
-    getPlayerState(): number;
-  } | null>(null);
+  const playerRef = useRef<any>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Initialize AI Services
+  useEffect(() => {
+    n8nService.current = new N8NService();
+    speechService.current = new SpeechService(setSpeechProgress);
+  }, []);
+
+  // AI-Powered Learning Functions
+  const handleTextSelection = async (action: ActionType, text: string, context?: string) => {
+    if (!n8nService.current) return;
+
+    try {
+      let response = '';
+      
+      switch (action) {
+        case 'read':
+          if (speechService.current) {
+            await speechService.current.speak(text);
+          }
+          response = `Reading: "${text}"`;
+          break;
+        case 'explain':
+          const explanation = await n8nService.current.generateResponse(
+            context || `Explain this: ${text}`,
+            { pdfContent: '', videoData: null, currentTime: 0, selectedText: text, bookmarks }
+          );
+          response = explanation.content;
+          break;
+        case 'define':
+          const definition = await n8nService.current.generateResponse(
+            `Define this term: ${text}`,
+            { pdfContent: '', videoData: null, currentTime: 0, selectedText: text, bookmarks }
+          );
+          response = definition.content;
+          break;
+        case 'translate':
+          const translation = await n8nService.current.generateResponse(
+            `Translate this to Hindi: ${text}`,
+            { pdfContent: '', videoData: null, currentTime: 0, selectedText: text, bookmarks }
+          );
+          response = translation.content;
+          break;
+        case 'summarize':
+          const summary = await n8nService.current.generateResponse(
+            `Summarize this: ${text}`,
+            { pdfContent: '', videoData: null, currentTime: 0, selectedText: text, bookmarks }
+          );
+          response = summary.content;
+          break;
+      }
+      
+      // You can display this response in a toast or modal
+      console.log('AI Response:', response);
+    } catch (error) {
+      console.error('Error processing text action:', error);
+    }
+  };
+
+  const generateLearningContent = async (moduleContent: string) => {
+    if (!n8nService.current) return;
+
+    setIsGeneratingContent(true);
+    try {
+      // Generate flashcards
+      const flashcardData = await n8nService.current.generateFlashcards(moduleContent, 3);
+      const formattedFlashcards: FlashCardType[] = flashcardData.map((item: any, index: number) => ({
+        id: `flashcard-${index}`,
+        front: item.front,
+        back: item.back,
+        difficulty: item.difficulty || 'medium',
+        category: item.category || 'general',
+        tags: item.tags || []
+      }));
+      setFlashcards(formattedFlashcards);
+
+      // Generate MCQ questions
+      const mcqData = await n8nService.current.generateMCQs(moduleContent, 5);
+      const formattedMCQs: MCQQuestion[] = mcqData.map((item: any, index: number) => ({
+        id: `mcq-${index}`,
+        question: item.question,
+        options: item.options,
+        correctAnswer: item.correctAnswer,
+        explanation: item.explanation,
+        difficulty: item.difficulty || 'medium'
+      }));
+      setMcqQuestions(formattedMCQs);
+    } catch (error) {
+      console.error('Error generating learning content:', error);
+    } finally {
+      setIsGeneratingContent(false);
+    }
+  };
+
+  const handleAddBookmark = (bookmark: BookmarkItem) => {
+    setBookmarks(prev => [...prev, bookmark]);
+  };
+
+  const handleRemoveBookmark = (bookmarkId: string) => {
+    setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
+  };
 
   // Fetch modules data
   useEffect(() => {
@@ -241,17 +370,24 @@ export default function ModulesTab() {
           throw new Error('Failed to fetch modules');
         }
         const data = await response.json();
-        const modules = data.modules || [];
-        setModules(modules);
-        setLoading(false);
         
-        // Load progress for each module
-        modules.forEach((module: Module) => {
-          loadModuleProgress(module.moduleId);
-        });
+        if (data.success && data.modules) {
+          const modules = data.modules || [];
+          setModules(modules);
+          
+          // Load progress for each module
+          modules.forEach((module: Module) => {
+            loadModuleProgress(module.moduleId);
+          });
+        } else {
+          console.error('Invalid response format:', data);
+          setModules([]);
+        }
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching modules:', error);
         setLoading(false);
+        setModules([]);
       }
     };
 
@@ -296,7 +432,7 @@ export default function ModulesTab() {
     setShowQuiz(true);
   };
 
-  const onYouTubeReady = (event: { target: { getCurrentTime: () => number; getDuration: () => number; getPlaybackRate: () => number; getPlayerState: () => number } }) => {
+  const onYouTubeReady = (event: { target: any }) => {
     playerRef.current = event.target;
     const duration = event.target.getDuration();
     
@@ -312,7 +448,7 @@ export default function ModulesTab() {
         const playbackRate = playerRef.current.getPlaybackRate();
         const playerState = playerRef.current.getPlayerState();
         
-        const isActuallyWatching = playerState === window.YT.PlayerState.PLAYING;
+        const isActuallyWatching = playerState === 1; // PLAYING state
         const timeSinceLastUpdate = 2; // 2 seconds interval
         
         setVideoEngagement(prev => {
@@ -354,14 +490,13 @@ export default function ModulesTab() {
   const onYouTubeStateChange = (event: { data: number }) => {
     const playerState = event.data;
     
-    if (playerState === window.YT.PlayerState.PLAYING) {
+    if (playerState === 1) { // PLAYING
       // Video started playing
       setVideoEngagement(prev => ({
         ...prev,
         isPlaying: true
       }));
-    } else if (playerState === window.YT.PlayerState.PAUSED || 
-               playerState === window.YT.PlayerState.ENDED) {
+    } else if (playerState === 2 || playerState === 0) { // PAUSED or ENDED
       // Video paused or ended - save progress
       setVideoEngagement(prev => ({
         ...prev,
@@ -406,11 +541,11 @@ export default function ModulesTab() {
     setShowVideoModal(false);
     
     // Check if module has interactive content
-    if (selectedModule?.contentTypes.interactive) {
+    if (selectedModule?.contentTypes?.interactive) {
       setShowInteractive(true);
-    } else if (selectedModule?.contentTypes.project) {
+    } else if (selectedModule?.contentTypes?.project) {
       setShowProject(true);
-    } else if (selectedModule?.contentTypes.peerLearning) {
+    } else if (selectedModule?.contentTypes?.peerLearning) {
       setShowPeerLearning(true);
     } else {
       setShowQuiz(true);
@@ -426,9 +561,9 @@ export default function ModulesTab() {
     setShowInteractive(false);
     
     // Move to next content type
-    if (selectedModule?.contentTypes.project) {
+    if (selectedModule?.contentTypes?.project) {
       setShowProject(true);
-    } else if (selectedModule?.contentTypes.peerLearning) {
+    } else if (selectedModule?.contentTypes?.peerLearning) {
       setShowPeerLearning(true);
     } else {
       setShowQuiz(true);
@@ -447,7 +582,7 @@ export default function ModulesTab() {
           projectSubmission: {
             title: projectSubmission.title,
             content: projectSubmission.content,
-            submissionType: selectedModule.contentTypes.project?.submissionType || 'text'
+            submissionType: selectedModule.contentTypes?.project?.submissionType || 'text'
           }
         })
       });
@@ -456,7 +591,7 @@ export default function ModulesTab() {
         setShowProject(false);
         
         // Move to next content type
-        if (selectedModule.contentTypes.peerLearning) {
+        if (selectedModule.contentTypes?.peerLearning) {
           setShowPeerLearning(true);
         } else {
           setShowQuiz(true);
@@ -521,7 +656,10 @@ export default function ModulesTab() {
           feedback,
           interactiveProgress: interactiveState.completed ? interactiveState : undefined,
           projectSubmission: projectSubmission.title ? projectSubmission : undefined,
-          peerLearningProgress: peerLearningState.participationCount > 0 ? peerLearningState : undefined
+          peerLearningProgress: peerLearningState.participationCount > 0 ? {
+          participationCount: peerLearningState.participationCount,
+          completedTasks: peerLearningState.completedTasks || []
+        } : undefined
         })
       });
 
@@ -630,11 +768,11 @@ export default function ModulesTab() {
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <span className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
-                      {module.duration} min
+                      {module.duration || 0} min
                     </span>
                     <span className="flex items-center gap-1">
                       <Star className="w-4 h-4" />
-                      {module.points} pts
+                      {module.points || 0} pts
                     </span>
                     <span className="flex items-center gap-1">
                       <Trophy className="w-4 h-4" />
@@ -658,15 +796,87 @@ export default function ModulesTab() {
                   <span className="text-sm font-medium text-gray-700">Learning Activities:</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {Object.keys(module.contentTypes || {}).map((type) => (
-                    <span
-                      key={type}
-                      className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full"
-                    >
-                      {getContentTypeIcon(type)}
-                      {type}
+                  {module.contentTypes && Object.keys(module.contentTypes).length > 0 ? (
+                    Object.keys(module.contentTypes).map((type) => (
+                      <span
+                        key={type}
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full"
+                      >
+                        {getContentTypeIcon(type)}
+                        {type}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+                      <Clock className="w-4 h-4" />
+                      video
                     </span>
-                  ))}
+                  )}
+                </div>
+              </div>
+
+              {/* AI-Powered Learning Tools */}
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lightbulb className="w-4 h-4 text-purple-600" />
+                  <span className="text-sm font-medium text-gray-700">AI Learning Tools:</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedModule(module);
+                      setShowAIAssistant(true);
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors"
+                    title="AI Assistant - Get help and explanations"
+                  >
+                    <MessageCircle className="w-3 h-3" />
+                    AI Assistant
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedModule(module);
+                      setShowAdvancedLearning(true);
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
+                    title="Advanced Learning Interface"
+                  >
+                    <BookOpen className="w-3 h-3" />
+                    Advanced Learning
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedModule(module);
+                      setShowBookmarks(true);
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors"
+                    title="Manage bookmarks and notes"
+                  >
+                    <BookOpen className="w-3 h-3" />
+                    Bookmarks
+                  </button>
+                                     <button
+                     onClick={() => {
+                       setSelectedModule(module);
+                       setShowAdvancedFeatures(true);
+                     }}
+                     className="flex items-center gap-1 px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded-full hover:bg-orange-200 transition-colors"
+                     title="Advanced features and tools"
+                   >
+                     <Lightbulb className="w-3 h-3" />
+                     Advanced Features
+                   </button>
+                   <button
+                     onClick={() => {
+                       setSelectedModule(module);
+                       generateLearningContent(module.description);
+                     }}
+                     className="flex items-center gap-1 px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-full hover:bg-indigo-200 transition-colors"
+                     title="Generate AI flashcards and practice questions"
+                   >
+                     <Brain className="w-3 h-3" />
+                     Generate AI Content
+                   </button>
                 </div>
               </div>
 
@@ -700,7 +910,7 @@ export default function ModulesTab() {
               </div>
 
               {/* Gamification Progress */}
-              {progress?.gamificationProgress && module.gamification?.quests?.length > 0 && (
+              {progress?.gamificationProgress?.quests && module.gamification?.quests && module.gamification.quests.length > 0 && (
                 <div className="mb-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Award className="w-4 h-4 text-amber-600" />
@@ -711,7 +921,7 @@ export default function ModulesTab() {
                       const questDef = module.gamification.quests[index];
                       if (!questDef || typeof questDef.target !== 'number' || !questDef.title) return null;
                       const target = questDef.target;
-                      const current = Math.min(Math.round(quest.current), target);
+                      const current = Math.min(Math.round(quest.current || 0), target);
                       return (
                         <span
                           key={quest.questId}
@@ -733,14 +943,20 @@ export default function ModulesTab() {
 
               <div className="flex items-center justify-between">
                 <div className="flex flex-wrap gap-1">
-                  {module.tags.slice(0, 2).map((tag, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full"
-                    >
-                      {tag}
+                  {module.tags && module.tags.length > 0 ? (
+                    module.tags.slice(0, 2).map((tag, index) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full"
+                      >
+                        {tag}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+                      {module.subject || 'General'}
                     </span>
-                  ))}
+                  )}
                 </div>
                 <div className="flex gap-2">
                   {progressStatus !== 'completed' && (
@@ -799,24 +1015,33 @@ export default function ModulesTab() {
             <div className="flex-1 overflow-y-auto">
               <div className="p-6">
                 <div className="relative pb-[56.25%] h-0 mb-6">
-                  <iframe
-                    src={selectedModule.videoUrl}
-                    className="absolute top-0 left-0 w-full h-full rounded-lg"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    onLoad={() => {
-                      // Initialize YouTube IFrame API
-                      if (window.YT) {
-                        new window.YT.Player('youtube-player', {
-                          events: {
-                            onReady: onYouTubeReady,
-                            onStateChange: onYouTubeStateChange
+                  <div className="absolute top-0 left-0 w-full h-full rounded-lg">
+                    {extractYouTubeId(selectedModule.videoUrl) ? (
+                      <YouTube
+                        videoId={extractYouTubeId(selectedModule.videoUrl)}
+                        opts={{
+                          height: '100%',
+                          width: '100%',
+                          playerVars: {
+                            autoplay: 0,
+                            modestbranding: 1,
+                            rel: 0
                           }
-                        });
-                      }
-                    }}
-                  ></iframe>
+                        }}
+                        onReady={onYouTubeReady}
+                        onStateChange={onYouTubeStateChange}
+                        className="w-full h-full rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center">
+                        <div className="text-center">
+                          <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-500">Video not available</p>
+                          <p className="text-sm text-gray-400 mt-2">Invalid video URL</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 {/* Engagement Metrics */}
@@ -878,7 +1103,7 @@ export default function ModulesTab() {
               <div className="p-6">
                 <div className="mb-6">
                   <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                    {selectedModule.contentTypes.interactive?.type} Exercise
+                    {selectedModule.contentTypes?.interactive?.type || 'Interactive'} Exercise
                   </h4>
                   <p className="text-gray-600">
                     Complete the interactive exercise to continue with your learning journey.
@@ -890,7 +1115,7 @@ export default function ModulesTab() {
                   <div className="text-center">
                     <Code className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-500 text-lg">
-                      Interactive {selectedModule.contentTypes.interactive?.type} content would be displayed here
+                      Interactive {selectedModule.contentTypes?.interactive?.type || 'learning'} content would be displayed here
                     </p>
                     <p className="text-gray-400 text-sm mt-2">
                       This could include drag-and-drop exercises, coding challenges, or simulations
@@ -923,23 +1148,25 @@ export default function ModulesTab() {
               <div className="p-6">
                 <div className="mb-6">
                   <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                    {selectedModule.contentTypes.project?.title}
+                    {selectedModule.contentTypes?.project?.title || 'Project Assignment'}
                   </h4>
                   <p className="text-gray-600 mb-4">
-                    {selectedModule.contentTypes.project?.description}
+                    {selectedModule.contentTypes?.project?.description || 'Complete this project to demonstrate your understanding of the concepts learned.'}
                   </p>
                   
-                  <div className="bg-yellow-50 p-4 rounded-lg mb-6">
-                    <h5 className="font-semibold text-gray-900 mb-3">Requirements:</h5>
-                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
-                      {selectedModule.contentTypes.project?.requirements.map((req, index) => (
-                        <li key={index} className="flex items-start">
-                          <span className="text-amber-700 mr-2">•</span>
-                          <span>{req}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  {selectedModule.contentTypes?.project?.requirements && selectedModule.contentTypes.project.requirements.length > 0 && (
+                    <div className="bg-yellow-50 p-4 rounded-lg mb-6">
+                      <h5 className="font-semibold text-gray-900 mb-3">Requirements:</h5>
+                      <ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
+                        {selectedModule.contentTypes.project.requirements.map((req, index) => (
+                          <li key={index} className="flex items-start">
+                            <span className="text-amber-700 mr-2">•</span>
+                            <span>{req}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-6">
@@ -1007,29 +1234,41 @@ export default function ModulesTab() {
                 <div className="mb-6">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4">Discussion Topics</h4>
                   <div className="space-y-3">
-                    {selectedModule.contentTypes.peerLearning?.discussionTopics.map((topic, index) => (
-                      <div key={index} className="p-4 bg-gray-50 rounded-lg border-l-4 border-purple-500">
-                        <p className="text-gray-700 font-medium">{topic}</p>
+                    {selectedModule.contentTypes?.peerLearning?.discussionTopics && selectedModule.contentTypes.peerLearning.discussionTopics.length > 0 ? (
+                      selectedModule.contentTypes.peerLearning.discussionTopics.map((topic, index) => (
+                        <div key={index} className="p-4 bg-gray-50 rounded-lg border-l-4 border-purple-500">
+                          <p className="text-gray-700 font-medium">{topic}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 bg-gray-50 rounded-lg border-l-4 border-purple-500">
+                        <p className="text-gray-700 font-medium">Discuss the key concepts learned in this module</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
                 
                 <div className="mb-6">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4">Collaboration Tasks</h4>
                   <div className="space-y-3">
-                    {selectedModule.contentTypes.peerLearning?.collaborationTasks.map((task, index) => (
-                      <div key={index} className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                        <p className="text-blue-700 font-medium">{task}</p>
+                    {selectedModule.contentTypes?.peerLearning?.collaborationTasks && selectedModule.contentTypes.peerLearning.collaborationTasks.length > 0 ? (
+                      selectedModule.contentTypes.peerLearning.collaborationTasks.map((task, index) => (
+                        <div key={index} className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                          <p className="text-blue-700 font-medium">{task}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                        <p className="text-blue-700 font-medium">Work together to solve problems related to this module</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
                 
                 <div className="bg-yellow-50 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Users className="w-5 h-5 text-amber-700" />
-                    <span className="font-semibold text-gray-900">Group Size: {selectedModule.contentTypes.peerLearning?.groupSize} students</span>
+                    <span className="font-semibold text-gray-900">Group Size: {selectedModule.contentTypes?.peerLearning?.groupSize || 4} students</span>
                   </div>
                   <p className="text-sm text-gray-600">
                     Work together with your peers to complete these collaborative activities.
@@ -1051,7 +1290,7 @@ export default function ModulesTab() {
       )}
 
       {/* Quiz Modal */}
-      {showQuiz && selectedModule && selectedModule.quizQuestions && (
+      {showQuiz && selectedModule && selectedModule.quizQuestions && selectedModule.quizQuestions.length > 0 && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-4 border-b border-gray-200 bg-orange-50">
@@ -1064,10 +1303,10 @@ export default function ModulesTab() {
               <div className="p-6">
                 <div className="mb-6">
                   <h4 className="text-lg font-semibold text-gray-900 mb-6">
-                    {selectedModule.quizQuestions[currentQuestionIndex].question}
+                    {selectedModule.quizQuestions[currentQuestionIndex]?.question || 'Question not available'}
                   </h4>
                   <div className="space-y-3">
-                    {selectedModule.quizQuestions[currentQuestionIndex].options.map((option, index) => (
+                    {selectedModule.quizQuestions[currentQuestionIndex]?.options?.map((option, index) => (
                       <button
                         key={index}
                         onClick={() => handleQuizAnswer(index)}
@@ -1158,8 +1397,254 @@ export default function ModulesTab() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-} 
+                 </div>
+       )}
+
+       {/* AI Assistant Modal */}
+       {showAIAssistant && selectedModule && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+           <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+             <div className="p-4 border-b border-gray-200 bg-purple-50 flex justify-between items-center">
+               <h3 className="text-xl font-semibold text-gray-900">AI Learning Assistant</h3>
+               <button
+                 onClick={() => setShowAIAssistant(false)}
+                 className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-200"
+               >
+                 <XCircle className="w-6 h-6" />
+               </button>
+             </div>
+             <div className="flex-1 overflow-hidden">
+               <AIAssistant
+                 isPDFReady={false}
+                 pdfContent={selectedModule.description}
+                 onTextSelection={handleTextSelection}
+                 className="h-full"
+               />
+             </div>
+           </div>
+         </div>
+       )}
+
+       {/* Advanced Learning Interface Modal */}
+       {showAdvancedLearning && selectedModule && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+           <div className="bg-white rounded-lg w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
+             <div className="p-4 border-b border-gray-200 bg-blue-50 flex justify-between items-center">
+               <h3 className="text-xl font-semibold text-gray-900">Advanced Learning Interface</h3>
+               <button
+                 onClick={() => setShowAdvancedLearning(false)}
+                 className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-200"
+               >
+                 <XCircle className="w-6 h-6" />
+               </button>
+             </div>
+             <div className="flex-1 overflow-hidden">
+               <AdvancedLearningInterface className="h-full" />
+             </div>
+           </div>
+         </div>
+       )}
+
+       {/* Video Learning Interface Modal */}
+       {showVideoModal && selectedModule && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+           <div className="bg-white rounded-lg w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
+             <div className="p-4 border-b border-gray-200 bg-green-50 flex justify-between items-center">
+               <h3 className="text-xl font-semibold text-gray-900">Enhanced Video Learning</h3>
+               <button
+                 onClick={() => setShowVideoModal(false)}
+                 className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-200"
+               >
+                 <XCircle className="w-6 h-6" />
+               </button>
+             </div>
+             <div className="flex-1 overflow-hidden">
+               <VideoLearningInterface 
+                 className="h-full" 
+                 moduleId={selectedModule?.moduleId}
+                 videoData={selectedModule?.contentTypes?.video ? {
+                   id: selectedModule.moduleId,
+                   title: selectedModule.title,
+                   url: selectedModule.contentTypes.video.url,
+                   duration: selectedModule.contentTypes.video.duration,
+                   thumbnail: `https://img.youtube.com/vi/${extractYouTubeId(selectedModule.contentTypes.video.url)}/maxresdefault.jpg`
+                 } : undefined}
+               />
+             </div>
+           </div>
+         </div>
+       )}
+
+       {/* Bookmarks Panel Modal */}
+       {showBookmarks && selectedModule && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+           <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+             <div className="p-4 border-b border-gray-200 bg-green-50 flex justify-between items-center">
+               <h3 className="text-xl font-semibold text-gray-900">Bookmarks & Notes</h3>
+               <button
+                 onClick={() => setShowBookmarks(false)}
+                 className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-200"
+               >
+                 <XCircle className="w-6 h-6" />
+               </button>
+             </div>
+             <div className="flex-1 overflow-hidden">
+               <BookmarksPanel
+                 isOpen={showBookmarks}
+                 onClose={() => setShowBookmarks(false)}
+                 bookmarks={bookmarks}
+                 onAddBookmark={handleAddBookmark}
+                 onRemoveBookmark={handleRemoveBookmark}
+               />
+             </div>
+           </div>
+         </div>
+       )}
+
+       {/* Advanced Features Panel Modal */}
+       {showAdvancedFeatures && selectedModule && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+           <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+             <div className="p-4 border-b border-gray-200 bg-orange-50 flex justify-between items-center">
+               <h3 className="text-xl font-semibold text-gray-900">Advanced Learning Features</h3>
+               <button
+                 onClick={() => setShowAdvancedFeatures(false)}
+                 className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-200"
+               >
+                 <XCircle className="w-6 h-6" />
+               </button>
+             </div>
+             <div className="flex-1 overflow-hidden">
+               <AdvancedFeaturePanel
+                 isVisible={showAdvancedFeatures}
+                 onToggle={() => setShowAdvancedFeatures(false)}
+                 pdfContent={selectedModule.description}
+                 apiKey=""
+                 onExplanationResult={(result) => console.log('Explanation result:', result)}
+               />
+             </div>
+           </div>
+         </div>
+       )}
+
+       {/* AI-Generated Flashcards Modal */}
+       {flashcards.length > 0 && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+             <div className="p-4 border-b border-gray-200 bg-purple-50 flex justify-between items-center">
+               <h3 className="text-xl font-semibold text-gray-900">AI-Generated Flashcards</h3>
+               <button
+                 onClick={() => setFlashcards([])}
+                 className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-200"
+               >
+                 <XCircle className="w-6 h-6" />
+               </button>
+             </div>
+             <div className="flex-1 overflow-hidden p-6">
+               <div className="flex items-center justify-between mb-4">
+                 <span className="text-sm text-gray-600">
+                   Card {currentFlashcardIndex + 1} of {flashcards.length}
+                 </span>
+                 <div className="flex gap-2">
+                   <button
+                     onClick={() => setCurrentFlashcardIndex(Math.max(0, currentFlashcardIndex - 1))}
+                     disabled={currentFlashcardIndex === 0}
+                     className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50"
+                   >
+                     Previous
+                   </button>
+                   <button
+                     onClick={() => setCurrentFlashcardIndex(Math.min(flashcards.length - 1, currentFlashcardIndex + 1))}
+                     disabled={currentFlashcardIndex === flashcards.length - 1}
+                     className="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200 disabled:opacity-50"
+                   >
+                     Next
+                   </button>
+                 </div>
+               </div>
+               <div className="flex justify-center">
+                 <FlashCard
+                   flashcard={flashcards[currentFlashcardIndex]}
+                   onFlip={() => {}}
+                   onRestart={() => setCurrentFlashcardIndex(0)}
+                   onSpeak={(text) => speechService.current?.speak(text)}
+                   className="w-full max-w-md"
+                 />
+               </div>
+             </div>
+           </div>
+         </div>
+       )}
+
+       {/* AI-Generated MCQ Modal */}
+       {mcqQuestions.length > 0 && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+           <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+             <div className="p-4 border-b border-gray-200 bg-blue-50 flex justify-between items-center">
+               <h3 className="text-xl font-semibold text-gray-900">AI-Generated Practice Questions</h3>
+               <button
+                 onClick={() => setMcqQuestions([])}
+                 className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-200"
+               >
+                 <XCircle className="w-6 h-6" />
+               </button>
+             </div>
+             <div className="flex-1 overflow-y-auto p-6">
+               <div className="mb-6">
+                 <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                   {mcqQuestions[currentMcqIndex]?.question}
+                 </h4>
+                 <div className="space-y-3">
+                   {mcqQuestions[currentMcqIndex]?.options.map((option, index) => (
+                     <button
+                       key={index}
+                       onClick={() => {
+                         // Handle answer selection
+                         console.log('Selected answer:', index);
+                       }}
+                       className="w-full p-4 text-left rounded-lg border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                     >
+                       <span className="font-medium">{String.fromCharCode(65 + index)}.</span> {option}
+                     </button>
+                   ))}
+                 </div>
+               </div>
+               <div className="flex justify-between items-center">
+                 <span className="text-sm text-gray-600">
+                   Question {currentMcqIndex + 1} of {mcqQuestions.length}
+                 </span>
+                 <div className="flex gap-2">
+                   <button
+                     onClick={() => setCurrentMcqIndex(Math.max(0, currentMcqIndex - 1))}
+                     disabled={currentMcqIndex === 0}
+                     className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50"
+                   >
+                     Previous
+                   </button>
+                   <button
+                     onClick={() => setCurrentMcqIndex(Math.min(mcqQuestions.length - 1, currentMcqIndex + 1))}
+                     disabled={currentMcqIndex === mcqQuestions.length - 1}
+                     className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
+                   >
+                     Next
+                   </button>
+                 </div>
+               </div>
+             </div>
+           </div>
+         </div>
+       )}
+
+       {/* Loading Indicator for AI Content Generation */}
+       {isGeneratingContent && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+           <div className="bg-white rounded-lg p-8 flex flex-col items-center">
+             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+             <p className="text-lg font-semibold text-gray-900">Generating AI Learning Content...</p>
+             <p className="text-sm text-gray-600 mt-2">Creating flashcards and practice questions</p>
+           </div>
+         </div>
+       )}
+     </div>
+   );
+ } 

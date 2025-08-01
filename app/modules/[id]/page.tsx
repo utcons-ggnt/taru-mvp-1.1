@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import AdvancedLearningInterface from './components/AdvancedLearningInterface';
 
 interface ModuleContent {
   type: string;
@@ -43,7 +44,8 @@ export default function ModuleDetail() {
   const [module, setModule] = useState<Module | null>(null);
   const [progress, setProgress] = useState<ModuleProgress | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'progress'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'progress' | 'ai-learning'>('overview');
+  const [showAILearning, setShowAILearning] = useState(false);
   const router = useRouter();
   const params = useParams();
   const moduleId = params.id as string;
@@ -285,11 +287,12 @@ export default function ModuleDetail() {
               {[
                 { key: 'overview', label: 'Overview', icon: '📋' },
                 { key: 'content', label: 'Content', icon: '📚' },
-                { key: 'progress', label: 'Progress', icon: '📊' }
+                { key: 'progress', label: 'Progress', icon: '📊' },
+                { key: 'ai-learning', label: 'AI Learning', icon: '🤖' }
               ].map(tab => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key as 'overview' | 'content' | 'progress')}
+                  onClick={() => setActiveTab(tab.key as 'overview' | 'content' | 'progress' | 'ai-learning')}
                   className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
                     activeTab === tab.key
                       ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
@@ -471,6 +474,17 @@ export default function ModuleDetail() {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* AI Learning Tab */}
+            {activeTab === 'ai-learning' && (
+              <div className="h-[calc(100vh-200px)]">
+                <AdvancedLearningInterface
+                  apiKey={process.env.NEXT_PUBLIC_GEMINI_API_KEY || ''}
+                  moduleId={moduleId}
+                  className="h-full"
+                />
               </div>
             )}
           </div>

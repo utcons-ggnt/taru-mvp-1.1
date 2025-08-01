@@ -703,3 +703,205 @@ body {
     margin-left: 0 !important;
   }
 }
+
+/* AI Learning Platform Styles */
+
+/* Slider component styles */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-track {
+  background: #e5e7eb;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #3b82f6;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+}
+
+.slider::-moz-range-track {
+  background: #e5e7eb;
+  height: 6px;
+  border-radius: 3px;
+  border: none;
+}
+
+.slider::-moz-range-thumb {
+  background: #3b82f6;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+}
+
+/* Flashcard flip animation */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Dark mode slider adjustments */
+@media (prefers-color-scheme: dark) {
+  .slider::-webkit-slider-track {
+    background: #374151;
+  }
+  
+  .slider::-moz-range-track {
+    background: #374151;
+  }
+}
+
+/* AI Assistant chat styles */
+.chat-message-user {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+}
+
+.chat-message-assistant {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+@media (prefers-color-scheme: dark) {
+  .chat-message-assistant {
+    background: #374151;
+    color: #f9fafb;
+  }
+}
+
+/* Text selection tooltip */
+.text-selection-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  padding: 12px;
+  max-width: 300px;
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Speech progress indicator */
+.speech-progress {
+  background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+  height: 4px;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* PDF viewer styles */
+.pdf-viewer-content {
+  font-family: 'Georgia', serif;
+  line-height: 1.8;
+  color: #1f2937;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pdf-viewer-content {
+    color: #f9fafb;
+  }
+}
+
+/* Video player controls */
+.video-controls {
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  backdrop-filter: blur(10px);
+}
+
+/* Loading animations */
+.ai-loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f4f6;
+  border-radius: 50%;
+  border-top-color: #3b82f6;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive AI learning interface */
+@media (max-width: 768px) {
+  .ai-learning-container {
+    flex-direction: column;
+  }
+  
+  .ai-learning-sidebar {
+    width: 100%;
+    height: auto;
+    max-height: 50vh;
+  }
+}
+
+/* Accessibility improvements for AI components */
+.ai-component:focus-within {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* High contrast mode for AI components */
+@media (prefers-contrast: high) {
+  .ai-component {
+    border: 2px solid currentColor;
+  }
+  
+  .slider::-webkit-slider-thumb {
+    border: 2px solid #000;
+  }
+  
+  .slider::-moz-range-thumb {
+    border: 2px solid #000;
+  }
+}

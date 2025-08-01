@@ -15,6 +15,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@google/generative-ai": "^0.24.1",
     "@headlessui/react": "^2.2.4",
     "@mui/icons-material": "^7.2.0",
     "@mui/material": "^7.2.0",
@@ -32,8 +33,13 @@
     "mongodb": "^6.17.0",
     "mongoose": "^8.16.1",
     "next": "15.3.5",
+    "pdfjs-dist": "^5.4.54",
     "react": "^19.0.0",
+    "react-card-flip": "^1.2.3",
     "react-dom": "^19.0.0",
+    "react-pdf": "^10.0.1",
+    "react-speech-recognition": "^4.0.1",
+    "react-youtube": "^10.1.0",
     "recharts": "^3.1.0"
   },
   "devDependencies": {
