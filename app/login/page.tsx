@@ -108,223 +108,263 @@ export default function Login() {
 
   return (
     <motion.main 
-      className="min-h-screen flex flex-col lg:flex-row overflow-hidden bg-gradient-to-br from-purple-700 via-purple-600 to-purple-800"
+      className="min-h-screen flex items-center justify-center overflow-hidden bg-[#6D18CE] p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
     >
-      {/* 🟪 Left Section - Content */}
-      <motion.section 
-        className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 text-white flex flex-col justify-between relative min-h-screen lg:min-h-0"
-        initial={{ x: -100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
+      {/* Main Login Popup Container */}
+      <motion.div 
+        className="relative w-full max-w-[1400px] h-[800px] bg-[#6D18CE] rounded-[40px] flex"
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-        >
-          <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="absolute top-4 left-4 w-12 h-12 sm:w-16 sm:h-16 lg:w-18 lg:h-18 object-contain" />
-        </motion.div>
-        
-        <motion.div 
-          className="mt-16 sm:mt-20 lg:mt-32 px-2 sm:px-4"
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-        >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
-            {t.welcomeBack} <br />
-            <span className="text-amber-400 font-extrabold">{t.jioWorldLearning}</span><br />
-            {t.continueJourney}
-          </h2>
-        </motion.div>
-        
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.7, duration: 0.6 }}
-          whileHover={{ scale: 1.05 }}
-          className="w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-64 lg:h-64 mx-auto mt-4 sm:mt-6 lg:mt-2"
-        >
-          <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-full h-full object-contain" />
-        </motion.div>
-      </motion.section>
+                 {/* Left Section - Purple Background with Content */}
+         <motion.section 
+           className="w-[577px] h-[800px] relative"
+           initial={{ x: -100, opacity: 0 }}
+           animate={{ x: 0, opacity: 1 }}
+           transition={{ duration: 0.8 }}
+         >
+           {/* Jio Logo */}
+           <motion.div
+             className="absolute top-[64px] left-[63px]"
+             initial={{ y: -20, opacity: 0 }}
+             animate={{ y: 0, opacity: 1 }}
+             transition={{ delay: 0.3, duration: 0.6 }}
+           >
+             <Image src="/jio-logo.png" alt="Jio Logo" width={68} height={68} className="w-[68px] h-[68px] object-contain" />
+           </motion.div>
+           
+           {/* Main Text */}
+           <motion.div 
+             className="absolute top-[172px] left-[63px] w-[457.73px] h-[240px]"
+             initial={{ y: 50, opacity: 0 }}
+             animate={{ y: 0, opacity: 1 }}
+             transition={{ delay: 0.5, duration: 0.8 }}
+           >
+             <h2 className="text-[39.375px] leading-[48px] font-normal text-white">
+               Start your journey with just one click. <br />
+               Choose your role and <br />
+               <span className="font-bold">unlock a world of learning.</span>
+             </h2>
+           </motion.div>
+           
+           {/* Mascot Image */}
+           <motion.div
+             className="absolute top-[400px] left-[75px]"
+             initial={{ scale: 0.8, opacity: 0 }}
+             animate={{ scale: 1, opacity: 1 }}
+             transition={{ delay: 0.7, duration: 0.6 }}
+           >
+             <Image src="/landingPage.png" alt="Mascot" width={407} height={352} className="w-[407px] h-[352px] object-contain" />
+           </motion.div>
+         </motion.section>
 
-      {/* ⬜ Right Section - White Card */}
-      <motion.section 
-        className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center relative min-h-screen lg:min-h-screen"
-        initial={{ x: 100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
-        <motion.div 
-          className="max-w-2xl mx-auto w-full px-4 sm:px-0 h-full flex flex-col"
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.8 }}
+        {/* Right Section - White Form Card */}
+        <motion.section 
+          className="w-[823px] h-[800px] bg-white rounded-[40px] shadow-[-21px_0px_144px_#6219B5] relative"
+          initial={{ x: 100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.8 }}
         >
-          {/* Login Form Container - White Card */}
+          {/* Language Selector */}
           <motion.div 
-            className="bg-white rounded-4xl shadow-2xl p-4 sm:p-6 lg:p-8 border border-white/20 w-full backdrop-blur-sm flex-1 flex flex-col justify-center items-center relative"
-            style={{
-              backgroundImage: `
-                linear-gradient(rgba(128, 128, 128, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(128, 128, 128, 0.05) 1px, transparent 1px)
-              `,
-              backgroundSize: '50px 50px',
-              backgroundPosition: '0 0, 0 0'
-            }}
-            whileHover={{ y: -5, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
-            transition={{ duration: 0.3 }}
+            className="absolute top-[40px] right-[40px] w-[145.6px] h-[26.6px] flex items-center gap-2 z-10"
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
           >
-            {/* Language Selector - Inside White Card */}
-            <motion.div 
-              className="absolute top-4 right-4 flex items-center gap-2 text-sm text-gray-700 z-20"
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
+            <motion.select
+              value={language}
+              onChange={(e) => handleLanguageChange(e.target.value)}
+              className="text-[15.9955px] font-semibold text-black bg-transparent border-none focus:outline-none cursor-pointer flex-1"
             >
-              <span role="img" aria-label="language" className="text-sm sm:text-base">🌐</span>
-              <motion.select
-                value={language}
-                onChange={(e) => handleLanguageChange(e.target.value)}
-                className="border border-gray-300 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
-                whileFocus={{ scale: 1.02 }}
-              >
-                {languages.map((lang) => (
-                  <option key={lang} value={lang} className="bg-white text-gray-900">
-                    {lang}
-                  </option>
-                ))}
-              </motion.select>
-            </motion.div>
-
-            <div className="w-full max-w-md">
-              <motion.h2 
-                className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 text-center"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.8, duration: 0.5 }}
-              >
-                {t.loginTitle}
-              </motion.h2>
-
-                             <motion.form 
-                 onSubmit={handleSubmit} 
-                 className="space-y-10 sm:space-y-10"
-                 initial={{ y: 20, opacity: 0 }}
-                 animate={{ y: 0, opacity: 1 }}
-                 transition={{ delay: 0.9, duration: 0.6 }}
-               >
-                <motion.div
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 1.0, duration: 0.4 }}
-                >
-                  <motion.input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t.enterEmail}
-                    required
-                    className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300 touch-manipulation"
-                    whileFocus={{ scale: 1.01, borderColor: "#7c3aed" }}
-                  />
-                </motion.div>
-                
-                <motion.div
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 1.1, duration: 0.4 }}
-                >
-                  <motion.input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t.enterPassword}
-                    required
-                    className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300 touch-manipulation"
-                    whileFocus={{ scale: 1.01 }}
-                  />
-                </motion.div>
-
-                {/* Error Message */}
-                <AnimatePresence>
-                  {error && (
-                    <motion.div 
-                      className="alert-error"
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      {error}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <motion.button
-                   type="submit"
-                   disabled={loading}
-                   className="btn btn-primary w-full py-3 sm:py-3 text-sm sm:text-base font-extrabold relative overflow-hidden touch-manipulation rounded-full"
-                   whileHover={{ scale: 1.02, boxShadow: "0 10px 25px -5px rgba(127, 0, 255, 0.4)" }}
-                   whileTap={{ scale: 0.98 }}
-                   initial={{ y: 20, opacity: 0 }}
-                   animate={{ y: 0, opacity: 1 }}
-                   transition={{ delay: 1.2, duration: 0.4 }}
-                 >
-                  <AnimatePresence mode="wait">
-                    {loading ? (
-                      <motion.div
-                        key="loading"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="flex items-center justify-center gap-2"
-                      >
-                        <motion.div
-                          className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        />
-                        <span className="text-xs sm:text-sm">{t.loggingIn}</span>
-                      </motion.div>
-                    ) : (
-                      <motion.span
-                        key="login"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                      >
-                        {t.login}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </motion.button>
-              </motion.form>
-
-              <motion.div 
-                className="text-center mt-4 sm:mt-6"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.3, duration: 0.4 }}
-              >
-                <span className="text-gray-700 text-xs sm:text-sm">{t.noAccount} </span>
-                <motion.span
-                  onClick={() => router.push('/')}
-                  className="text-[#7F00FF] hover:text-[#6B00E6] font-semibold cursor-pointer text-xs sm:text-sm transition-colors duration-200 touch-manipulation"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {t.registerHere}
-                </motion.span>
-              </motion.div>
+              {languages.map((lang) => (
+                <option key={lang} value={lang} className="bg-white text-black">
+                  {lang}
+                </option>
+              ))}
+            </motion.select>
+            <div className="w-[26.6px] h-[26.6px] flex items-center justify-center flex-shrink-0">
+              <svg width="14" height="8" viewBox="0 0 14 8" fill="none">
+                <path d="M1 1L7 7L13 1" stroke="#8E8E8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
           </motion.div>
-        </motion.div>
-      </motion.section>
+
+          {/* Main Content Container */}
+          <div className="relative w-full h-full">
+            {/* Role Selector Tabs */}
+            <motion.div 
+              className="absolute top-[152px] left-[154px] w-[514px] h-[56px]"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.9, duration: 0.5 }}
+            >
+              <div className="flex bg-[#F2F4F7] rounded-xl p-1 h-full">
+                {['Student', 'Teacher', 'Parent'].map((role, index) => (
+                  <motion.button 
+                    key={role}
+                    className={`flex-1 px-6 py-3 rounded-lg font-normal text-[14px] transition-all duration-200 ${
+                      index === 0 
+                        ? 'bg-white text-[#101828] shadow-sm' 
+                        : 'text-[#667085]'
+                    }`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 1.0 + index * 0.1, duration: 0.3 }}
+                  >
+                    {role}
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Welcome back Title */}
+            <motion.h2 
+              className="absolute top-[267px] left-[154px] text-[24.7297px] leading-[30px] font-bold text-black"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.5 }}
+            >
+              Welcome back
+            </motion.h2>
+
+            {/* Welcome back Subtitle */}
+            <motion.p 
+              className="absolute top-[300px] left-[155px] w-[433px] text-[16px] leading-[32px] font-normal text-[#454545]"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.85, duration: 0.5 }}
+            >
+              Welcome back! Please enter your details.
+            </motion.p>
+
+            {/* Login Form */}
+            <motion.form 
+              onSubmit={handleSubmit}
+              className="absolute top-[359px] left-[155px] w-[513px]"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 1.1, duration: 0.6 }}
+            >
+              {/* Email Input */}
+              <div className="relative mb-[15px]">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  required
+                  className="w-full h-[60px] px-[47px] border-[0.5px] border-[#C2C2C2] rounded-[70px] text-[16.0016px] leading-[19px] font-medium text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors"
+                />
+              </div>
+
+              {/* Password Input */}
+              <div className="relative mb-[21px]">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  required
+                  className="w-full h-[60px] px-[47px] border-[0.5px] border-[#C2C2C2] rounded-[70px] text-[16.0016px] leading-[19px] font-medium text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors"
+                />
+              </div>
+
+              {/* Remember me and Forgot password */}
+              <div className="flex justify-between items-center mb-[18px]">
+                <div className="flex items-center gap-[6px]">
+                  <input
+                    type="checkbox"
+                    className="w-[34px] h-[34px] border border-black rounded"
+                  />
+                  <span className="text-[13px] leading-[16px] font-normal text-black">Remember me</span>
+                </div>
+                <span className="text-[13px] leading-[16px] font-bold text-[#6D18CE] cursor-pointer hover:text-[#5A14B0] transition-colors">
+                  Forgot password
+                </span>
+              </div>
+
+              {/* Error Message */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div 
+                    className="mb-[18px] alert-error"
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {error}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Sign In Button */}
+              <motion.button
+                type="submit"
+                disabled={loading}
+                className="w-[514px] h-[69px] bg-[#6D18CE] text-white rounded-[90px] font-semibold text-[16.0016px] flex items-center justify-center"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 1.2, duration: 0.4 }}
+              >
+                <AnimatePresence mode="wait">
+                  {loading ? (
+                    <motion.div
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center justify-center gap-2"
+                    >
+                      <motion.div
+                        className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+                        style={{ borderTopColor: '#FFFFFF' }}
+                      />
+                      <span className="text-white">{t.loggingIn}</span>
+                    </motion.div>
+                  ) : (
+                    <motion.span
+                      key="login"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      Sign in
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+            </motion.form>
+
+            {/* Register Link */}
+            <motion.div 
+              className="absolute top-[655px] left-[308px] text-center"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 1.3, duration: 0.4 }}
+            >
+              <span className="text-[13px] leading-[16px] font-normal text-black">Don&apos;t have an account? </span>
+              <motion.span
+                onClick={() => router.push('/register')}
+                className="text-[#6D18CE] hover:text-[#5A14B0] font-semibold cursor-pointer text-[13px] transition-colors duration-200"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Sign up
+              </motion.span>
+            </motion.div>
+          </div>
+        </motion.section>
+      </motion.div>
     </motion.main>
   );
 } 

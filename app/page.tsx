@@ -11,20 +11,8 @@ const languages = ['English (USA)', 'हिन्दी', 'मराठी']
 export default function Home() {
   const router = useRouter()
   const [language, setLanguage] = useState('English (USA)')
+  const [currentCard, setCurrentCard] = useState(0)
   const [showWelcome, setShowWelcome] = useState(false)
-  const [selectedRole, setSelectedRole] = useState('student')
-  const [formData, setFormData] = useState({
-    fullName: '',
-    guardianName: '',
-    classGrade: '',
-    language: '',
-    location: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
 
   useEffect(() => {
     const savedLang = localStorage.getItem('lang')
@@ -39,163 +27,49 @@ export default function Home() {
     }
   }, [])
 
-
-
   const handleLanguageChange = (lang: string) => {
     setLanguage(lang)
     localStorage.setItem('lang', lang)
   }
 
-  const handleRoleChange = (role: string) => {
-    console.log('Role changed to:', role);
-    setSelectedRole(role)
-    setFormData({
-      fullName: '',
-      guardianName: '',
-      classGrade: '',
-      language: '',
-      location: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-    })
-    setError('')
+  const nextCard = () => {
+    setCurrentCard((prev) => (prev + 1) % 3)
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-    if (error) setError('')
+  const prevCard = () => {
+    setCurrentCard((prev) => (prev - 1 + 3) % 3)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
-      setIsLoading(false)
-      return
+  const cards = [
+    {
+      title: "Welcome to the Future of Learning",
+      description: "Empowering every child with personalized learning paths. Built for Bharat, made to unlock potential through smart education. Simple. Inclusive. Transformative.",
+      buttonText: "Continue",
+      buttonAction: nextCard,
+      showBack: false,
+      illustration: "learning"
+    },
+    {
+      title: "Dynamic AI Learning Environments", 
+      description: "Our intelligent system understands each learner's pace. Backed by AI, powered by diagnostics — ensuring no child is left behind. Learn in your own language, your own way.",
+      buttonText: "Continue",
+      buttonAction: nextCard,
+      showBack: true,
+      illustration: "ai"
+    },
+    {
+      title: "Ready to Learn?",
+      description: "Start your journey with just one click. Choose your role and unlock a world of learning. Let's get started!",
+      buttonText: "Register",
+      buttonAction: () => router.push('/register'),
+      showBack: true,
+      illustration: "ready"
     }
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long')
-      setIsLoading(false)
-      return
-    }
-
-    // Validate student ID format for parent registration
-    if (selectedRole === 'parent') {
-      const studentId = formData.classGrade.trim()
-      if (!studentId.startsWith('STU')) {
-        setError('Student ID must start with "STU (e.g., STUabc123def)')
-        setIsLoading(false)
-        return
-      }
-      if (studentId.length < 8) {
-        setError('Student ID must be at least 8 characters long')
-        setIsLoading(false)
-        return
-      }
-    }
-
-    // Prepare profile data based on role
-    let profileData: Record<string, string> = {}
-    if (selectedRole === 'student') {
-      profileData = {
-        grade: formData.classGrade,
-        language: formData.language,
-        location: formData.location,
-        guardianName: formData.guardianName,
-      }
-    } else if (selectedRole === 'teacher') {
-      profileData = {
-        subjectSpecialization: formData.classGrade,
-        experienceYears: formData.language,
-        location: formData.location,
-      }
-    } else if (selectedRole === 'parent') {
-      profileData = {
-        linkedStudentUniqueId: formData.classGrade.trim(),
-        location: formData.location,
-        guardianName: formData.guardianName,
-      }
-    } else if (selectedRole === 'organization') {
-      profileData = {
-        organizationType: formData.classGrade,
-        industry: formData.language,
-        location: formData.location,
-      }
-    }
-
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.fullName,
-          email: formData.email,
-          password: formData.password,
-          role: selectedRole,
-          profile: profileData,
-        }),
-      })
-
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.error || 'Registration failed')
-      }
-
-      // Show success message and auto-login
-      try {
-        const loginResponse = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email: formData.email, password: formData.password }),
-        });
-
-        const loginData = await loginResponse.json();
-        if (!loginResponse.ok) {
-          throw new Error(loginData.error || 'Auto-login failed');
-        }
-        
-        // Redirect based on role after a short delay
-        setTimeout(() => {
-          if (selectedRole === 'student') {
-            router.push('/student-onboarding');
-          } else if (selectedRole === 'parent') {
-            router.push('/parent-onboarding');
-          } else if (selectedRole === 'organization') {
-            router.push('/dashboard/admin');
-          } else {
-            router.push('/login');
-          }
-        }, 2000);
-      } catch (loginError) {
-        console.error('Auto-login failed:', loginError);
-        // If auto-login fails, redirect to login page
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
-      }
-
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  ]
 
   return (
     <motion.main 
-      className="min-h-screen flex flex-col lg:flex-row overflow-hidden bg-gradient-to-br from-purple-700 via-purple-600 to-purple-800"
+      className="min-h-screen flex flex-col overflow-hidden bg-gray-800"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
@@ -243,380 +117,254 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* 🟪 Left Section - Content */}
-      <motion.section 
-        className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 text-white flex flex-col justify-between relative min-h-screen lg:min-h-0"
-        initial={{ x: -100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-        >
-          <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="absolute top-4 left-4 w-12 h-12 sm:w-16 sm:h-16 lg:w-18 lg:h-18 object-contain" />
-        </motion.div>
-        
-        <motion.div 
-          className="mt-16 sm:mt-20 lg:mt-32 px-2 sm:px-4"
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-        >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
-            Start your journey <br />
-            with just one click. <br />
-            Choose your role <br />
-            and <span className="text-amber-400 font-extrabold">Unlock a World<br />of Learning.</span>
-          </h2>
-        </motion.div>
-        
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.7, duration: 0.6 }}
-          whileHover={{ scale: 1.05 }}
-          className="w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-64 lg:h-64 mx-auto mt-4 sm:mt-6 lg:mt-2"
-        >
-          <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-full h-full object-contain" />
-        </motion.div>
-      </motion.section>
+             {/* Top Navigation Bar */}
+       <motion.div 
+         className="absolute top-0 left-0 right-0 z-20 flex justify-end items-center px-6 py-4 gap-4"
+         initial={{ y: -20, opacity: 0 }}
+         animate={{ y: 0, opacity: 1 }}
+         transition={{ delay: 0.4, duration: 0.6 }}
+       >
+         {/* Language Selector */}
+         <div className="flex items-center gap-3 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
+           <span role="img" aria-label="language" className="text-base sm:text-lg">🌐</span>
+           <motion.select
+             value={language}
+             onChange={(e) => handleLanguageChange(e.target.value)}
+             className="bg-transparent text-white text-sm sm:text-base border-none focus:outline-none focus:ring-0 cursor-pointer"
+             whileFocus={{ scale: 1.02 }}
+           >
+             {languages.map((lang) => (
+               <option key={lang} value={lang} className="bg-gray-800 text-white">
+                 {lang}
+               </option>
+             ))}
+           </motion.select>
+         </div>
 
-      {/* ⬜ Right Section - White Card */}
-      <motion.section 
-        className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center relative min-h-screen lg:min-h-screen"
-        initial={{ x: 100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
-        <motion.div 
-          className="max-w-2xl mx-auto w-full px-4 sm:px-0 h-full flex flex-col"
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.8 }}
-        >
-          {/* Registration Form Container - White Card */}
-          <motion.div 
-            className="bg-white rounded-4xl shadow-2xl p-4 sm:p-6 lg:p-8 border border-white/20 w-full backdrop-blur-sm flex-1 flex flex-col relative"
-                    style={{
-          backgroundImage: `
-            linear-gradient(rgba(128, 128, 128, 0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(128, 128, 128, 0.05) 1px, transparent 1px)
-          `,
-          backgroundSize: '50px 50px',
-          backgroundPosition: '0 0, 0 0'
-        }}
-            whileHover={{ y: -5, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
-            transition={{ duration: 0.3 }}
-          >
-            {/* Language Selector - Inside White Card */}
-            <motion.div 
-              className="absolute top-4 right-4 flex items-center gap-2 text-sm text-gray-700 z-20"
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-            >
-              <span role="img" aria-label="language" className="text-sm sm:text-base">🌐</span>
-              <motion.select
-                value={language}
-                onChange={(e) => handleLanguageChange(e.target.value)}
-                className="border border-gray-300 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
-                whileFocus={{ scale: 1.02 }}
-              >
-                {languages.map((lang) => (
-                  <option key={lang} value={lang} className="bg-white text-gray-900">
-                    {lang}
-                  </option>
-                ))}
-              </motion.select>
-            </motion.div>
-            <motion.h2 
-              className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 text-center"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.5 }}
-            >
-              Create Account
-            </motion.h2>
+         {/* Login Link */}
+         <Link
+           href="/login"
+           className="text-white hover:text-blue-300 font-semibold text-base sm:text-lg transition-colors duration-200 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20"
+         >
+           <motion.span
+             whileHover={{ scale: 1.05 }}
+             className="inline-block"
+           >
+             Sign In
+           </motion.span>
+         </Link>
+       </motion.div>
 
-            {/* Role Selector Tabs */}
-            <motion.div 
-              className="mb-4 sm:mb-6"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.9, duration: 0.5 }}
-            >
-              <div className="grid grid-cols-2 sm:flex bg-gray-100 rounded-lg p-1 gap-1 sm:gap-0">
-                {['student', 'teacher', 'parent', 'organization'].map((role, index) => (
-                  <motion.button 
-                    key={role}
-                    onClick={() => handleRoleChange(role)}
-                    className={`flex-1 px-2 sm:px-3 py-2 sm:py-2 rounded-md font-medium text-xs sm:text-xs transition-all duration-200 border-2 touch-manipulation ${
-                      selectedRole === role 
-                        ? 'bg-white text-gray-900 shadow-sm font-semibold border-purple-500' 
-                        : 'text-gray-600 hover:text-gray-900 border-transparent'
-                    }`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 1.0 + index * 0.1, duration: 0.3 }}
-                  >
-                    {role === 'organization' ? 'Organisation' : role.charAt(0).toUpperCase() + role.slice(1)}
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Registration Form */}
-            <motion.form 
-              onSubmit={handleSubmit} 
-              className="space-y-3 sm:space-y-4"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 1.1, duration: 0.6 }}
-            >
-              {/* Full Name */}
+             {/* Main Content - Full Screen Card Layout */}
+       <div className="flex-1 relative overflow-hidden bg-gray-700">
+         <AnimatePresence mode="wait">
+           <motion.div
+             key={currentCard}
+             className="absolute inset-0 flex items-center justify-center"
+             initial={{ opacity: 0, x: 100 }}
+             animate={{ opacity: 1, x: 0 }}
+             exit={{ opacity: 0, x: -100 }}
+             transition={{ duration: 0.5 }}
+           >
+             {/* Main Card */}
+             <motion.div 
+               className="bg-white w-full h-full relative overflow-hidden flex flex-col"
+               whileHover={{ scale: 1.005 }}
+               transition={{ duration: 0.3 }}
+             >
+              {/* Jio Logo in Card */}
               <motion.div
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 1.2, duration: 0.4 }}
+                className="absolute top-6 left-6 bg-blue-600 rounded-full p-3"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
               >
-                <motion.input
-                  type="text"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleInputChange}
-                  placeholder="Full Name"
-                  className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300 touch-manipulation"
-                  required
-                  whileFocus={{ scale: 1.01, borderColor: "#7c3aed" }}
-                />
+                <Image src="/jio-logo.png" alt="Jio Logo" width={32} height={32} className="w-8 h-8 object-contain filter brightness-0 invert" />
               </motion.div>
 
-              {/* Guardian Name */}
-              <motion.div
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 1.3, duration: 0.4 }}
-              >
-                <motion.input
-                  type="text"
-                  name="guardianName"
-                  value={formData.guardianName}
-                  onChange={handleInputChange}
-                  placeholder="Guardian Name"
-                  className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300 touch-manipulation"
-                  required
-                  whileFocus={{ scale: 1.01 }}
-                />
-              </motion.div>
-
-              {/* Class/Grade and Language - Stacked on mobile, side by side on desktop */}
-              <motion.div 
-                className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.4, duration: 0.4 }}
-              >
-                <div>
-                  <motion.input
-                    type="text"
-                    name="classGrade"
-                    value={formData.classGrade}
-                    onChange={handleInputChange}
-                    placeholder={
-                      selectedRole === 'student' ? 'Class/Grade' : 
-                      selectedRole === 'teacher' ? 'Subject' : 
-                      selectedRole === 'parent' ? 'Student ID (e.g., STUabc123def)' : 
-                      'Organization Type'
-                    }
-                    className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-black transition-all duration-300 touch-manipulation"
-                    required
-                    whileFocus={{ scale: 1.01 }}
-                  />
-                  {selectedRole === 'parent' && (
-                    <motion.p 
-                      className="text-xs text-gray-600 mt-1"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                    >
-                      Enter the student ID provided by your child
-                    </motion.p>
-                  )}
-                </div>
-                <div>
-                  <motion.input
-                    type="text"
-                    name="language"
-                    value={formData.language}
-                    onChange={handleInputChange}
-                    placeholder={
-                      selectedRole === 'student' ? 'Language' : 
-                      selectedRole === 'teacher' ? 'Experience' : 
-                      selectedRole === 'parent' ? 'Location' : 
-                      'Industry'
-                    }
-                    className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-black transition-all duration-300 touch-manipulation"
-                    required
-                    whileFocus={{ scale: 1.01 }}
-                  />
-                </div>
-              </motion.div>
-
-              {/* Location */}
-              <motion.div
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 1.5, duration: 0.4 }}
-              >
-                <motion.input
-                  type="text"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  placeholder="Location"
-                  className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300 touch-manipulation"
-                  required
-                  whileFocus={{ scale: 1.01 }}
-                />
-              </motion.div>
-
-              {/* Email */}
-              <motion.div
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 1.6, duration: 0.4 }}
-              >
-                <motion.input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="Email Address"
-                  className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300 touch-manipulation"
-                  required
-                  whileFocus={{ scale: 1.01 }}
-                />
-              </motion.div>
-
-              {/* Password */}
-              <motion.div
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 1.7, duration: 0.4 }}
-              >
-                <motion.input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="Password"
-                  className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300 touch-manipulation"
-                  required
-                  whileFocus={{ scale: 1.01 }}
-                />
-              </motion.div>
-
-              {/* Confirm Password */}
-              <motion.div
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 1.8, duration: 0.4 }}
-              >
-                <motion.input
-                  type="password"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  placeholder="Confirm Password"
-                  className="w-full px-3 py-2.5 sm:py-3 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-sm sm:text-base bg-transparent placeholder:text-gray-600 text-gray-900 transition-all duration-300 touch-manipulation"
-                  required
-                  whileFocus={{ scale: 1.01 }}
-                />
-              </motion.div>
-
-              {/* Error Message */}
-              <AnimatePresence>
-                {error && (
-                  <motion.div 
-                    className="alert-error"
-                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {error}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Register Button */}
-              <motion.button
-                 type="submit"
-                 className="btn btn-primary w-full mx-auto py-3 sm:py-3 text-sm sm:text-base font-extrabold relative overflow-hidden touch-manipulation rounded-full"
-                 disabled={isLoading}
-                 whileHover={{ scale: 1.02, boxShadow: "0 10px 25px -5px rgba(127, 0, 255, 0.4)" }}
-                 whileTap={{ scale: 0.98 }}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.9, duration: 0.4 }}
-              >
-                <AnimatePresence mode="wait">
-                  {isLoading ? (
-                    <motion.div
-                      key="loading"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="flex items-center justify-center gap-2"
-                    >
-                      <motion.div
-                        className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      />
-                      <span className="text-xs sm:text-sm">Creating Account...</span>
-                    </motion.div>
-                  ) : (
-                    <motion.span
-                      key="register"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      Register
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.button>
-            </motion.form>
-
-            {/* Sign In Link */}
-            <motion.div 
-              className="text-center mt-4 sm:mt-6"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 2.0, duration: 0.4 }}
-            >
-              <span className="text-gray-700 text-xs sm:text-sm">Already have an account? </span>
-              <Link
-                href="/login"
-                className="text-[#7F00FF] hover:text-[#6B00E6] font-semibold text-xs sm:text-sm transition-colors duration-200 touch-manipulation"
-              >
-                <motion.span
-                  whileHover={{ scale: 1.05 }}
-                  className="inline-block"
+                             {/* Content Container */}
+               <div className="flex-1 flex flex-col items-center justify-center text-center p-8 sm:p-12 md:p-16">
+                
+                {/* Illustration Area */}
+                <motion.div 
+                  className="mb-8 sm:mb-12"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
                 >
-                  Sign in
-                </motion.span>
-              </Link>
+                  {cards[currentCard].illustration === "learning" && (
+                    <div className="flex items-center justify-center gap-6 flex-wrap">
+                      {/* Teacher/Presentation */}
+                      <div className="relative bg-orange-100 rounded-2xl p-6 w-32 h-32 flex items-center justify-center">
+                        <div className="text-6xl">👨‍🏫</div>
+                        <div className="absolute -top-2 -right-2 bg-purple-500 rounded-full w-8 h-8 flex items-center justify-center">
+                          <span className="text-white text-sm">AI</span>
+                        </div>
+                      </div>
+                      
+                      {/* Books */}
+                      <div className="bg-green-100 rounded-2xl p-6 w-24 h-24 flex items-center justify-center">
+                        <div className="text-4xl">📚</div>
+                      </div>
+                      
+                      {/* Computer */}
+                      <div className="bg-blue-100 rounded-2xl p-6 w-32 h-32 flex items-center justify-center">
+                        <div className="text-6xl">💻</div>
+                      </div>
+                      
+                      {/* Graduation */}
+                      <div className="bg-purple-100 rounded-2xl p-6 w-24 h-24 flex items-center justify-center">
+                        <div className="text-4xl">🎓</div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {cards[currentCard].illustration === "ai" && (
+                    <div className="flex items-center justify-center gap-6 flex-wrap">
+                      {/* AI Brain */}
+                      <div className="relative bg-purple-100 rounded-2xl p-6 w-32 h-32 flex items-center justify-center">
+                        <div className="text-6xl">🤖</div>
+                        <div className="absolute -top-2 -right-2 bg-blue-500 rounded-full w-8 h-8 flex items-center justify-center">
+                          <span className="text-white text-sm">AI</span>
+                        </div>
+                      </div>
+                      
+                      {/* Data/Analytics */}
+                      <div className="bg-blue-100 rounded-2xl p-6 w-24 h-24 flex items-center justify-center">
+                        <div className="text-4xl">📊</div>
+                      </div>
+                      
+                      {/* Globe/Language */}
+                      <div className="bg-green-100 rounded-2xl p-6 w-32 h-32 flex items-center justify-center">
+                        <div className="text-6xl">🌍</div>
+                      </div>
+                      
+                      {/* Lightbulb */}
+                      <div className="bg-yellow-100 rounded-2xl p-6 w-24 h-24 flex items-center justify-center">
+                        <div className="text-4xl">💡</div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {cards[currentCard].illustration === "ready" && (
+                    <div className="flex items-center justify-center gap-6 flex-wrap">
+                      {/* Student */}
+                      <div className="relative bg-green-100 rounded-2xl p-6 w-32 h-32 flex items-center justify-center">
+                        <div className="text-6xl">👨‍🎓</div>
+                        <div className="absolute -top-2 -right-2 bg-green-500 rounded-full w-8 h-8 flex items-center justify-center">
+                          <span className="text-white text-sm">✓</span>
+                        </div>
+                      </div>
+                      
+                      {/* Laptop */}
+                      <div className="bg-blue-100 rounded-2xl p-6 w-24 h-24 flex items-center justify-center">
+                        <div className="text-4xl">💻</div>
+                      </div>
+                      
+                      {/* Learning Path */}
+                      <div className="bg-orange-100 rounded-2xl p-6 w-32 h-32 flex items-center justify-center">
+                        <div className="text-6xl">🎯</div>
+                      </div>
+                      
+                      {/* Rocket */}
+                      <div className="bg-purple-100 rounded-2xl p-6 w-24 h-24 flex items-center justify-center">
+                        <div className="text-4xl">🚀</div>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+
+                {/* Title */}
+                <motion.h2 
+                  className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 sm:mb-8"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.5 }}
+                >
+                  {currentCard === 0 && (
+                    <>
+                      <span className="text-black">Welcome to the </span>
+                      <span className="text-blue-600">Future</span>
+                      <span className="text-black"> of Learning</span>
+                    </>
+                  )}
+                  {currentCard === 1 && (
+                    <>
+                      <span className="text-black">Dynamic </span>
+                      <span className="text-blue-600">AI</span>
+                      <span className="text-black"> Learning Environments</span>
+                    </>
+                  )}
+                  {currentCard === 2 && (
+                    <>
+                      <span className="text-black">Ready to </span>
+                      <span className="text-blue-600">Learn?</span>
+                    </>
+                  )}
+                </motion.h2>
+
+                {/* Description */}
+                <motion.p 
+                  className="text-lg sm:text-xl md:text-2xl text-gray-700 mb-8 sm:mb-12 leading-relaxed max-w-4xl"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.5, duration: 0.5 }}
+                >
+                  {cards[currentCard].description}
+                </motion.p>
+
+                {/* Buttons */}
+                <motion.div 
+                  className="flex gap-4 sm:gap-6 justify-center flex-wrap"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.6, duration: 0.5 }}
+                >
+                  {cards[currentCard].showBack && (
+                    <motion.button
+                      onClick={prevCard}
+                      className="px-8 sm:px-10 py-4 sm:py-5 bg-gray-100 border-2 border-gray-300 text-gray-700 rounded-full font-semibold hover:bg-gray-200 transition-colors duration-200 text-lg sm:text-xl"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Back
+                    </motion.button>
+                  )}
+                  
+                  <motion.button
+                    onClick={cards[currentCard].buttonAction}
+                    className="px-8 sm:px-10 py-4 sm:py-5 bg-black text-white rounded-full font-semibold hover:bg-gray-800 transition-colors duration-200 text-lg sm:text-xl shadow-lg"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {cards[currentCard].buttonText}
+                  </motion.button>
+                </motion.div>
+              </div>
+
+              {/* Card Indicators */}
+              <motion.div 
+                className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7, duration: 0.5 }}
+              >
+                {[0, 1, 2].map((index) => (
+                  <motion.button
+                    key={index}
+                    onClick={() => setCurrentCard(index)}
+                    className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                      currentCard === index ? 'bg-blue-600 scale-125' : 'bg-gray-300'
+                    }`}
+                    whileHover={{ scale: 1.2 }}
+                    whileTap={{ scale: 0.9 }}
+                  />
+                ))}
+              </motion.div>
             </motion.div>
           </motion.div>
-        </motion.div>
-      </motion.section>
+        </AnimatePresence>
+      </div>
     </motion.main>
   )
 }
