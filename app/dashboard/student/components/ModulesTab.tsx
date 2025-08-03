@@ -248,7 +248,15 @@ export default function ModulesTab() {
       if (response.ok) {
         let data;
         try {
-          data = await response.json();
+          const responseText = await response.text();
+          console.log('🔍 N8N raw response:', responseText);
+          
+          if (!responseText || responseText.trim() === '') {
+            console.warn('Empty response from N8N webhook');
+            throw new Error('Empty response from N8N');
+          }
+          
+          data = JSON.parse(responseText);
           console.log('🔍 N8N Transcribe Workflow response:', data);
         } catch (parseError) {
           console.error('Failed to parse N8N response as JSON:', parseError);
@@ -429,7 +437,18 @@ export default function ModulesTab() {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        let data;
+        try {
+          const responseText = await response.text();
+          if (!responseText || responseText.trim() === '') {
+            throw new Error('Empty response from API');
+          }
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Failed to parse MCQ response:', parseError);
+          setMcqQuestions([]);
+          return;
+        }
         
         if (data.success && data.content && data.content.length > 0) {
           setMcqQuestions(data.content);
@@ -439,7 +458,13 @@ export default function ModulesTab() {
           setMcqQuestions([]);
         }
       } else {
-        const errorData = await response.json();
+        let errorData;
+        try {
+          const errorText = await response.text();
+          errorData = errorText ? JSON.parse(errorText) : { error: 'Unknown error' };
+        } catch {
+          errorData = { error: 'Failed to parse error response' };
+        }
         console.error('❌ Error generating MCQ questions:', errorData);
         setMcqQuestions([]);
       }
@@ -499,7 +524,18 @@ export default function ModulesTab() {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        let data;
+        try {
+          const responseText = await response.text();
+          if (!responseText || responseText.trim() === '') {
+            throw new Error('Empty response from API');
+          }
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Failed to parse flashcard response:', parseError);
+          setFlashcardData([]);
+          return;
+        }
         
         if (data.success && data.content && data.content.length > 0) {
           setFlashcardData(data.content);
@@ -509,7 +545,13 @@ export default function ModulesTab() {
           setFlashcardData([]);
         }
       } else {
-        const errorData = await response.json();
+        let errorData;
+        try {
+          const errorText = await response.text();
+          errorData = errorText ? JSON.parse(errorText) : { error: 'Unknown error' };
+        } catch {
+          errorData = { error: 'Failed to parse error response' };
+        }
         console.error('❌ Error generating flashcards:', errorData);
         setFlashcardData([]);
       }
@@ -609,42 +651,7 @@ export default function ModulesTab() {
           transform: rotateY(180deg);
         }
       `}</style>
-      {/* Header */}
-      <div className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-lg">J</span>
-          </div>
-          <span className="font-semibold text-gray-800 text-lg">JioWorld Learning</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-              <span className="text-yellow-600">🔔</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-              {user?.avatar ? (
-                <img src={user.avatar} alt="User" className="w-full h-full rounded-full object-cover" />
-              ) : (
-                <span className="text-white text-sm font-bold">
-                  {user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
-                </span>
-              )}
-            </div>
-            <div>
-              <span className="text-gray-800 font-medium">
-                {user?.fullName || 'Loading...'}
-              </span>
-              <span className="text-gray-500 text-sm ml-1">
-                {user?.uniqueId ? `#${user.uniqueId}` : ''}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      
       {/* Module Selection */}
       <div className="bg-white px-6 py-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
