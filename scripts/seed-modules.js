@@ -317,10 +317,19 @@ const magnetBrainsVideos = {
 };
 
 // Import the Module model
-const Module = require('../models/Module.ts').default || require('../models/Module.ts');
+let Module;
+try {
+  Module = require('../models/Module.ts').default;
+} catch (error) {
+  console.log('Trying alternative import method...');
+  Module = require('../models/Module.ts');
+}
 
 async function seedModules() {
   try {
+    console.log('Starting module seeding...');
+    console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Found' : 'Not found');
+    
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to MongoDB');
 
@@ -337,7 +346,7 @@ async function seedModules() {
          // Add additional fields and ensure schema compliance
      const modulesToInsert = allModules.map((module, index) => ({
        ...module,
-       moduleId: `MOD_${module.subject.replace(/\s+/g, '_').toUpperCase()}_${index + 1}`,
+       uniqueID: `TRANSCRIBE_${String(index + 3).padStart(3, '0')}`, // Use transcribe IDs starting from 003
        learningType: 'hybrid',
        contentTypes: {
          video: {

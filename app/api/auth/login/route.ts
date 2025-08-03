@@ -4,6 +4,7 @@ import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Student from '@/models/Student';
 import Parent from '@/models/Parent';
+import AssessmentResponse from '@/models/AssessmentResponse';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -48,11 +49,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user needs onboarding
+    // Check if user needs onboarding or assessment
     let requiresOnboarding = false;
+    let requiresAssessment = false;
+    
     if (user.role === 'student') {
       const studentProfile = await Student.findOne({ userId: user._id.toString() });
       requiresOnboarding = !studentProfile?.onboardingCompleted;
+      
+      // If onboarding is completed, check if assessment is completed
+      if (studentProfile?.onboardingCompleted) {
+        const assessmentResponse = await AssessmentResponse.findOne({
+          uniqueId: studentProfile.uniqueId,
+          assessmentType: 'diagnostic',
+          isCompleted: true
+        });
+        requiresAssessment = !assessmentResponse;
+      }
     } else if (user.role === 'parent') {
       const parentProfile = await Parent.findOne({ userId: user._id.toString() });
       requiresOnboarding = !parentProfile?.onboardingCompleted;
@@ -66,7 +79,8 @@ export async function POST(request: NextRequest) {
         fullName: user.name,
         role: user.role,
         firstTimeLogin: user.firstTimeLogin,
-        requiresOnboarding
+        requiresOnboarding,
+        requiresAssessment
       },
       JWT_SECRET,
       { expiresIn: '7d' }
@@ -80,7 +94,8 @@ export async function POST(request: NextRequest) {
       { 
         message: 'Login successful',
         user: userResponse,
-        requiresOnboarding
+        requiresOnboarding,
+        requiresAssessment
       },
       { status: 200 }
     );

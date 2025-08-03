@@ -86,7 +86,24 @@ export default function Login() {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Redirect based on user role
+      // Check if user needs onboarding first
+      if (data.requiresOnboarding) {
+        if (data.user.role === 'student') {
+          router.push('/student-onboarding');
+          return;
+        } else if (data.user.role === 'parent') {
+          router.push('/parent-onboarding');
+          return;
+        }
+      }
+
+      // Check if student needs to complete diagnostic assessment
+      if (data.requiresAssessment && data.user.role === 'student') {
+        router.push('/diagnostic-assessment');
+        return;
+      }
+
+      // Redirect based on user role after onboarding and assessment checks
       if (data.user.role === 'student') {
         router.push('/dashboard/student');
       } else if (data.user.role === 'parent') {

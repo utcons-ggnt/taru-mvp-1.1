@@ -116,6 +116,17 @@ const studentSchema = new mongoose.Schema({
   onboardingCompletedAt: {
     type: Date
   },
+  preferredSubject: {
+    id: {
+      type: String
+    },
+    name: {
+      type: String
+    },
+    selectedAt: {
+      type: Date
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now

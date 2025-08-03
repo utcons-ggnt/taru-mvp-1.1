@@ -179,10 +179,35 @@ export async function POST(request: NextRequest) {
     // Create parent record in parents collection
     await Parent.create(parentProfile);
 
-    return NextResponse.json({ 
+    // Generate new token without onboarding requirement
+    const newToken = jwt.sign(
+      {
+        userId: decoded.userId,
+        email: result.email,
+        fullName: result.name,
+        role: result.role,
+        firstTimeLogin: false,
+        requiresOnboarding: false
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    const response = NextResponse.json({ 
       success: true, 
       message: 'Parent onboarding completed successfully' 
     });
+
+    // Update the auth token cookie
+    response.cookies.set('auth-token', newToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: '/'
+    });
+
+    return response;
 
   } catch (error) {
     console.error('Parent onboarding error:', error);

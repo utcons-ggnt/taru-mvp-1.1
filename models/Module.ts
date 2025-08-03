@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 export interface IModule {
   _id: string;
-  moduleId: string;
+  uniqueID: string;
   title: string;
   description: string;
   subject: string;
@@ -92,7 +92,7 @@ export interface IModule {
 }
 
 const moduleSchema = new mongoose.Schema<IModule>({
-  moduleId: { type: String, required: true, unique: true },
+  uniqueID: { type: String, required: true, unique: true },
   title: { type: String, required: true },
   description: { type: String, required: true },
   subject: { type: String, required: true },

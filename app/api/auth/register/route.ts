@@ -166,14 +166,16 @@ export async function POST(request: NextRequest) {
     // Return user data without password
     const userResponse = user.toJSON();
 
-    // Generate JWT token
+    // Generate JWT token with onboarding requirement
+    const requiresOnboarding = (role === 'student' || role === 'parent');
     const token = jwt.sign(
       {
         userId: user._id,
         email: user.email,
         fullName: user.name,
         role: user.role,
-        firstTimeLogin: user.firstTimeLogin
+        firstTimeLogin: user.firstTimeLogin,
+        requiresOnboarding
       },
       JWT_SECRET,
       { expiresIn: '7d' }

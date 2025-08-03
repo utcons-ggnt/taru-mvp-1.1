@@ -13,7 +13,7 @@ export async function GET() {
       success: true,
       modules: modules.map(module => ({
         id: module._id,
-        moduleId: module.moduleId,
+        uniqueID: module.uniqueID,
         title: module.title,
         description: module.description,
         subject: module.subject,

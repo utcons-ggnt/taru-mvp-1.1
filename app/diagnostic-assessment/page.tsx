@@ -2,477 +2,523 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-interface Question {
+interface AssessmentQuestion {
   id: string;
   question: string;
-  options: string[];
-  category: string;
-  points: number;
-  timeLimit: number;
+  type: 'MCQ' | 'OPEN';
+  options?: string[];
+  category?: string;
+  section?: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
+interface AssessmentResult {
   type: string;
-}
-
-interface AssessmentResults {
+  description: string;
   score: number;
-  percentage: number;
-  totalQuestions: number;
-  answeredQuestions: number;
-  timeSpent: number;
+  learningStyle?: string;
+  recommendations?: { title: string; description: string; xp: number }[];
 }
 
-interface ValidationResults {
-  alignment: string;
-  recommendation: string;
-  confidence: number;
-  feedback: string;
-  suggestions: string[];
-  learningPathReady: boolean;
+interface UserProfile {
+  id: string;
+  email: string;
+  fullName: string;
+  role: string;
+  uniqueId?: string;
+  avatar?: string;
+  age?: number;
+  classGrade?: string;
 }
 
 export default function DiagnosticAssessment() {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<{[key: string]: string}>({});
-  // const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState<AssessmentQuestion | null>(null);
+  const [currentQuestionNumber, setCurrentQuestionNumber] = useState(1);
+  const [totalQuestions, setTotalQuestions] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [answer, setAnswer] = useState('');
+  const [selectedOption, setSelectedOption] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [showResults, setShowResults] = useState(false);
-  const [assessmentResults, setAssessmentResults] = useState<AssessmentResults | null>(null);
-  const [validationResults, setValidationResults] = useState<ValidationResults | null>(null);
-  const [retakeCount, setRetakeCount] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [result, setResult] = useState<AssessmentResult | null>(null);
+  const [error, setError] = useState('');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const router = useRouter();
 
-  const currentQuestion = questions[currentQuestionIndex];
-  const progress = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
-
-  // Load dynamic questions on component mount
-  useEffect(() => {
-    loadQuestions();
-  }, [retakeCount]);
-
-  const loadQuestions = async () => {
-    setIsLoading(true);
-    setError(null);
-    
+  // Fetch user profile data
+  const fetchUserProfile = async () => {
     try {
-      const response = await fetch('/api/assessment/generate-questions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ retakeCount })
-      });
+      const response = await fetch('/api/user/profile');
+      const data = await response.json();
 
       if (response.ok) {
-        const data = await response.json();
-        setQuestions(data.questions);
-        setCurrentQuestionIndex(0);
-        setAnswers({});
+        setUserProfile(data.user);
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to load questions');
+        console.error('Failed to fetch user profile:', data.error);
       }
     } catch (error) {
-      console.error('Error loading questions:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load questions');
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
+  // Load current question
+  const loadQuestion = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/assessment/questions');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load question');
+      }
+
+      if (data.completed) {
+        setIsCompleted(true);
+        setResult(data.result || {
+          type: 'Assessment Completed',
+          description: 'You have already completed the diagnostic assessment.',
+          score: 0,
+          learningStyle: 'Not Available',
+          recommendations: []
+        });
+        return;
+      }
+
+      setCurrentQuestion(data.question);
+      setCurrentQuestionNumber(data.currentQuestion);
+      setTotalQuestions(data.totalQuestions);
+      setProgress(data.progress);
+      setAnswer('');
+      setSelectedOption('');
+    } catch (err) {
+      console.error('Error loading question:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load question');
+      
+      // If there's an error, check if it's because assessment is completed
+      if (err instanceof Error && err.message.includes('completed')) {
+        setIsCompleted(true);
+        setResult({
+          type: 'Assessment Completed',
+          description: 'You have already completed the diagnostic assessment.',
+          score: 0,
+          learningStyle: 'Not Available',
+          recommendations: []
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleAnswer = (answerId: string) => {
-    setAnswers(prev => ({
-      ...prev,
-      [currentQuestion.id]: answerId
-    }));
-  };
+  // Submit answer and move to next question
+  const submitAnswer = async () => {
+    if (!currentQuestion) return;
 
-  const handleNext = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-    } else {
-      validateAssessment();
+    const answerToSubmit = currentQuestion.type === 'MCQ' ? selectedOption : answer;
+    if (!answerToSubmit.trim()) {
+      setError('Please provide an answer');
+      return;
     }
-  };
 
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
-    }
-  };
-
-  const validateAssessment = async () => {
-    // setIsSubmitting(true);
-    
     try {
-      // First, validate the assessment results
-      const validationResponse = await fetch('/api/assessment/validate-results', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          answers,
-          questions,
-          timeSpent: 0 // TODO: Add time tracking
-        })
+      setIsSubmitting(true);
+      setError('');
+
+      console.log('🔍 Submitting answer:', {
+        questionId: currentQuestion.id,
+        answer: answerToSubmit,
+        questionNumber: currentQuestionNumber,
+        questionType: currentQuestion.type
       });
 
-      if (validationResponse.ok) {
-        const validationData = await validationResponse.json();
-        setValidationResults(validationData.validation);
-        setAssessmentResults(validationData.results);
+      // Build URL with query parameters
+      const params = new URLSearchParams({
+        questionId: currentQuestion.id,
+        answer: answerToSubmit,
+        questionNumber: currentQuestionNumber.toString()
+      });
 
-        // If learning path is ready, generate it
-        if (validationData.validation.learningPathReady) {
-          await generateLearningPath(validationData.results, validationData.validation);
-        }
+      const response = await fetch(`/api/assessment/questions?${params}`, {
+        method: 'GET',
+      });
 
-        setShowResults(true);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit answer');
+      }
+
+      if (data.completed) {
+        setIsCompleted(true);
+        setResult(data.result);
+        // Redirect to student dashboard after assessment completion
+        setTimeout(() => {
+          router.push('/dashboard/student');
+        }, 2000); // 2 second delay to show completion message
       } else {
-        throw new Error('Failed to validate assessment');
+        // Load next question
+        loadQuestion();
       }
-    } catch (error) {
-      console.error('Assessment validation error:', error);
-      setError('Failed to validate assessment results');
+    } catch (err) {
+      console.error('Error submitting answer:', err);
+      setError(err instanceof Error ? err.message : 'Failed to submit answer');
     } finally {
-      // setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
-  const generateLearningPath = async (results: AssessmentResults, validation: ValidationResults) => {
-    try {
-      const response = await fetch('/api/learning-paths/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          assessmentResults: results,
-          validationResults: validation
-        })
-      });
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Learning path generated:', data);
-        // Store learning path data for later use
-        localStorage.setItem('generatedLearningPath', JSON.stringify(data.learningPath));
-      }
-    } catch (error) {
-      console.error('Learning path generation error:', error);
-    }
-  };
 
-  const handleRetake = () => {
-    setRetakeCount(prev => prev + 1);
-    setShowResults(false);
-    setAssessmentResults(null);
-    setValidationResults(null);
-  };
+  // Load user profile and first question on component mount
+  useEffect(() => {
+    fetchUserProfile();
+    loadQuestion();
+  }, []);
 
-  const handleModifyProfile = () => {
-    router.push('/skill-assessment');
-  };
-
-  const handleProceedToLearningPath = () => {
-    router.push('/curriculum-path');
-  };
-
-  const handleSkip = () => {
-    router.push('/dashboard/student');
-  };
-
-  if (isLoading) {
+  // Completion screen
+  if (isCompleted && result) {
     return (
-      <motion.div 
-        className="min-h-screen bg-white flex items-center justify-center px-4 py-6 md:px-8 md:py-12"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
+      <motion.main 
+        className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex flex-col"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Generating Your Assessment</h2>
-          <p className="text-gray-600">Creating personalized questions based on your skills and interests...</p>
-        </div>
-      </motion.div>
-    );
-  }
-
-  if (error) {
-    return (
-      <motion.div 
-        className="min-h-screen bg-white flex items-center justify-center px-4 py-6 md:px-8 md:py-12"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">❌</span>
+        {/* Header */}
+        <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Image src="/jio-logo.png" alt="Jio Logo" width={40} height={40} className="rounded-full" />
+            <span className="font-semibold text-gray-800">JioWorld Learning</span>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Assessment</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={loadQuestions}
-            className="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors"
-          >
-            Try Again
-          </button>
+          <div className="flex items-center gap-3">
+            <span className="text-gray-600">
+              {userProfile ? `${userProfile.fullName} ${userProfile.uniqueId ? `#${userProfile.uniqueId}` : ''}` : 'Loading...'}
+            </span>
+            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+              {userProfile ? userProfile.fullName.charAt(0).toUpperCase() : 'U'}
+            </div>
         </div>
-      </motion.div>
-    );
-  }
+        </header>
 
-  if (showResults && assessmentResults && validationResults) {
-    return (
-      <motion.div 
-        className="min-h-screen bg-white flex items-center justify-center px-4 py-6 md:px-8 md:py-12"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="max-w-md lg:max-w-lg w-full">
+        {/* Progress Steps */}
+        <div className="bg-white px-6 py-4">
+          <div className="flex justify-center items-center gap-4 max-w-4xl mx-auto">
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} className="flex items-center">
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm">
+                    ✓
+                  </div>
+                  <div className="text-xs text-green-600 mt-1">
+                    Step {i + 1} of 6
+                  </div>
+                  <div className="text-xs text-green-600">Completed</div>
+                </div>
+                {i < 5 && <div className="w-16 h-0.5 bg-green-500 mx-2"></div>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Result Section */}
+        <div className="flex-1 flex items-center justify-center px-6 py-8">
           <motion.div 
-            className="bg-white rounded-2xl shadow-lg p-6 md:p-8"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
+            className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-2xl p-8 text-white text-center max-w-4xl mx-auto relative overflow-hidden"
+            initial={{ scale: 0.9, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
           >
-            {/* Results Header */}
-            <div className="text-center mb-8">
-              <h1 className="text-2xl md:text-3xl font-bold text-[#6D18CE] mb-2">
-                Assessment Complete! 🎉
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+            >
+              <h1 className="text-4xl font-bold mb-4">
+                🎭 You&apos;re a {result.type}! 🏆
               </h1>
-              <p className="text-gray-500 text-sm md:text-base">
-                {validationResults.feedback}
+              <p className="text-xl mb-8 opacity-90">
+                {result.description}
               </p>
-            </div>
+            </motion.div>
 
-            {/* Assessment Score */}
-            <div className="bg-gradient-to-r from-[#6D18CE] to-purple-600 text-white rounded-xl p-6 mb-6 text-center">
-              <div className="text-4xl font-bold mb-2">{assessmentResults.percentage}%</div>
-              <div className="text-lg font-semibold">
-                {assessmentResults.percentage >= 80 ? 'Excellent' : 
-                 assessmentResults.percentage >= 60 ? 'Good' : 'Needs Improvement'}
-              </div>
-            </div>
-
-            {/* Validation Results */}
-            <div className="space-y-4 mb-8">
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-800">Alignment</span>
-                <span className={`font-bold ${
-                  validationResults.alignment === 'high' ? 'text-green-600' :
-                  validationResults.alignment === 'moderate' ? 'text-yellow-600' : 'text-red-600'
-                }`}>
-                  {validationResults.alignment.charAt(0).toUpperCase() + validationResults.alignment.slice(1)}
-                </span>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-800">Confidence</span>
-                <span className="text-[#6D18CE] font-bold">
-                  {Math.round(validationResults.confidence * 100)}%
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-800">Questions Answered</span>
-                <span className="text-[#6D18CE] font-bold">
-                  {assessmentResults.answeredQuestions}/{assessmentResults.totalQuestions}
-                </span>
-              </div>
-            </div>
-
-            {/* Recommendations */}
-            {validationResults.suggestions.length > 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-                <h3 className="font-semibold text-yellow-800 mb-2">Suggestions</h3>
-                <ul className="text-sm text-yellow-700 space-y-1">
-                  {validationResults.suggestions.map((suggestion, index) => (
-                    <li key={index}>• {suggestion}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              {validationResults.recommendation === 'retake' && (
-                <button
-                  onClick={handleRetake}
-                  className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                >
-                  Retake Assessment
+            <motion.div 
+              className="flex justify-center gap-4 mb-8"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+            >
+              <button className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-full font-semibold hover:bg-white/30 transition-colors flex items-center gap-2">
+                😊 Try Again with Me!
                 </button>
-              )}
-
-              {validationResults.recommendation === 'modify' && (
                 <button
-                  onClick={handleModifyProfile}
-                  className="w-full bg-orange-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors"
-                >
-                  Modify Skills & Interests
-                </button>
-              )}
-
-              {validationResults.learningPathReady && (
-                <button
-                  onClick={handleProceedToLearningPath}
-                  className="w-full bg-[#6D18CE] text-white px-4 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors"
-                >
-                  Proceed to Learning Path
-                </button>
-              )}
-
-              <button
-                onClick={handleSkip}
-                className="w-full bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                onClick={() => router.push('/dashboard/student')}
+                className="bg-white text-purple-600 px-6 py-3 rounded-full font-semibold hover:bg-gray-100 transition-colors"
               >
-                Skip for Now
+                Go to Dashboard
               </button>
+            </motion.div>
+
+            {/* Redirect Message */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 1.0, duration: 0.5 }}
+              className="text-center mb-4"
+            >
+              <p className="text-white/80 text-sm">
+                Redirecting to your dashboard in 2 seconds...
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.5 }}
+            >
+              <h2 className="text-2xl font-bold mb-4">Magical Suggestions!</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                  <h3 className="font-semibold mb-2">The Water Cycle</h3>
+                  <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-sm">75+ XP</span>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                  <h3 className="font-semibold mb-2">Shapes Adventure</h3>
+                  <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-sm">50+ XP</span>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                  <h3 className="font-semibold mb-2">Story of the Moon</h3>
+                  <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-sm">30+ XP</span>
+                </div>
             </div>
+            </motion.div>
+
+            {/* Decorative elements */}
+            <div className="absolute top-4 right-4 text-4xl">⭐</div>
+            <div className="absolute bottom-4 left-4 text-2xl">✨</div>
+            <div className="absolute top-1/2 right-8 text-3xl">☁️</div>
           </motion.div>
         </div>
-      </motion.div>
+      </motion.main>
     );
   }
 
-  if (questions.length === 0) {
+  // Loading screen
+  if (isLoading) {
     return (
-      <motion.div 
-        className="min-h-screen bg-white flex items-center justify-center px-4 py-6 md:px-8 md:py-12"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">📝</span>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">No Questions Available</h2>
-          <p className="text-gray-600 mb-4">Please complete your skills and interests assessment first.</p>
-          <button
-            onClick={() => router.push('/skill-assessment')}
-            className="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors"
-          >
-            Go to Skills Assessment
-          </button>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your diagnostic assessment...</p>
         </div>
-      </motion.div>
+          </div>
     );
   }
 
+
+
+  // Error screen
+  if (error && !isCompleted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md mx-auto">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Assessment Error</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+          <button
+              onClick={() => {
+                setError('');
+                loadQuestion();
+              }} 
+              className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
+            >
+              Try Again
+          </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Question screen (only if not completed)
+  if (!isCompleted) {
   return (
-    <motion.div 
-      className="min-h-screen bg-white flex items-center justify-center px-4 py-6 md:px-8 md:py-12"
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
+    <motion.main 
+      className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex flex-col"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="max-w-md lg:max-w-lg w-full">
-        <motion.div 
-          className="bg-white rounded-2xl shadow-lg p-6 md:p-8"
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-        >
+      {/* Header */}
+      <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Image src="/jio-logo.png" alt="Jio Logo" width={40} height={40} className="rounded-full" />
+          <span className="font-semibold text-gray-800">JioWorld Learning</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-gray-600">
+            {userProfile ? `${userProfile.fullName} ${userProfile.uniqueId ? `#${userProfile.uniqueId}` : ''}` : 'Loading...'}
+          </span>
+          <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+            {userProfile ? userProfile.fullName.charAt(0).toUpperCase() : 'U'}
+          </div>
+        </div>
+      </header>
+
           {/* Progress Bar */}
-          <div className="mb-6">
+      <div className="bg-white px-6 py-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-gray-700">Question {currentQuestionNumber} of {totalQuestions}</span>
+            <span className="text-sm font-medium text-purple-600">{progress}% Complete</span>
+          </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <motion.div
-                className="bg-[#6D18CE] h-2 rounded-full"
-                initial={{ width: "0%" }}
+              className="bg-purple-600 h-2 rounded-full"
+              style={{ width: `${progress}%` }}
+              initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.5 }}
               />
             </div>
           </div>
-
-          {/* Heading Section */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-[#6D18CE] mb-2">
-              Personalized Assessment
-            </h1>
-            <p className="text-gray-500 text-sm md:text-base">
-              Question {currentQuestionIndex + 1} of {questions.length}
-            </p>
           </div>
 
-          {/* Question Box */}
+      {/* Question Content */}
+      <div className="flex-1 px-6 py-8">
+        <div className="max-w-4xl mx-auto">
           <AnimatePresence mode="wait">
+            {currentQuestion ? (
             <motion.div 
               key={currentQuestion.id}
-              initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+                exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.3 }}
-            >
-              <h2 className="text-lg font-medium mb-6 text-gray-800">
+                className="bg-white rounded-2xl shadow-lg p-8"
+              >
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-sm font-medium">
+                      {currentQuestion.section || currentQuestion.category}
+                    </span>
+                    <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium">
+                      {currentQuestion.difficulty}
+                    </span>
+                    <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
+                      {currentQuestion.type}
+                    </span>
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-6">
                 {currentQuestion.question}
               </h2>
+                </div>
 
-              {/* Answer Options */}
-              <div className="space-y-3 mb-8">
+                {/* MCQ Options */}
+                {currentQuestion.type === 'MCQ' && currentQuestion.options && (
+                  <div className="space-y-3 mb-6">
                 {currentQuestion.options.map((option, index) => (
-                  <motion.button
+                      <label
                     key={index}
-                    onClick={() => handleAnswer(option)}
-                    className={`w-full border border-gray-300 rounded-xl p-4 text-left cursor-pointer transition-all duration-200 ${
-                      answers[currentQuestion.id] === option
-                        ? 'bg-[#6D18CE] text-white border-[#6D18CE]'
-                        : 'hover:shadow-md hover:border-[#6D18CE]'
-                    }`}
-                    initial={{ opacity: 0, y: 10 }}
+                        className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                          selectedOption === option
+                            ? 'border-purple-500 bg-purple-50'
+                            : 'border-gray-200 hover:border-purple-300'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="mcq-option"
+                          value={option}
+                          checked={selectedOption === option}
+                          onChange={(e) => setSelectedOption(e.target.value)}
+                          className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                        />
+                        <span className="ml-3 text-gray-800">{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {/* Open Question */}
+                {currentQuestion.type === 'OPEN' && (
+                  <div className="mb-6">
+                    <textarea
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      placeholder="Type your answer here..."
+                      className="w-full h-32 p-4 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none"
+                    />
+                  </div>
+                )}
+
+                {/* Error Message */}
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1, duration: 0.3 }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                    className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-4"
                   >
-                    {option}
-                  </motion.button>
-                ))}
-              </div>
+                    {error}
             </motion.div>
+                )}
+
+                {/* Submit Button */}
+                <div className="flex justify-end">
+            <button
+                    onClick={submitAnswer}
+                    disabled={isSubmitting || (!selectedOption && !answer.trim())}
+                    className="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Submitting...
+                      </>
+                    ) : currentQuestionNumber === totalQuestions ? (
+                      'Complete Assessment'
+                    ) : (
+                      'Next Question →'
+                    )}
+            </button>
+          </div>
+                    </motion.div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+                <p className="text-gray-600">No question available. Please try refreshing the page.</p>
+            <button
+                  onClick={() => loadQuestion()} 
+                  className="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+            >
+                  Retry
+            </button>
+          </div>
+            )}
           </AnimatePresence>
-
-          {/* Bottom Navigation Buttons */}
-          <div className="flex justify-between items-center">
-            <button
-              onClick={handlePrevious}
-              disabled={currentQuestionIndex === 0}
-              className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Back
-            </button>
-
-            <button
-              onClick={handleNext}
-              disabled={!answers[currentQuestion.id]}
-              className="bg-[#6D18CE] text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {currentQuestionIndex === questions.length - 1 ? 'Finish' : 'Continue'}
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Skip Option */}
-          <div className="text-center mt-6">
-            <button
-              onClick={handleSkip}
-              className="text-gray-500 hover:text-gray-700 underline text-sm transition-colors"
-            >
-              Skip assessment for now
-            </button>
-          </div>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+    </motion.main>
+  );
+  }
+
+  // If we reach here, something went wrong
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
+      <div className="text-center">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md mx-auto">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Unexpected State</h2>
+          <p className="text-gray-600 mb-6">Something went wrong. Please try refreshing the page.</p>
+            <button
+            onClick={() => window.location.reload()} 
+            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
+            >
+            Refresh Page
+            </button>
+          </div>
+      </div>
+    </div>
   );
 } 

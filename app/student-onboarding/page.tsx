@@ -272,21 +272,18 @@ export default function StudentOnboarding() {
 
     switch (step) {
       case 1:
-        // Only validate additional fields not collected during registration
+        // Basic info and guardian info validation
         if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
         if (!formData.gender) newErrors.gender = 'Gender is required';
-        if (!formData.schoolId.trim()) newErrors.schoolId = 'School ID is required';
-        break;
-      
-      case 2:
+        if (!formData.guardianName.trim()) newErrors.guardianName = 'Guardian name is required';
         if (!formData.languagePreference) newErrors.languagePreference = 'Language preference is required';
+        if (!formData.schoolId.trim()) newErrors.schoolId = 'School ID is required';
         if (formData.learningModePreference.length === 0) {
           newErrors.learningModePreference = 'Please select at least one learning mode';
         }
         break;
       
-      case 3:
-        if (!formData.guardianName.trim()) newErrors.guardianName = 'Guardian name is required';
+      case 2:
         if (!formData.guardianContactNumber.trim()) {
           newErrors.guardianContactNumber = 'Guardian contact number is required';
         }
@@ -295,7 +292,8 @@ export default function StudentOnboarding() {
         }
         break;
       
-      case 4:
+      case 3:
+        // Privacy and consent validation
         if (!formData.consentForDataUsage) {
           newErrors.consentForDataUsage = 'Data usage consent is required';
         }
@@ -303,6 +301,8 @@ export default function StudentOnboarding() {
           newErrors.termsAndConditionsAccepted = 'Terms and conditions must be accepted';
         }
         break;
+      
+
     }
 
     setErrors(newErrors);
@@ -311,7 +311,7 @@ export default function StudentOnboarding() {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 4));
+      setCurrentStep(prev => Math.min(prev + 1, 3));
     }
   };
 
@@ -341,7 +341,7 @@ export default function StudentOnboarding() {
   };
 
   const handleSubmit = async () => {
-    if (!validateStep(4)) return;
+    if (!validateStep(3)) return;
 
     setIsSubmitting(true);
     try {
@@ -387,6 +387,11 @@ export default function StudentOnboarding() {
         console.log('🔍 Success result:', result);
         setUniqueId(result.uniqueId || generatedUniqueId);
         setIsSuccess(true);
+        
+        // Auto-redirect to diagnostic assessment after 3 seconds
+        setTimeout(() => {
+          router.push('/diagnostic-assessment');
+        }, 3000);
       } else {
         const errorData = await response.json();
         console.error('🔍 Error response:', errorData);
@@ -404,14 +409,14 @@ export default function StudentOnboarding() {
   if (isLoading) {
     return (
       <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
-        <div className="w-full md:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-6 py-8 text-white flex flex-col justify-between relative">
-          <Image src="/jio-logo.png" alt="Jio Logo" width={56} height={56} className="absolute top-4 left-4 w-14 h-14 object-contain" />
-          <div className="mt-20 md:mt-32">
-            <h2 className="text-3xl md:text-4xl font-bold leading-snug md:leading-snug px-2 md:px-10">
-              Loading your profile...
-            </h2>
+        <div className="w-full md:w-1/2 bg-gradient-to-br from-[#8B3DFF] to-[#6D18CE] px-6 py-8 text-white flex flex-col relative">
+          <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="w-15 h-15 object-contain mb-8" />
+          
+          <div className="flex-1 flex flex-col justify-center">
+            <h1 className="text-4xl md:text-5xl font-bold mb-12 px-4">
+              Loading <span className="text-white/90">Profile...</span>
+            </h1>
           </div>
-          <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
         </div>
         <div className="w-full md:w-1/2 bg-white px-4 sm:px-8 py-10 flex flex-col justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
@@ -423,15 +428,15 @@ export default function StudentOnboarding() {
   if (isSuccess) {
     return (
       <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
-        <div className="w-full md:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-6 py-8 text-white flex flex-col justify-between relative">
-          <Image src="/jio-logo.png" alt="Jio Logo" width={56} height={56} className="absolute top-4 left-4 w-14 h-14 object-contain" />
-          <div className="mt-20 md:mt-32">
-            <h2 className="text-3xl md:text-4xl font-bold leading-snug md:leading-snug px-2 md:px-10">
-              🎉 Welcome to JioWorld! <br />
-              Your onboarding is complete!
-            </h2>
+        <div className="w-full md:w-1/2 bg-gradient-to-br from-[#8B3DFF] to-[#6D18CE] px-6 py-8 text-white flex flex-col relative">
+          <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="w-15 h-15 object-contain mb-8" />
+          
+          <div className="flex-1 flex flex-col justify-center">
+            <h1 className="text-4xl md:text-5xl font-bold mb-12 px-4">
+              Welcome to <span className="text-white/90">JioWorld!</span>
+            </h1>
+            <p className="text-xl px-4 text-white/80">Your onboarding is complete!</p>
           </div>
-          <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8 md:mt-12" />
         </div>
         <div className="w-full md:w-1/2 bg-white px-4 sm:px-8 py-10 flex flex-col justify-center">
           <div className="max-w-md mx-auto w-full text-center">
@@ -489,12 +494,27 @@ export default function StudentOnboarding() {
               </button>
             </div>
 
-            <button
-              onClick={() => router.push('/dashboard/student')}
-              className="w-full bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              {t.continueToDashboard}
-            </button>
+            {/* Redirect Message */}
+            <div className="text-center mb-4">
+              <p className="text-gray-600 text-sm">
+                Redirecting to diagnostic assessment in 3 seconds...
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => router.push('/diagnostic-assessment')}
+                className="w-full bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Take Diagnostic Assessment Now
+              </button>
+              <button
+                onClick={() => router.push('/dashboard/student')}
+                className="w-full bg-gray-100 text-gray-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                {t.continueToDashboard}
+              </button>
+            </div>
           </div>
         </div>
       </main>
@@ -798,34 +818,47 @@ export default function StudentOnboarding() {
 
   return (
     <main className="min-h-screen flex flex-col md:flex-row overflow-hidden">
-      {/* 🟪 Left Section - Deep Purple Gradient */}
-      <section className="w-full md:w-1/2 bg-gradient-to-br from-[#7F00FF] to-[#E100FF] px-6 py-8 text-white flex flex-col justify-between relative">
-        <Image src="/jio-logo.png" alt="Jio Logo" width={48} height={48} className="absolute top-4 left-4 w-12 h-12 object-contain" />
-        <div className="mt-16">
-          <h2 className="text-3xl md:text-4xl font-bold leading-tight">
-            Complete your <br />
-            student profile <br />
-            and <span className="text-amber-400 font-extrabold">Unlock your<br />Learning Journey.</span>
-          </h2>
+      {/* 🟪 Left Section - Students Details */}
+      <section className="w-full md:w-1/2 bg-gradient-to-br from-[#8B3DFF] to-[#6D18CE] px-6 py-8 text-white flex flex-col relative">
+        <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="w-15 h-15 object-contain mb-8" />
+        
+        <div className="flex-1 flex flex-col justify-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-12 px-4">
+            Students <span className="text-white/90">Details</span>
+          </h1>
+          
+          {/* Progress Steps */}
+          <div className="px-4 space-y-6">
+            {[1, 2, 3].map((step) => (
+              <div key={step} className="flex items-center">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${
+                  step === currentStep 
+                    ? 'bg-white text-purple-600' 
+                    : step < currentStep 
+                      ? 'bg-white/80 text-purple-600' 
+                      : 'bg-white/20 text-white/60'
+                }`}>
+                  {step}
         </div>
-        <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-56 md:w-64 mx-auto mt-8" />
+                {step < 3 && (
+                  <div className={`w-px h-8 ml-6 mt-4 ${
+                    step < currentStep ? 'bg-white/80' : 'bg-white/20'
+                  }`} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
-      {/* ⬜ Right Section - White with Grid */}
-      <section className="w-full md:w-1/2 bg-white px-6 py-8 flex flex-col justify-center relative" style={{
-        backgroundImage: `
-          linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px)
-        `,
-        backgroundSize: '20px 20px'
-      }}>
+      {/* ⬜ Right Section - Getting to Know You */}
+      <section className="w-full md:w-1/2 bg-white px-8 py-8 flex flex-col relative">
         {/* Language Selector */}
         <div className="absolute top-6 right-6 flex items-center gap-2 text-sm text-gray-700 z-20">
-          <span role="img" aria-label="language" className="text-base">🌐</span>
           <select
             value={language}
             onChange={(e) => handleLanguageChange(e.target.value)}
-            className="border border-gray-300 px-3 py-1.5 rounded-md text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+            className="border border-gray-300 px-4 py-2 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
           >
             {languages.map((lang) => (
               <option key={lang} value={lang}>
@@ -835,45 +868,249 @@ export default function StudentOnboarding() {
           </select>
         </div>
 
-        <div className="max-w-md mx-auto w-full">
-          {/* Onboarding Form Container */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                {t.onboardingTitle}
+        <div className="max-w-2xl mx-auto w-full">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Getting to Know You
               </h1>
-              <p className="text-gray-600 text-sm">
-                {t.subtitle}
-              </p>
-              <div className="flex justify-center mt-4">
-                {[1, 2, 3, 4].map((step) => (
-                  <div
-                    key={step}
-                    className={`w-3 h-3 rounded-full mx-1 ${
-                      step === currentStep ? 'bg-[#7F00FF]' : 
-                      step < currentStep ? 'bg-green-500' : 'bg-gray-300'
-                    }`}
-                  />
-                ))}
+          </div>
+
+          {/* Form Content */}
+          <div className="space-y-8">
+            {currentStep === 1 && (
+              <div>
+                <h2 className="text-xl font-semibold text-purple-600 mb-6">Basic Info</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <input
+                      type="text"
+                      value={formData.fullName}
+                      disabled
+                      placeholder="Full Name"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      value={formData.guardianName}
+                      onChange={(e) => handleInputChange('guardianName', e.target.value)}
+                      placeholder="Guardian Name"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    />
+                    {errors.guardianName && <p className="text-red-500 text-sm mt-1">{errors.guardianName}</p>}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    />
+                    {!formData.dateOfBirth && (
+                      <div className="absolute inset-0 flex items-center px-4 pointer-events-none text-gray-400">
+                        dd/mm/yyyy
+                      </div>
+                    )}
+                    {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>}
+                  </div>
+                  <div>
+                    <select
+                      value={formData.gender}
+                      onChange={(e) => handleInputChange('gender', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    >
+                      <option value="">Gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                    {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender}</p>}
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      value={formData.location}
+                      onChange={(e) => handleInputChange('location', e.target.value)}
+                      placeholder="Location / City"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    />
+                  </div>
+                  <div>
+                    <select
+                      value={formData.languagePreference}
+                      onChange={(e) => handleInputChange('languagePreference', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    >
+                      <option value="">Language</option>
+                      {languageOptions.map((lang) => (
+                        <option key={lang} value={lang}>{lang}</option>
+                      ))}
+                    </select>
+                    {errors.languagePreference && <p className="text-red-500 text-sm mt-1">{errors.languagePreference}</p>}
               </div>
             </div>
 
-            <div className="space-y-6">
-              {renderCurrentStep()}
+                <div className="mt-8">
+                  <h3 className="text-xl font-semibold text-purple-600 mb-6">School & Learning</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <select
+                        value={formData.classGrade}
+                        onChange={(e) => handleInputChange('classGrade', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      >
+                        <option value="">Select Grade</option>
+                        <option value="1">Grade 1</option>
+                        <option value="2">Grade 2</option>
+                        <option value="3">Grade 3</option>
+                        <option value="4">Grade 4</option>
+                        <option value="5">Grade 5</option>
+                        <option value="6">Grade 6</option>
+                        <option value="7">Grade 7</option>
+                        <option value="8">Grade 8</option>
+                        <option value="9">Grade 9</option>
+                        <option value="10">Grade 10</option>
+                        <option value="11">Grade 11</option>
+                        <option value="12">Grade 12</option>
+                      </select>
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={formData.schoolName}
+                        onChange={(e) => handleInputChange('schoolName', e.target.value)}
+                        placeholder="School Name"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={formData.schoolId}
+                        onChange={(e) => handleInputChange('schoolId', e.target.value)}
+                        placeholder="School ID"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      />
+                      {errors.schoolId && <p className="text-red-500 text-sm mt-1">{errors.schoolId}</p>}
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={formData.interestsOutsideClass.join(', ')}
+                        onChange={(e) => handleInputChange('interestsOutsideClass', e.target.value.split(', ').filter(i => i.trim()))}
+                        placeholder="Favourite Subjects"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={formData.learningModePreference.join(', ')}
+                        onChange={(e) => handleInputChange('learningModePreference', e.target.value.split(', ').filter(i => i.trim()))}
+                        placeholder="Preferred Learning Style (Games, Stories, Videos)"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      />
+                      {errors.learningModePreference && <p className="text-red-500 text-sm mt-1">{errors.learningModePreference}</p>}
+                    </div>
+                  </div>
+                </div>
 
+                <div className="mt-12 text-center">
+                  <button
+                    onClick={handleNext}
+                    className="bg-gradient-to-r from-[#8B3DFF] to-[#6D18CE] text-white px-12 py-4 rounded-full text-lg font-semibold hover:shadow-lg transition-all duration-200"
+                  >
+                    Explore your Strengths
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 2 && (
+              <div>
+                <h2 className="text-xl font-semibold text-purple-600 mb-6">Guardian Information</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <input
+                      type="tel"
+                      value={formData.guardianContactNumber}
+                      onChange={(e) => handleInputChange('guardianContactNumber', e.target.value)}
+                      placeholder="Guardian Contact Number"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    />
+                    {errors.guardianContactNumber && <p className="text-red-500 text-sm mt-1">{errors.guardianContactNumber}</p>}
+                  </div>
+                  <div>
+                    <input
+                      type="email"
+                      value={formData.guardianEmail}
+                      onChange={(e) => handleInputChange('guardianEmail', e.target.value)}
+                      placeholder="Guardian Email (Optional)"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    />
+                    {errors.guardianEmail && <p className="text-red-500 text-sm mt-1">{errors.guardianEmail}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 3 && (
+              <div>
+                <h2 className="text-xl font-semibold text-purple-600 mb-6">Privacy & Consent</h2>
+            <div className="space-y-6">
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-purple-800 mb-2">Data Usage Consent</h3>
+                    <p className="text-sm text-purple-700 mb-3">
+                      By accepting this consent, you agree to allow JioWorld Learning to collect, process, and use your learning data 
+                      to provide personalized educational experiences and track your progress.
+                    </p>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.consentForDataUsage}
+                        onChange={(e) => handleInputChange('consentForDataUsage', e.target.checked)}
+                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="text-sm text-purple-700">I consent to the collection and use of my learning data *</span>
+                    </label>
+                    {errors.consentForDataUsage && <p className="text-red-500 text-sm mt-1">{errors.consentForDataUsage}</p>}
+                  </div>
+
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Terms and Conditions</h3>
+                    <p className="text-sm text-gray-700 mb-3">
+                      Please read and accept our terms and conditions to continue using the platform.
+                    </p>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.termsAndConditionsAccepted}
+                        onChange={(e) => handleInputChange('termsAndConditionsAccepted', e.target.checked)}
+                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="text-sm text-gray-800">I accept the terms and conditions *</span>
+                    </label>
+                    {errors.termsAndConditionsAccepted && <p className="text-red-500 text-sm mt-1">{errors.termsAndConditionsAccepted}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep > 1 && (
               <div className="flex justify-between pt-4">
                 <button
                   onClick={handlePrevious}
-                  disabled={currentStep === 1}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-200"
                 >
                   {t.previous}
                 </button>
                 
-                {currentStep < 4 ? (
+                {currentStep < 3 ? (
                   <button
                     onClick={handleNext}
-                    className="px-6 py-2 bg-[#7F00FF] text-white rounded-lg hover:bg-[#6B00E6] transition-all duration-200"
+                    className="px-6 py-2 bg-gradient-to-r from-[#8B3DFF] to-[#6D18CE] text-white rounded-lg hover:shadow-lg transition-all duration-200"
                   >
                     {t.next}
                   </button>
@@ -881,13 +1118,13 @@ export default function StudentOnboarding() {
                   <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className="px-6 py-2 bg-[#7F00FF] text-white rounded-lg hover:bg-[#6B00E6] disabled:opacity-50 transition-all duration-200"
+                    className="px-6 py-2 bg-gradient-to-r from-[#8B3DFF] to-[#6D18CE] text-white rounded-lg hover:shadow-lg disabled:opacity-50 transition-all duration-200"
                   >
                     {isSubmitting ? t.submitting : t.submit}
                   </button>
                 )}
               </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
