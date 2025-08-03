@@ -98,7 +98,7 @@ export default function ModulesTab() {
   const [chatInput, setChatInput] = useState('');
   
   // N8N Webhook URL
-  const N8N_WEBHOOK_URL = 'https://nclbtaru.app.n8n.cloud/webhook/AI-BUDDY-MAIN';
+  const N8N_WEBHOOK_URL = 'https://nclbtaru.app.n8n.cloud/webhook/MCQ/Flash/questions';
 
   // Initialize AI Services
   useEffect(() => {
