@@ -61,12 +61,15 @@ export interface SpeechProgress {
 }
 
 export interface MCQQuestion {
-  id: string;
+  Q: string;
+  level: string;
   question: string;
   options: string[];
-  correctAnswer: number;
-  explanation: string;
-  difficulty: 'easy' | 'medium' | 'hard';
+  answer: string;
+}
+
+export interface N8NAssessmentResponse {
+  output: string;
 }
 
 export interface LearningContext {

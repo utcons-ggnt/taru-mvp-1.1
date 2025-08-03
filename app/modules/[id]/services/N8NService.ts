@@ -1,4 +1,4 @@
-import { AIResponse, LearningContext, ActionType } from '../types';
+import { AIResponse, LearningContext, ActionType, MCQQuestion, N8NAssessmentResponse } from '../types';
 
 export class N8NService {
   private n8nWebhookUrl: string;
@@ -92,36 +92,46 @@ export class N8NService {
     return questions.slice(0, 4);
   }
 
-  async generateMCQs(content: string, count: number = 5): Promise<any[]> {
+  async generateMCQs(uniqueId: string, studentUniqueId?: string): Promise<MCQQuestion[]> {
     try {
-      const payload = {
-        content,
-        count,
-        type: 'mcq',
-        timestamp: new Date().toISOString()
-      };
+      const params = new URLSearchParams({
+        uniqueID: 'TRANSCRIBE_003',
+        submittedAt: new Date().toISOString()
+      });
 
-      const response = await fetch(this.n8nModuleAssessmentWebhookUrl, {
-        method: 'POST',
+      const webhookUrl = `${this.n8nModuleAssessmentWebhookUrl}?${params.toString()}`;
+      console.log('📤 Sending MCQ generation request to N8N:', webhookUrl);
+
+      const response = await fetch(webhookUrl, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
+        }
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data: N8NAssessmentResponse[] = await response.json();
+      console.log('📥 N8N MCQ response:', data);
       
-      // Handle different response formats
-      if (Array.isArray(data)) {
-        return data;
-      } else if (data.questions && Array.isArray(data.questions)) {
-        return data.questions;
-      } else if (data.mcqs && Array.isArray(data.mcqs)) {
-        return data.mcqs;
+      // Parse the output string to extract MCQ questions
+      if (data && data.length > 0 && data[0].output) {
+        try {
+          const questionsData = JSON.parse(data[0].output);
+          if (Array.isArray(questionsData)) {
+            return questionsData.map((q, index) => ({
+              Q: q.Q || (index + 1).toString(),
+              level: q.level || 'Basic',
+              question: q.question || '',
+              options: q.options || [],
+              answer: q.answer || ''
+            }));
+          }
+        } catch (parseError) {
+          console.error('Failed to parse MCQ questions from N8N response:', parseError);
+        }
       }
 
       return [];
@@ -131,36 +141,40 @@ export class N8NService {
     }
   }
 
-  async generateFlashcards(content: string, count: number = 3): Promise<any[]> {
+  async generateFlashcards(uniqueId: string, studentUniqueId?: string): Promise<any[]> {
     try {
-      const payload = {
-        content,
-        count,
-        type: 'flashcard',
-        timestamp: new Date().toISOString()
-      };
+      const params = new URLSearchParams({
+        uniqueID: 'TRANSCRIBE_003',
+        submittedAt: new Date().toISOString()
+      });
 
-      const response = await fetch(this.n8nModuleAssessmentWebhookUrl, {
-        method: 'POST',
+      const webhookUrl = `${this.n8nModuleAssessmentWebhookUrl}?${params.toString()}`;
+      console.log('📤 Sending Flashcard generation request to N8N:', webhookUrl);
+
+      const response = await fetch(webhookUrl, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
+        }
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data: N8NAssessmentResponse[] = await response.json();
+      console.log('📥 N8N Flashcard response:', data);
       
-      // Handle different response formats
-      if (Array.isArray(data)) {
-        return data;
-      } else if (data.flashcards && Array.isArray(data.flashcards)) {
-        return data.flashcards;
-      } else if (data.cards && Array.isArray(data.cards)) {
-        return data.cards;
+      // Parse the output string to extract flashcard data
+      if (data && data.length > 0 && data[0].output) {
+        try {
+          const flashcardData = JSON.parse(data[0].output);
+          if (Array.isArray(flashcardData)) {
+            return flashcardData;
+          }
+        } catch (parseError) {
+          console.error('Failed to parse flashcard data from N8N response:', parseError);
+        }
       }
 
       return [];

@@ -100,8 +100,7 @@ export default function VideoLearningInterface({
     try {
       // Generate flashcards
       const flashcardData = await n8nService.generateFlashcards(
-        'Machine learning is a subset of artificial intelligence that enables computers to learn and make decisions without being explicitly programmed.',
-        3
+        'TRANSCRIBE_003'
       );
       
       const formattedFlashcards: FlashCardType[] = flashcardData.map((item: any, index: number) => ({
@@ -117,17 +116,15 @@ export default function VideoLearningInterface({
 
       // Generate MCQ questions
       const mcqData = await n8nService.generateMCQs(
-        'Machine learning involves training models on data to make predictions or decisions.',
-        5
+        'TRANSCRIBE_003'
       );
       
       const formattedMCQs: MCQQuestion[] = mcqData.map((item: any, index: number) => ({
-        id: `mcq-${index}`,
+        Q: item.Q || (index + 1).toString(),
+        level: item.level || 'Basic',
         question: item.question,
         options: item.options,
-        correctAnswer: item.correctAnswer,
-        explanation: item.explanation,
-        difficulty: item.difficulty
+        answer: item.answer
       }));
       
       setMcqQuestions(formattedMCQs);
@@ -166,7 +163,7 @@ export default function VideoLearningInterface({
     setSelectedAnswer(answerIndex);
     setShowAnswer(true);
     
-    if (answerIndex === mcqQuestions[currentMcqIndex]?.correctAnswer) {
+    if (answerIndex === mcqQuestions[currentMcqIndex]?.options.indexOf(mcqQuestions[currentMcqIndex]?.answer)) {
       setScore(prev => prev + 1);
     }
   };
@@ -288,7 +285,7 @@ export default function VideoLearningInterface({
                             disabled={showAnswer}
                             className={`w-full p-3 text-left rounded-lg border transition-colors ${
                               selectedAnswer === index
-                                ? index === mcqQuestions[currentMcqIndex]?.correctAnswer
+                                ? index === mcqQuestions[currentMcqIndex]?.options.indexOf(mcqQuestions[currentMcqIndex]?.answer)
                                   ? 'bg-green-100 border-green-500 text-green-800 dark:bg-green-900/30 dark:border-green-400 dark:text-green-200'
                                   : 'bg-red-100 border-red-500 text-red-800 dark:bg-red-900/30 dark:border-red-400 dark:text-red-200'
                                 : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -303,7 +300,7 @@ export default function VideoLearningInterface({
                       {showAnswer && (
                         <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                           <p className="text-sm text-blue-800 dark:text-blue-200">
-                            {mcqQuestions[currentMcqIndex]?.explanation}
+                            Correct answer: {mcqQuestions[currentMcqIndex]?.answer}
                           </p>
                         </div>
                       )}

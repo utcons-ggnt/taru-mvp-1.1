@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Star, CheckCircle, XCircle, Users, Code, FileText, Trophy, Brain, Target, Award, MessageCircle, BookOpen, Lightbulb, Mic, Volume2, ChevronDown } from 'lucide-react';
+import { Clock, Star, CheckCircle, XCircle, Users, Code, FileText, Trophy, Brain, Target, Award, MessageCircle, BookOpen, Lightbulb, Mic, Volume2, ChevronDown, RotateCcw } from 'lucide-react';
 
 // Import AI-powered components
 import AIAssistant from '../../../modules/[id]/components/AIAssistant';
@@ -62,6 +62,19 @@ export default function ModulesTab() {
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [flashcards, setFlashcards] = useState<FlashCardType[]>([]);
   const [mcqQuestions, setMcqQuestions] = useState<MCQQuestion[]>([]);
+  
+  // MCQ state
+  const [mcqLoading, setMcqLoading] = useState(false);
+  const [mcqAnswers, setMcqAnswers] = useState<Record<string, string>>({});
+  const [mcqSubmitted, setMcqSubmitted] = useState(false);
+  const [mcqScore, setMcqScore] = useState(0);
+  const [currentMcqIndex, setCurrentMcqIndex] = useState(0);
+  
+  // Flashcard state
+  const [flashcardLoading, setFlashcardLoading] = useState(false);
+  const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
+  const [flashcardData, setFlashcardData] = useState<any[]>([]);
+  const [flippedCards, setFlippedCards] = useState<Record<number, boolean>>({});
   
   // Real data state
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -393,6 +406,150 @@ export default function ModulesTab() {
     });
   }, [chatMessages]);
 
+  // MCQ Functions
+  const generateMCQQuestions = async () => {
+    if (!selectedModule) return;
+    
+    try {
+      setMcqLoading(true);
+      setMcqAnswers({});
+      setMcqSubmitted(false);
+      setMcqScore(0);
+      setCurrentMcqIndex(0);
+      
+      const response = await fetch('/api/modules/generate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'mcq',
+          uniqueId: selectedModule.uniqueID
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success && data.content && data.content.length > 0) {
+          setMcqQuestions(data.content);
+          console.log('✅ MCQ questions generated:', data.content);
+        } else {
+          console.log('⚠️ No MCQ questions received');
+          setMcqQuestions([]);
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Error generating MCQ questions:', errorData);
+        setMcqQuestions([]);
+      }
+    } catch (error) {
+      console.error('❌ Error generating MCQ questions:', error);
+      setMcqQuestions([]);
+    } finally {
+      setMcqLoading(false);
+    }
+  };
+
+  const handleMCQAnswer = (questionIndex: number, answer: string) => {
+    setMcqAnswers(prev => ({
+      ...prev,
+      [questionIndex]: answer
+    }));
+  };
+
+  const submitMCQAnswers = () => {
+    let correctAnswers = 0;
+    mcqQuestions.forEach((question, index) => {
+      if (mcqAnswers[index] === question.answer) {
+        correctAnswers++;
+      }
+    });
+    
+    const score = (correctAnswers / mcqQuestions.length) * 100;
+    setMcqScore(score);
+    setMcqSubmitted(true);
+  };
+
+  const resetMCQ = () => {
+    setMcqAnswers({});
+    setMcqSubmitted(false);
+    setMcqScore(0);
+    setCurrentMcqIndex(0);
+  };
+
+  // Flashcard Functions
+  const generateFlashcards = async () => {
+    if (!selectedModule) return;
+    
+    try {
+      setFlashcardLoading(true);
+      setCurrentFlashcardIndex(0);
+      setFlippedCards({});
+      
+      const response = await fetch('/api/modules/generate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'flash',
+          uniqueId: selectedModule.uniqueID
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success && data.content && data.content.length > 0) {
+          setFlashcardData(data.content);
+          console.log('✅ Flashcards generated:', data.content);
+        } else {
+          console.log('⚠️ No flashcards received');
+          setFlashcardData([]);
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Error generating flashcards:', errorData);
+        setFlashcardData([]);
+      }
+    } catch (error) {
+      console.error('❌ Error generating flashcards:', error);
+      setFlashcardData([]);
+    } finally {
+      setFlashcardLoading(false);
+    }
+  };
+
+  const nextFlashcard = () => {
+    if (currentFlashcardIndex < flashcardData.length - 1) {
+      setCurrentFlashcardIndex(prev => prev + 1);
+      // Reset flipped state for the new card
+      setFlippedCards(prev => ({
+        ...prev,
+        [currentFlashcardIndex + 1]: false
+      }));
+    }
+  };
+
+  const previousFlashcard = () => {
+    if (currentFlashcardIndex > 0) {
+      setCurrentFlashcardIndex(prev => prev - 1);
+      // Reset flipped state for the new card
+      setFlippedCards(prev => ({
+        ...prev,
+        [currentFlashcardIndex - 1]: false
+      }));
+    }
+  };
+
+  const flipFlashcard = () => {
+    setFlippedCards(prev => ({
+      ...prev,
+      [currentFlashcardIndex]: !prev[currentFlashcardIndex]
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <style jsx>{`
@@ -409,6 +566,47 @@ export default function ModulesTab() {
         }
         .chat-container::-webkit-scrollbar-thumb:hover {
           background: #94a3b8;
+        }
+        
+        .flashcard-container {
+          perspective: 1000px;
+        }
+        
+        .flashcard {
+          position: relative;
+          width: 100%;
+          height: 200px;
+          transform-style: preserve-3d;
+          transition: transform 0.6s;
+          cursor: pointer;
+        }
+        
+        .flashcard.flipped {
+          transform: rotateY(180deg);
+        }
+        
+        .flashcard-front,
+        .flashcard-back {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          backface-visibility: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 1.5rem;
+          border-radius: 0.5rem;
+          border: 1px solid #e5e7eb;
+        }
+        
+        .flashcard-front {
+          background: white;
+          transform: rotateY(0deg);
+        }
+        
+        .flashcard-back {
+          background: #f8fafc;
+          transform: rotateY(180deg);
         }
       `}</style>
       {/* Header */}
@@ -757,33 +955,23 @@ export default function ModulesTab() {
               </div>
               
               <div className="space-y-4">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder={selectedModule.videoUrl || "Upload a Link"}
-                    defaultValue={selectedModule.videoUrl || ""}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                  <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-                    🔗
-                  </button>
-                </div>
-                
-                <div className="bg-black rounded-lg aspect-video flex items-center justify-center">
+                <div className="bg-black rounded-lg aspect-video flex items-center justify-center overflow-hidden">
                   {selectedModule.videoUrl ? (
-                    <div className="text-center text-white">
-                      <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-2xl">▶️</span>
-                      </div>
-                      <p className="text-sm">Video: {selectedModule.title}</p>
-                      <p className="text-xs text-gray-300 mt-1">Duration: {selectedModule.duration} minutes</p>
-                    </div>
+                    <iframe
+                      src={selectedModule.videoUrl}
+                      title={selectedModule.title}
+                      className="w-full h-full rounded-lg"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
                   ) : (
-                    <div className="text-center">
+                    <div className="text-center text-white">
                       <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-gray-400 text-2xl">⬆</span>
+                        <span className="text-gray-400 text-2xl">📹</span>
                       </div>
-                      <p className="text-gray-400">Upload a Link</p>
+                      <p className="text-gray-400">No video available</p>
+                      <p className="text-xs text-gray-500 mt-1">Video URL: {selectedModule.videoUrl || 'Not set'}</p>
                     </div>
                   )}
                 </div>
@@ -903,28 +1091,345 @@ export default function ModulesTab() {
                 )}
 
                 {activeTab === 'mcq' && (
-                  <div className="text-center py-8">
-                    <Brain className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">MCQ questions will appear here</p>
-                    <p className="text-gray-400 text-sm mt-2">
-                      Ready to generate practice questions for {selectedModule.subject}
-                    </p>
-                    <button className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm">
-                      Generate MCQ Questions
-                    </button>
+                  <div className="p-4">
+                    {mcqLoading ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Generating MCQ questions...</p>
+                        <p className="text-gray-400 text-sm mt-2">This may take a few moments</p>
+                      </div>
+                    ) : mcqQuestions.length > 0 ? (
+                      <div className="space-y-4">
+                        {!mcqSubmitted ? (
+                          <>
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-lg font-semibold text-gray-800">MCQ Questions</h4>
+                              <span className="text-sm text-gray-500">
+                                {Object.keys(mcqAnswers).length}/{mcqQuestions.length} answered
+                              </span>
+                            </div>
+                            
+                            {mcqQuestions.map((question, index) => (
+                              <div key={index} className="bg-gray-50 rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
+                                    {question.level}
+                                  </span>
+                                  <span className="text-sm text-gray-500">Question {question.Q}</span>
+                                </div>
+                                
+                                <h5 className="font-medium text-gray-800 mb-3">{question.question}</h5>
+                                
+                                <div className="space-y-2">
+                                  {question.options.map((option, optionIndex) => (
+                                    <label
+                                      key={optionIndex}
+                                      className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
+                                        mcqAnswers[index] === option
+                                          ? 'border-purple-500 bg-purple-50'
+                                          : 'border-gray-200 hover:border-gray-300'
+                                      }`}
+                                    >
+                                      <input
+                                        type="radio"
+                                        name={`question-${index}`}
+                                        value={option}
+                                        checked={mcqAnswers[index] === option}
+                                        onChange={() => handleMCQAnswer(index, option)}
+                                        className="mr-3 text-purple-600 focus:ring-purple-500"
+                                      />
+                                      <span className="text-sm text-gray-700">{option}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                            
+                            <div className="flex gap-3 pt-4">
+                              <button
+                                onClick={submitMCQAnswers}
+                                disabled={Object.keys(mcqAnswers).length < mcqQuestions.length}
+                                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                                  Object.keys(mcqAnswers).length === mcqQuestions.length
+                                    ? 'bg-purple-600 text-white hover:bg-purple-700'
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                }`}
+                              >
+                                Submit Answers
+                              </button>
+                              <button
+                                onClick={resetMCQ}
+                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 text-sm"
+                              >
+                                Reset
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-center py-6">
+                            <div className="mb-4">
+                              {mcqScore >= 80 ? (
+                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                  <CheckCircle className="w-8 h-8 text-green-600" />
+                                </div>
+                              ) : mcqScore >= 60 ? (
+                                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                  <Star className="w-8 h-8 text-yellow-600" />
+                                </div>
+                              ) : (
+                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                  <XCircle className="w-8 h-8 text-red-600" />
+                                </div>
+                              )}
+                            </div>
+                            
+                            <h4 className="text-xl font-semibold text-gray-800 mb-2">
+                              Quiz Complete!
+                            </h4>
+                            <p className="text-2xl font-bold text-purple-600 mb-4">
+                              {mcqScore.toFixed(0)}%
+                            </p>
+                            <p className="text-gray-600 mb-6">
+                              You got {Math.round((mcqScore / 100) * mcqQuestions.length)} out of {mcqQuestions.length} questions correct.
+                            </p>
+                            
+                            <div className="space-y-3">
+                              {mcqQuestions.map((question, index) => (
+                                <div key={index} className="bg-gray-50 rounded-lg p-4 text-left">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className={`text-sm px-2 py-1 rounded-full ${
+                                      mcqAnswers[index] === question.answer
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-red-100 text-red-800'
+                                    }`}>
+                                      {mcqAnswers[index] === question.answer ? '✓' : '✗'}
+                                    </span>
+                                    <span className="text-sm text-gray-500">Question {question.Q}</span>
+                                  </div>
+                                  
+                                  <p className="font-medium text-gray-800 mb-2">{question.question}</p>
+                                  
+                                  <div className="text-sm space-y-1">
+                                    <p className="text-gray-600">
+                                      <span className="font-medium">Your answer:</span> {mcqAnswers[index] || 'Not answered'}
+                                    </p>
+                                    {mcqAnswers[index] !== question.answer && (
+                                      <p className="text-green-600">
+                                        <span className="font-medium">Correct answer:</span> {question.answer}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            
+                            <div className="flex gap-3 mt-6">
+                              <button
+                                onClick={resetMCQ}
+                                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+                              >
+                                <RotateCcw className="w-4 h-4" />
+                                Try Again
+                              </button>
+                              <button
+                                onClick={generateMCQQuestions}
+                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 text-sm"
+                              >
+                                New Questions
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Brain className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">Ready to test your knowledge?</p>
+                        <p className="text-gray-400 text-sm mt-2">
+                          Generate practice questions for {selectedModule?.subject || 'this module'}
+                        </p>
+                        <button
+                          onClick={generateMCQQuestions}
+                          className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+                        >
+                          Generate MCQ Questions
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {activeTab === 'flashcard' && (
-                  <div className="text-center py-8">
-                    <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">Flashcards will appear here</p>
-                    <p className="text-gray-400 text-sm mt-2">
-                      Ready to create flashcards for {selectedModule.title}
-                    </p>
-                    <button className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm">
-                      Create Flashcards
-                    </button>
+                  <div className="p-4">
+                    {flashcardLoading ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Generating flashcards...</p>
+                        <p className="text-gray-400 text-sm mt-2">This may take a few moments</p>
+                      </div>
+                    ) : flashcardData.length > 0 ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-lg font-semibold text-gray-800">Flashcards</h4>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-500">
+                              {currentFlashcardIndex + 1} of {flashcardData.length}
+                            </span>
+                            {flippedCards[currentFlashcardIndex] && (
+                              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                Flipped
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flashcard-container">
+                          <div 
+                            className={`flashcard ${flippedCards[currentFlashcardIndex] ? 'flipped' : ''}`}
+                            onClick={flipFlashcard}
+                          >
+                            {/* Front of card */}
+                            <div className="flashcard-front">
+                              <div className="text-center">
+                                <div className="mb-4">
+                                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                    Flashcard {currentFlashcardIndex + 1}
+                                  </span>
+                                </div>
+                                
+                                {flashcardData[currentFlashcardIndex] && (
+                                  <div>
+                                    {flashcardData[currentFlashcardIndex].question ? (
+                                      <div>
+                                        <h5 className="font-semibold text-gray-800 mb-2">Question:</h5>
+                                        <p className="text-gray-700">{flashcardData[currentFlashcardIndex].question}</p>
+                                      </div>
+                                    ) : flashcardData[currentFlashcardIndex].term ? (
+                                      <div>
+                                        <h5 className="font-semibold text-gray-800 mb-2">Term:</h5>
+                                        <p className="text-gray-700">{flashcardData[currentFlashcardIndex].term}</p>
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        <h5 className="font-semibold text-gray-800 mb-2">Front:</h5>
+                                        <p className="text-gray-700">Click to flip and see the answer</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                <div className="mt-4 text-xs text-gray-500">
+                                  Click to flip
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Back of card */}
+                            <div className="flashcard-back">
+                              <div className="text-center">
+                                <div className="mb-4">
+                                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                    Answer
+                                  </span>
+                                </div>
+                                
+                                {flashcardData[currentFlashcardIndex] && (
+                                  <div>
+                                    {flashcardData[currentFlashcardIndex].answer && (
+                                      <div className="mb-3">
+                                        <h5 className="font-semibold text-gray-800 mb-2">Answer:</h5>
+                                        <p className="text-gray-700">{flashcardData[currentFlashcardIndex].answer}</p>
+                                      </div>
+                                    )}
+                                    
+                                    {flashcardData[currentFlashcardIndex].definition && (
+                                      <div className="mb-3">
+                                        <h5 className="font-semibold text-gray-800 mb-2">Definition:</h5>
+                                        <p className="text-gray-700">{flashcardData[currentFlashcardIndex].definition}</p>
+                                      </div>
+                                    )}
+                                    
+                                    {flashcardData[currentFlashcardIndex].explanation && (
+                                      <div>
+                                        <h5 className="font-semibold text-gray-800 mb-2">Explanation:</h5>
+                                        <p className="text-gray-700 text-sm">{flashcardData[currentFlashcardIndex].explanation}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                <div className="mt-4 text-xs text-gray-500">
+                                  Click to flip back
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between pt-4">
+                          <button
+                            onClick={previousFlashcard}
+                            disabled={currentFlashcardIndex === 0}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              currentFlashcardIndex === 0
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-purple-600 text-white hover:bg-purple-700'
+                            }`}
+                          >
+                            ← Previous
+                          </button>
+                          
+                          <div className="flex gap-1">
+                            {flashcardData.map((_, index) => (
+                              <button
+                                key={index}
+                                onClick={() => setCurrentFlashcardIndex(index)}
+                                className={`w-2 h-2 rounded-full transition-colors ${
+                                  index === currentFlashcardIndex
+                                    ? 'bg-purple-600'
+                                    : 'bg-gray-300'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          
+                          <button
+                            onClick={nextFlashcard}
+                            disabled={currentFlashcardIndex === flashcardData.length - 1}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              currentFlashcardIndex === flashcardData.length - 1
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-purple-600 text-white hover:bg-purple-700'
+                            }`}
+                          >
+                            Next →
+                          </button>
+                        </div>
+                        
+                        <div className="flex gap-3 pt-4">
+                          <button
+                            onClick={generateFlashcards}
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 text-sm"
+                          >
+                            Generate New Flashcards
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">Ready to create flashcards?</p>
+                        <p className="text-gray-400 text-sm mt-2">
+                          Generate flashcards for {selectedModule?.title || 'this module'}
+                        </p>
+                        <button
+                          onClick={generateFlashcards}
+                          className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+                        >
+                          Create Flashcards
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
