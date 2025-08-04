@@ -116,12 +116,7 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
           submittedAt: new Date().toISOString()
         });
         
-        // Try alternative parameters if the first attempt fails
-        const alternativeParams = new URLSearchParams({
-          uniqueID: uniqueId, // Try with actual uniqueId
-          type: type,
-          submittedAt: new Date().toISOString()
-        });
+
         
         const getUrl = `${webhookUrl}?${urlParams.toString()}`;
         console.log('🔗 Full webhook URL:', getUrl);
@@ -517,7 +512,7 @@ function extractN8nContentResponse(data: Record<string, unknown>, type: string) 
 
   // Validate content structure based on type
   if (type.toLowerCase() === 'mcq') {
-    content = content.filter((item: any) => 
+    content = content.filter((item: ContentItem) => 
       // Handle user's format: { id, question, type, options, difficulty }
       (item.question && item.options && Array.isArray(item.options) && item.type === 'multiple_choice') ||
       // Handle traditional format: { question, options, answer }
@@ -525,7 +520,7 @@ function extractN8nContentResponse(data: Record<string, unknown>, type: string) 
     );
     console.log('🔍 Validated MCQ questions:', content.length);
   } else if (type.toLowerCase() === 'flash') {
-    content = content.filter((item: any) => 
+    content = content.filter((item: ContentItem) => 
       (item.question && item.answer) || (item.term && item.definition)
     );
     console.log('🔍 Validated flashcard content:', content.length);
@@ -555,10 +550,23 @@ function extractN8nContentResponse(data: Record<string, unknown>, type: string) 
   return { content, count, n8nOutput };
 }
 
+interface ContentItem {
+  id?: string;
+  question?: string;
+  type?: string;
+  options?: string[];
+  difficulty?: string;
+  answer?: string;
+  Q?: string;
+  level?: string;
+  term?: string;
+  definition?: string;
+}
+
 // Transform content to expected format
-function transformContentToExpectedFormat(content: any[], type: string) {
+function transformContentToExpectedFormat(content: ContentItem[], type: string) {
   if (type.toLowerCase() === 'mcq') {
-    return content.map((item: any, index: number) => {
+    return content.map((item: ContentItem, index: number) => {
       // If it's already in expected format, return as is
       if (item.Q && item.answer) {
         return item;
@@ -579,15 +587,4 @@ function transformContentToExpectedFormat(content: any[], type: string) {
   return content;
 }
 
-// Flattens a nested object into a single-level key map
-function flattenObject(obj: Record<string, unknown>, parent = '', res: Record<string, unknown> = {}) {
-  for (const key in obj) {
-    const propName = parent ? `${parent}.${key}` : key;
-    if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
-      flattenObject(obj[key] as Record<string, unknown>, propName, res);
-    } else {
-      res[propName] = obj[key];
-    }
-  }
-  return res;
-} 
+ 

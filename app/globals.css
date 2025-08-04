@@ -919,3 +919,166 @@ body {
   content: "⚠️";
   font-size: 1rem;
 }
+
+/* Google Translate Widget Styles */
+/* Fix for Google Translate widget styling and visibility */
+.goog-te-gadget {
+  font-family: inherit !important;
+  font-size: 13px !important;
+  color: #666 !important;
+}
+
+.goog-te-gadget .goog-te-combo {
+  margin: 0 !important;
+  padding: 4px 8px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  background: white !important;
+  color: #374151 !important;
+  font-size: 13px !important;
+  font-family: inherit !important;
+  cursor: pointer !important;
+  min-width: 120px !important;
+}
+
+.goog-te-gadget .goog-te-combo:hover {
+  border-color: #9ca3af !important;
+  background: #f9fafb !important;
+}
+
+.goog-te-gadget .goog-te-combo:focus {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Hide Google Translate branding for cleaner look */
+.goog-te-gadget .goog-te-gadget-simple .goog-te-menu-value span:first-child {
+  display: none;
+}
+
+.goog-te-gadget .goog-te-gadget-simple .goog-te-menu-value:before {
+  content: 'Translate';
+  font-family: inherit;
+  font-size: 13px;
+  color: #374151;
+}
+
+/* Fix for the translate banner that appears at the top */
+.goog-te-banner-frame {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+}
+
+/* Style the Google Translate dropdown menu */
+.goog-te-menu-frame {
+  z-index: 9999 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+  border-radius: 8px !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+/* Dark mode support for Google Translate */
+@media (prefers-color-scheme: dark) {
+  .goog-te-gadget .goog-te-combo {
+    background: #374151 !important;
+    color: #f9fafb !important;
+    border-color: #4b5563 !important;
+  }
+  
+  .goog-te-gadget .goog-te-combo:hover {
+    background: #4b5563 !important;
+    border-color: #6b7280 !important;
+  }
+  
+  .goog-te-gadget .goog-te-gadget-simple .goog-te-menu-value:before {
+    color: #f9fafb;
+  }
+}
+
+/* Ensure translate widget is visible and clickable */
+[id^="google_translate_element"] {
+  min-height: 20px;
+}
+
+[id^="google_translate_element"]:not(.hidden) {
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Fix for header variant positioning */
+.goog-te-gadget-simple {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Loading state for translate widget */
+[id^="google_translate_element"]:empty::after {
+  content: 'Loading...';
+  color: #9ca3af;
+  font-size: 12px;
+  font-family: inherit;
+}
+
+/* Additional improvements for Google Translate widget */
+.goog-te-gadget {
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+/* Ensure proper spacing and alignment */
+.goog-te-gadget-simple {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Better mobile responsiveness */
+@media (max-width: 640px) {
+  .goog-te-gadget .goog-te-combo {
+    font-size: 12px !important;
+    padding: 3px 6px !important;
+    min-width: 100px !important;
+  }
+  
+  .goog-te-gadget .goog-te-gadget-simple .goog-te-menu-value:before {
+    font-size: 12px;
+  }
+}
+
+/* Accessibility improvements */
+.goog-te-gadget .goog-te-combo:focus-visible {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Ensure dropdown menu is properly positioned */
+.goog-te-menu-frame {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  z-index: 9999 !important;
+}
+
+/* Fix for any potential layout shifts */
+[id^="google_translate_element"] {
+  display: inline-block !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .goog-te-gadget .goog-te-combo {
+    border-width: 2px !important;
+    border-color: #000 !important;
+  }
+  
+  .goog-te-gadget .goog-te-combo:hover {
+    border-color: #333 !important;
+  }
+}

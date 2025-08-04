@@ -1,30 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Star, CheckCircle, XCircle, Users, Code, FileText, Trophy, Brain, Target, Award, MessageCircle, BookOpen, Lightbulb, Mic, Volume2, ChevronDown, RotateCcw } from 'lucide-react';
+import { Star, CheckCircle, XCircle, Brain, BookOpen, ChevronDown, RotateCcw, Mic } from 'lucide-react';
 
 // Import AI-powered components
-import AIAssistant from '../../../modules/[id]/components/AIAssistant';
-import VideoLearningInterface from '../../../modules/[id]/components/VideoLearningInterface';
-import AdvancedLearningInterface from '../../../modules/[id]/components/AdvancedLearningInterface';
-import FlashCard from '../../../modules/[id]/components/FlashCard';
-import BookmarksPanel from '../../../modules/[id]/components/BookmarksPanel';
-import AdvancedFeaturePanel from '../../../modules/[id]/components/AdvancedFeaturePanel';
 import { N8NService } from '../../../modules/[id]/services/N8NService';
 import { SpeechService } from '../../../modules/[id]/services/SpeechService';
 
 // Import types
 import { 
   ActionType, 
-  Message, 
-  VideoData, 
   FlashCardType, 
   BookmarkItem, 
-  ExplanationResult, 
-  SpeechProgress, 
-  MCQQuestion, 
-  LearningContext, 
-  AIResponse 
+  MCQQuestion
 } from '../../../modules/[id]/types';
 
 interface UserProfile {
@@ -58,18 +46,17 @@ export default function ModulesTab() {
   // Learning mode state
   const [learningMode, setLearningMode] = useState<'pdf' | 'video'>('pdf');
   const [activeTab, setActiveTab] = useState<'chat' | 'mcq' | 'flashcard'>('chat');
-  const [selectedText, setSelectedText] = useState('');
-  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
-  const [flashcards, setFlashcards] = useState<FlashCardType[]>([]);
+  const [bookmarks] = useState<BookmarkItem[]>([]);
+  const [flashcards] = useState<FlashCardType[]>([]);
   const [mcqQuestions, setMcqQuestions] = useState<MCQQuestion[]>([]);
   
   // MCQ state
   const [mcqLoading, setMcqLoading] = useState(false);
   const [mcqAnswers, setMcqAnswers] = useState<Record<string, string>>({});
   const [mcqSubmitted, setMcqSubmitted] = useState(false);
-  const [mcqScore, setMcqScore] = useState(0);
+    const [mcqScore, setMcqScore] = useState(0);
   const [currentMcqIndex, setCurrentMcqIndex] = useState(0);
-  
+    
   // Flashcard state
   const [flashcardLoading, setFlashcardLoading] = useState(false);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
@@ -165,41 +152,7 @@ export default function ModulesTab() {
     }
   }, [selectedModule]);
 
-  // AI-Powered Learning Functions
-  const handleTextSelection = async (action: ActionType, text: string, context?: string) => {
-    if (!n8nService.current) return;
 
-    try {
-      let response = '';
-      
-      switch (action) {
-        case 'read':
-          if (speechService.current) {
-            await speechService.current.speak(text);
-          }
-          response = `Reading: "${text}"`;
-          break;
-        case 'explain':
-          const explanation = await n8nService.current.generateResponse(
-            context || `Explain this: ${text}`,
-            { pdfContent: '', videoData: null, currentTime: 0, selectedText: text, bookmarks }
-          );
-          response = explanation.content;
-          break;
-        case 'define':
-          const definition = await n8nService.current.generateResponse(
-            `Define this term: ${text}`,
-            { pdfContent: '', videoData: null, currentTime: 0, selectedText: text, bookmarks }
-          );
-          response = definition.content;
-          break;
-      }
-      
-      console.log('AI Response:', response);
-    } catch (error) {
-      console.error('Error processing text action:', error);
-    }
-  };
 
   // N8N AI Buddy Chat Functions (Enhanced with reference to your chat API)
   const sendMessageToN8N = async (message: string, context?: string) => {

@@ -5,19 +5,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-
-const languages = ['English (USA)', 'हिन्दी', 'मराठी']
+import SimpleGoogleTranslate from './components/SimpleGoogleTranslate'
 
 export default function Home() {
   const router = useRouter()
-  const [language, setLanguage] = useState('English (USA)')
   const [currentCard, setCurrentCard] = useState(0)
   const [showWelcome, setShowWelcome] = useState(false)
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('lang')
-    if (savedLang) setLanguage(savedLang)
-    
     // Show welcome modal on first visit
     const hasVisited = localStorage.getItem('hasVisited')
     if (!hasVisited) {
@@ -26,11 +21,6 @@ export default function Home() {
       setTimeout(() => setShowWelcome(false), 3000)
     }
   }, [])
-
-  const handleLanguageChange = (lang: string) => {
-    setLanguage(lang)
-    localStorage.setItem('lang', lang)
-  }
 
   const nextCard = () => {
     setCurrentCard((prev) => (prev + 1) % 3)
@@ -124,21 +114,13 @@ export default function Home() {
          animate={{ y: 0, opacity: 1 }}
          transition={{ delay: 0.4, duration: 0.6 }}
        >
-         {/* Language Selector */}
+         {/* Google Translate */}
          <div className="flex items-center gap-3 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
-           <span role="img" aria-label="language" className="text-base sm:text-lg">🌐</span>
-           <motion.select
-             value={language}
-             onChange={(e) => handleLanguageChange(e.target.value)}
-             className="bg-transparent text-white text-sm sm:text-base border-none focus:outline-none focus:ring-0 cursor-pointer"
-             whileFocus={{ scale: 1.02 }}
-           >
-             {languages.map((lang) => (
-               <option key={lang} value={lang} className="bg-gray-800 text-white">
-                 {lang}
-               </option>
-             ))}
-           </motion.select>
+           <SimpleGoogleTranslate 
+             className="text-white"
+             buttonText="Translate"
+             showIcon={true}
+           />
          </div>
 
          {/* Login Link */}

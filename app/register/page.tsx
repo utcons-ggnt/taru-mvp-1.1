@@ -5,12 +5,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-
-const languages = ['English (USA)', 'हिन्दी', 'मराठी']
+import SimpleGoogleTranslate from '../components/SimpleGoogleTranslate'
 
 export default function Register() {
   const router = useRouter()
-  const [language, setLanguage] = useState('English (USA)')
   const [selectedRole, setSelectedRole] = useState('student')
   const [formData, setFormData] = useState({
     fullName: '',
@@ -24,16 +22,6 @@ export default function Register() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    const savedLang = localStorage.getItem('lang')
-    if (savedLang) setLanguage(savedLang)
-  }, [])
-
-  const handleLanguageChange = (lang: string) => {
-    setLanguage(lang)
-    localStorage.setItem('lang', lang)
-  }
 
   const handleRoleChange = (role: string) => {
     console.log('Role changed to:', role);
@@ -80,12 +68,22 @@ export default function Register() {
     if (selectedRole === 'parent') {
       const studentId = formData.classGrade.trim()
       if (!studentId.startsWith('STU')) {
-        setError('Student ID must start with "STU (e.g., STUabc123def)')
+        setError('Student ID must start with "STU" (e.g., STUabc123def)')
         setIsLoading(false)
         return
       }
       if (studentId.length < 8) {
         setError('Student ID must be at least 8 characters long')
+        setIsLoading(false)
+        return
+      }
+    }
+
+    // Validate organization type for organization registration
+    if (selectedRole === 'organization') {
+      const orgType = formData.classGrade.trim()
+      if (orgType.length < 3) {
+        setError('Organization type must be at least 3 characters long')
         setIsLoading(false)
         return
       }
@@ -163,6 +161,8 @@ export default function Register() {
             router.push('/parent-onboarding');
           } else if (selectedRole === 'organization') {
             router.push('/dashboard/admin');
+          } else if (selectedRole === 'teacher') {
+            router.push('/dashboard/teacher');
           } else {
             router.push('/login');
           }
@@ -243,29 +243,18 @@ export default function Register() {
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.8 }}
         >
-          {/* Language Selector */}
+          {/* Google Translate */}
           <motion.div 
-            className="absolute top-[40px] right-[40px] w-[145.6px] h-[26.6px] flex items-center gap-2 z-10"
+            className="absolute top-[40px] right-[40px] z-10"
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.6 }}
           >
-            <motion.select
-              value={language}
-              onChange={(e) => handleLanguageChange(e.target.value)}
-              className="text-[15.9955px] font-semibold text-black bg-transparent border-none focus:outline-none cursor-pointer flex-1"
-            >
-              {languages.map((lang) => (
-                <option key={lang} value={lang} className="bg-white text-black">
-                  {lang}
-                </option>
-              ))}
-            </motion.select>
-            <div className="w-[26.6px] h-[26.6px] flex items-center justify-center flex-shrink-0">
-              <svg width="14" height="8" viewBox="0 0 14 8" fill="none">
-                <path d="M1 1L7 7L13 1" stroke="#8E8E8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
+            <SimpleGoogleTranslate 
+          className="text-white"
+          buttonText="Translate"
+          showIcon={true}
+        />
           </motion.div>
 
           {/* Main Content Container */}
@@ -278,11 +267,11 @@ export default function Register() {
               transition={{ delay: 0.9, duration: 0.5 }}
             >
               <div className="flex bg-[#F2F4F7] rounded-xl p-1 h-full">
-                {['student', 'teacher', 'parent'].map((role, index) => (
+                {['student', 'teacher', 'parent', 'organization'].map((role, index) => (
                   <motion.button 
                     key={role}
                     onClick={() => handleRoleChange(role)}
-                    className={`flex-1 px-6 py-3 rounded-lg font-normal text-[14px] transition-all duration-200 ${
+                    className={`flex-1 px-4 py-3 rounded-lg font-normal text-[12px] transition-all duration-200 ${
                       selectedRole === role 
                         ? 'bg-white text-[#101828] shadow-sm' 
                         : 'text-[#667085]'
@@ -332,14 +321,17 @@ export default function Register() {
                   />
                 </div>
 
-                {/* Guardian Name */}
+                {/* Guardian Name / Contact Person */}
                 <div className="relative">
-                  <label className="block text-[16.0016px] font-medium leading-[19px] text-[#C2C2C2] mb-1">Guardian Name</label>
+                  <label className="block text-[16.0016px] font-medium leading-[19px] text-[#C2C2C2] mb-1">
+                    {selectedRole === 'organization' ? 'Contact Person' : 'Guardian Name'}
+                  </label>
                   <input
                     type="text"
                     name="guardianName"
                     value={formData.guardianName}
                     onChange={handleInputChange}
+                    placeholder={selectedRole === 'organization' ? 'e.g., John Doe, HR Manager' : ''}
                     className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors"
                     required
                   />
@@ -352,6 +344,7 @@ export default function Register() {
                       {selectedRole === 'student' ? 'Class/Grade' : 
                        selectedRole === 'teacher' ? 'Subject' : 
                        selectedRole === 'parent' ? 'Student ID' : 
+                       selectedRole === 'organization' ? 'Organization Type' :
                        'Organization Type'}
                     </label>
                     <input
@@ -359,7 +352,8 @@ export default function Register() {
                       name="classGrade"
                       value={formData.classGrade}
                       onChange={handleInputChange}
-                      placeholder={selectedRole === 'parent' ? 'e.g., STUabc123def' : ''}
+                      placeholder={selectedRole === 'parent' ? 'e.g., STUabc123def' : 
+                                  selectedRole === 'organization' ? 'e.g., School, NGO, Company' : ''}
                       className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors"
                       required
                     />
@@ -369,6 +363,7 @@ export default function Register() {
                       {selectedRole === 'student' ? 'Language' : 
                        selectedRole === 'teacher' ? 'Experience' : 
                        selectedRole === 'parent' ? 'Location' : 
+                       selectedRole === 'organization' ? 'Industry' :
                        'Industry'}
                     </label>
                     <input
@@ -376,6 +371,7 @@ export default function Register() {
                       name="language"
                       value={formData.language}
                       onChange={handleInputChange}
+                      placeholder={selectedRole === 'organization' ? 'e.g., Education, Technology, Healthcare' : ''}
                       className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors"
                       required
                     />

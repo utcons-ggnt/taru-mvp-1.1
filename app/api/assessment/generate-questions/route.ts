@@ -253,8 +253,24 @@ export async function GET(request: NextRequest) {
   }
 }
 
+interface N8nOutputItem {
+  output: string;
+}
+
+interface N8nQuestion {
+  id: string | number;
+  question: string;
+  type: string;
+  difficulty: string;
+  section?: string;
+}
+
+interface ParsedOutput {
+  questions: N8nQuestion[];
+}
+
 // Function to parse N8N output format and extract questions
-function parseN8nOutput(n8nOutput: any): AssessmentQuestion[] {
+function parseN8nOutput(n8nOutput: N8nOutputItem[] | ParsedOutput): AssessmentQuestion[] {
   try {
     console.log('🔍 Parsing N8N output:', JSON.stringify(n8nOutput, null, 2));
     
@@ -271,16 +287,17 @@ function parseN8nOutput(n8nOutput: any): AssessmentQuestion[] {
         // Extract questions from the parsed output
         if (parsedOutput && parsedOutput.questions && Array.isArray(parsedOutput.questions)) {
           console.log('🔍 Found questions array with', parsedOutput.questions.length, 'questions');
-          return parsedOutput.questions.map((q: any) => convertN8nQuestion(q));
+          return parsedOutput.questions.map((q: N8nQuestion) => convertN8nQuestion(q));
         }
       }
     }
     
     // Handle direct object format (fallback)
     if (n8nOutput && typeof n8nOutput === 'object' && !Array.isArray(n8nOutput)) {
-      if (n8nOutput.questions && Array.isArray(n8nOutput.questions)) {
-        console.log('🔍 Found direct questions array with', n8nOutput.questions.length, 'questions');
-        return n8nOutput.questions.map((q: any) => convertN8nQuestion(q));
+      const directOutput = n8nOutput as ParsedOutput;
+      if (directOutput.questions && Array.isArray(directOutput.questions)) {
+        console.log('🔍 Found direct questions array with', directOutput.questions.length, 'questions');
+        return directOutput.questions.map((q: N8nQuestion) => convertN8nQuestion(q));
       }
     }
     
@@ -293,7 +310,7 @@ function parseN8nOutput(n8nOutput: any): AssessmentQuestion[] {
 }
 
 // Function to convert n8n question format to our internal format
-function convertN8nQuestion(n8nQuestion: any): AssessmentQuestion {
+function convertN8nQuestion(n8nQuestion: N8nQuestion): AssessmentQuestion {
   const questionType = n8nQuestion.type;
   let type: 'MCQ' | 'OPEN' = 'OPEN';
   let options: string[] | undefined = undefined;
@@ -330,8 +347,21 @@ function convertN8nQuestion(n8nQuestion: any): AssessmentQuestion {
   };
 }
 
+interface AssessmentData {
+  studentId: string;
+  studentName: string;
+  uniqueId: string;
+  age: number;
+  classGrade: string;
+  languagePreference: string;
+  schoolName: string;
+  preferredSubject: string;
+  type: string;
+  timestamp: string;
+}
+
 // Fallback question generator
-function generateFallbackQuestions(studentData: any): AssessmentQuestion[] {
+function generateFallbackQuestions(_studentData: AssessmentData): AssessmentQuestion[] {
   // Generate diagnostic assessment questions
   const diagnosticQuestions: AssessmentQuestion[] = [
     {

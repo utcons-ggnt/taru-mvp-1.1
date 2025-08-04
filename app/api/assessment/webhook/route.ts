@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const payload = await request.json();
     console.log('🔍 Webhook payload:', payload);
 
-    const { uniqueId, generatedQuestions, status } = payload;
+    const { uniqueId, generatedQuestions } = payload;
 
     if (!uniqueId) {
       return NextResponse.json(

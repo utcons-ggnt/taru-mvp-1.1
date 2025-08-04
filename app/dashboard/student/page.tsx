@@ -12,6 +12,7 @@ import ChatModal from './components/ChatModal';
 import StatsCards from './components/StatsCards';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import SimpleGoogleTranslate from '../../components/SimpleGoogleTranslate';
 
 // Add custom hook for responsive behavior
 function useWindowSize() {
@@ -137,7 +138,7 @@ export default function StudentDashboard() {
   const [user, setUser] = useState<StudentProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
-  const [language, setLanguage] = useState('English (USA)');
+
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -151,15 +152,7 @@ export default function StudentDashboard() {
   
 
 
-  useEffect(() => {
-    const savedLang = localStorage.getItem('lang')
-    if (savedLang) setLanguage(savedLang)
-  }, [])
 
-  const handleLanguageChange = (lang: string) => {
-    setLanguage(lang)
-    localStorage.setItem('lang', lang)
-  }
 
   useEffect(() => {
     // Fetch user data from the server
@@ -372,10 +365,10 @@ export default function StudentDashboard() {
         email: user.email || '',
         grade: dashboardData.overview.grade || user.profile?.grade || '',
         school: dashboardData.overview.school || user.profile?.school || '',
-        language: language,
+        language: 'English', // Default language
         studentKey: dashboardData.overview.studentKey || 'Not available',
       }
-    : { name: '', email: '', grade: '', school: '', language, studentKey: 'Not available' };
+    : { name: '', email: '', grade: '', school: '', language: 'English', studentKey: 'Not available' };
 
   // Helper function to get subject icon
   function getSubjectIcon(subject: string): string {
@@ -639,16 +632,12 @@ export default function StudentDashboard() {
               </button>
               <span className="ml-2 text-sm font-medium text-purple-700 select-none">AI Buddy</span>
             </div>
-            {/* Language Selector - Hidden on mobile */}
-            <select
-              value={language}
-              onChange={e => handleLanguageChange(e.target.value)}
-              className="hidden sm:block border border-gray-400 px-3 py-1.5 rounded-md text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300 text-gray-900"
-            >
-              <option value="English (USA)">English (USA)</option>
-              <option value="हिन्दी">हिन्दी</option>
-              <option value="मराठी">मराठी</option>
-            </select>
+            {/* Google Translate Button */}
+            <SimpleGoogleTranslate 
+              className="text-gray-700"
+              buttonText="Translate"
+              showIcon={true}
+            />
             
             {/* Notification Bell */}
             <div className="relative">

@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
 async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
   try {
-    let webhookUrl = process.env.N8N_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook/AI-BUDDY-MAIN   ';
+    let webhookUrl = process.env.N8N_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook/MCQ';
     let query = '';
     let studentData: Record<string, unknown> = {};
     let studentUniqueId = '';

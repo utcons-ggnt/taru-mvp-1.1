@@ -3,42 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-
-const translations: Record<string, Record<string, string>> = {
-  'English (USA)': {
-    onboardingTitle: 'Parent Onboarding',
-    subtitle: 'Complete your profile to monitor your child\'s progress',
-    next: 'Next',
-    previous: 'Previous',
-    submit: 'Complete Onboarding',
-    submitting: 'Submitting...',
-    successTitle: 'Onboarding Complete!',
-    successMessage: 'You can now monitor your child\'s learning progress',
-    continueToDashboard: 'Continue to Dashboard',
-  },
-  'हिन्दी': {
-    onboardingTitle: 'अभिभावक ऑनबोर्डिंग',
-    subtitle: 'अपने बच्चे की प्रगति की निगरानी के लिए अपनी प्रोफ़ाइल पूरी करें',
-    next: 'अगला',
-    previous: 'पिछला',
-    submit: 'ऑनबोर्डिंग पूरी करें',
-    submitting: 'सबमिट हो रहा है...',
-    successTitle: 'ऑनबोर्डिंग पूरी!',
-    successMessage: 'अब आप अपने बच्चे की सीखने की प्रगति की निगरानी कर सकते हैं',
-    continueToDashboard: 'डैशबोर्ड पर जाएं',
-  },
-  'मराठी': {
-    onboardingTitle: 'पालक ऑनबोर्डिंग',
-    subtitle: 'तुमच्या मुलाच्या प्रगतीचे निरीक्षण करण्यासाठी तुमची प्रोफाइल पूर्ण करा',
-    next: 'पुढे',
-    previous: 'मागे',
-    submit: 'ऑनबोर्डिंग पूर्ण करा',
-    submitting: 'सबमिट होत आहे...',
-    successTitle: 'ऑनबोर्डिंग पूर्ण!',
-    successMessage: 'आता तुम्ही तुमच्या मुलाच्या शिकण्याच्या प्रगतीचे निरीक्षण करू शकता',
-    continueToDashboard: 'डॅशबोर्डवर जा',
-  },
-}
+import SimpleGoogleTranslate from '../components/SimpleGoogleTranslate';
 
 interface ParentOnboardingData {
   // Personal Information
@@ -93,7 +58,6 @@ const states = [
 export default function ParentOnboarding() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [language, setLanguage] = useState('English (USA)');
   const [formData, setFormData] = useState<ParentOnboardingData>({
     fullName: '',
     relationshipToStudent: '',
@@ -119,18 +83,6 @@ export default function ParentOnboarding() {
   const [availableStudents, setAvailableStudents] = useState<Array<{id: string; name: string; email: string}>>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const router = useRouter();
-
-  const t = translations[language]
-
-  useEffect(() => {
-    const savedLang = localStorage.getItem('lang')
-    if (savedLang) setLanguage(savedLang)
-  }, [])
-
-  const handleLanguageChange = (lang: string) => {
-    setLanguage(lang)
-    localStorage.setItem('lang', lang)
-  }
 
   // Fetch available students for linking
   useEffect(() => {
@@ -273,15 +225,15 @@ export default function ParentOnboarding() {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">✅</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">{t.successTitle}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Onboarding Complete!</h1>
             <p className="text-gray-600 mb-6">
-              {t.successMessage}
+              You can now monitor your child&apos;s learning progress
             </p>
             <button
               onClick={() => router.push('/dashboard/parent')}
               className="w-full bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors"
             >
-              {t.continueToDashboard}
+              Continue to Dashboard
             </button>
           </div>
         </div>
@@ -605,20 +557,9 @@ export default function ParentOnboarding() {
         `,
         backgroundSize: '20px 20px'
       }}>
-        {/* Language Selector */}
-        <div className="absolute top-6 right-6 flex items-center gap-2 text-sm text-gray-700 z-20">
-          <span role="img" aria-label="language" className="text-base">🌐</span>
-          <select
-            value={language}
-            onChange={(e) => handleLanguageChange(e.target.value)}
-            className="border border-gray-300 px-3 py-1.5 rounded-md text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
-          >
-            {languageOptions.map((lang) => (
-              <option key={lang} value={lang}>
-                {lang}
-              </option>
-            ))}
-          </select>
+        {/* Google Translate */}
+        <div className="absolute top-6 right-6 z-20">
+                      <SimpleGoogleTranslate className="text-white" buttonText="Translate" showIcon={true} />
         </div>
 
         <div className="max-w-md mx-auto w-full">
@@ -626,10 +567,10 @@ export default function ParentOnboarding() {
           <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
             <div className="text-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                {t.onboardingTitle}
+                Parent Onboarding
               </h1>
               <p className="text-gray-600 text-sm">
-                {t.subtitle}
+                Complete your profile to monitor your child&apos;s progress
               </p>
               <div className="flex justify-center mt-4">
                 {[1, 2, 3, 4].map((step) => (
@@ -653,7 +594,7 @@ export default function ParentOnboarding() {
                   disabled={currentStep === 1}
                   className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
-                  {t.previous}
+                  Previous
                 </button>
                 
                 {currentStep < 4 ? (
@@ -661,7 +602,7 @@ export default function ParentOnboarding() {
                     onClick={handleNext}
                     className="px-6 py-2 bg-[#7F00FF] text-white rounded-lg hover:bg-[#6B00E6] transition-all duration-200"
                   >
-                    {t.next}
+                    Next
                   </button>
                 ) : (
                   <button
@@ -669,7 +610,7 @@ export default function ParentOnboarding() {
                     disabled={isSubmitting}
                     className="px-6 py-2 bg-[#7F00FF] text-white rounded-lg hover:bg-[#6B00E6] disabled:opacity-50 transition-all duration-200"
                   >
-                    {isSubmitting ? t.submitting : t.submit}
+                    {isSubmitting ? 'Submitting...' : 'Complete Onboarding'}
                   </button>
                 )}
               </div>

@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Student from '@/models/Student';
 import AssessmentResponse from '@/models/AssessmentResponse';
 import StudentProgress from '@/models/StudentProgress';
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
     // Only allow in development environment for safety
     if (process.env.NODE_ENV === 'production') {
@@ -90,7 +90,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 3. Clean up orphaned assessment responses (those with test-like unique IDs)
-    const orphanedAssessments = await AssessmentResponse.deleteMany({
+    await AssessmentResponse.deleteMany({
       $or: [
         { uniqueId: { $regex: /^STU[A-Z0-9]{5,}$/ } }, // Generated test IDs
         { uniqueId: { $in: [] } } // Add specific IDs if needed
@@ -98,7 +98,7 @@ export async function DELETE(request: NextRequest) {
     });
 
     // 4. Clean up orphaned student progress records
-    const orphanedProgress = await StudentProgress.deleteMany({
+    await StudentProgress.deleteMany({
       userId: { $exists: false }
     });
 
@@ -125,7 +125,7 @@ export async function DELETE(request: NextRequest) {
 }
 
 // GET endpoint to preview what would be deleted
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Only allow in development environment for safety
     if (process.env.NODE_ENV === 'production') {

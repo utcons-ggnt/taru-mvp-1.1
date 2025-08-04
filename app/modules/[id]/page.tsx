@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import AdvancedLearningInterface from './components/AdvancedLearningInterface';
+import SimpleGoogleTranslate from '../../components/SimpleGoogleTranslate';
 
 interface ModuleContent {
   type: string;
@@ -173,7 +174,10 @@ export default function ModuleDetail() {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 relative">
+          <div className="absolute top-4 right-4">
+            <SimpleGoogleTranslate className="text-white" buttonText="Translate" showIcon={true} />
+          </div>
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center space-x-4">
               <span className="text-4xl">{getCategoryIcon(module.category)}</span>

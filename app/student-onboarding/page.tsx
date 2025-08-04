@@ -3,65 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import SimpleGoogleTranslate from '../components/SimpleGoogleTranslate';
 
-const languages = ['English (USA)', 'हिन्दी', 'मराठी']
 
-const translations: Record<string, Record<string, string>> = {
-  'English (USA)': {
-    onboardingTitle: 'Student Onboarding',
-    subtitle: 'Complete your profile to get started',
-    next: 'Next',
-    previous: 'Previous',
-    submit: 'Complete Onboarding',
-    submitting: 'Submitting...',
-    successTitle: 'Onboarding Complete!',
-    successMessage: 'Your unique student ID is',
-    continueToDashboard: 'Continue to Dashboard',
-    shareWithParent: 'Share with Parent',
-    copyCode: 'Copy Code',
-    copied: 'Copied!',
-    shareLink: 'Share Link',
-    shareViaWhatsApp: 'Share via WhatsApp',
-    shareViaEmail: 'Share via Email',
-    shareInstructions: 'Share this ID with your parent to link their account',
-  },
-  'हिन्दी': {
-    onboardingTitle: 'छात्र ऑनबोर्डिंग',
-    subtitle: 'शुरू करने के लिए अपनी प्रोफ़ाइल पूरी करें',
-    next: 'अगला',
-    previous: 'पिछला',
-    submit: 'ऑनबोर्डिंग पूरी करें',
-    submitting: 'सबमिट हो रहा है...',
-    successTitle: 'ऑनबोर्डिंग पूरी!',
-    successMessage: 'आपकी अद्वितीय छात्र आईडी है',
-    continueToDashboard: 'डैशबोर्ड पर जाएं',
-    shareWithParent: 'अभिभावक के साथ साझा करें',
-    copyCode: 'कोड कॉपी करें',
-    copied: 'कॉपी किया गया!',
-    shareLink: 'लिंक साझा करें',
-    shareViaWhatsApp: 'WhatsApp के माध्यम से साझा करें',
-    shareViaEmail: 'ईमेल के माध्यम से साझा करें',
-    shareInstructions: 'अपने अभिभावक के साथ इस आईडी को साझा करें',
-  },
-  'मराठी': {
-    onboardingTitle: 'विद्यार्थी ऑनबोर्डिंग',
-    subtitle: 'सुरु करण्यासाठी तुमची प्रोफाइल पूर्ण करा',
-    next: 'पुढे',
-    previous: 'मागे',
-    submit: 'ऑनबोर्डिंग पूर्ण करा',
-    submitting: 'सबमिट होत आहे...',
-    successTitle: 'ऑनबोर्डिंग पूर्ण!',
-    successMessage: 'तुमची अद्वितीय विद्यार्थी आयडी आहे',
-    continueToDashboard: 'डॅशबोर्डवर जा',
-    shareWithParent: 'पालकांसोबत सामायिक करा',
-    copyCode: 'कोड कॉपी करा',
-    copied: 'कॉपी केले!',
-    shareLink: 'लिंक सामायिक करा',
-    shareViaWhatsApp: 'WhatsApp द्वारे सामायिक करा',
-    shareViaEmail: 'ईमेल द्वारे सामायिक करा',
-    shareInstructions: 'त्यांचे खाते लिंक करण्यासाठी हे आयडी आपल्या पालकांसोबत सामायिक करा',
-  },
-}
 
 interface StudentOnboardingData {
   // Personal Information (pre-filled from registration)
@@ -121,7 +65,7 @@ export default function StudentOnboarding() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSuccess, setIsSuccess] = useState(false);
   const [uniqueId, setUniqueId] = useState('');
-  const [language, setLanguage] = useState('English (USA)');
+
   const [copied, setCopied] = useState(false);
   const [formData, setFormData] = useState<StudentOnboardingData>({
     fullName: '',
@@ -151,17 +95,7 @@ export default function StudentOnboarding() {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const t = translations[language]
 
-  useEffect(() => {
-    const savedLang = localStorage.getItem('lang')
-    if (savedLang) setLanguage(savedLang)
-  }, [])
-
-  const handleLanguageChange = (lang: string) => {
-    setLanguage(lang)
-    localStorage.setItem('lang', lang)
-  }
 
   const copyToClipboard = async () => {
     try {
@@ -443,9 +377,9 @@ export default function StudentOnboarding() {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">✅</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">{t.successTitle}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Onboarding Complete!</h1>
             <p className="text-gray-600 mb-4">
-              {t.successMessage}
+              Your unique student ID is
             </p>
             <div className="bg-purple-100 border-2 border-purple-300 rounded-lg p-4 mb-4">
               <p className="text-2xl font-bold text-purple-700">{uniqueId}</p>
@@ -453,7 +387,7 @@ export default function StudentOnboarding() {
             
             {/* Share Instructions */}
             <p className="text-sm text-gray-600 mb-4">
-              {t.shareInstructions}
+              Share this ID with your parent to link their account
             </p>
 
             {/* Share Buttons */}
@@ -463,7 +397,7 @@ export default function StudentOnboarding() {
                 className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors"
               >
                 <span className="text-lg">📋</span>
-                {copied ? t.copied : t.copyCode}
+                {copied ? 'Copied!' : 'Copy Code'}
               </button>
               
               <button
@@ -471,7 +405,7 @@ export default function StudentOnboarding() {
                 className="flex items-center justify-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium py-2 px-4 rounded-lg transition-colors"
               >
                 <span className="text-lg">🔗</span>
-                {t.shareLink}
+                Share Link
               </button>
             </div>
 
@@ -482,7 +416,7 @@ export default function StudentOnboarding() {
                 className="flex items-center justify-center gap-2 bg-green-100 hover:bg-green-200 text-green-700 font-medium py-2 px-4 rounded-lg transition-colors"
               >
                 <span className="text-lg">📱</span>
-                {t.shareViaWhatsApp}
+                Share via WhatsApp
               </button>
               
               <button
@@ -490,7 +424,7 @@ export default function StudentOnboarding() {
                 className="flex items-center justify-center gap-2 bg-red-100 hover:bg-red-200 text-red-700 font-medium py-2 px-4 rounded-lg transition-colors"
               >
                 <span className="text-lg">📧</span>
-                {t.shareViaEmail}
+                Share via Email
               </button>
             </div>
 
@@ -512,7 +446,7 @@ export default function StudentOnboarding() {
                 onClick={() => router.push('/dashboard/student')}
                 className="w-full bg-gray-100 text-gray-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                {t.continueToDashboard}
+                Continue to Dashboard
               </button>
             </div>
           </div>
@@ -853,24 +787,14 @@ export default function StudentOnboarding() {
 
       {/* ⬜ Right Section - Getting to Know You */}
       <section className="w-full md:w-1/2 bg-white px-8 py-8 flex flex-col relative">
-        {/* Language Selector */}
-        <div className="absolute top-6 right-6 flex items-center gap-2 text-sm text-gray-700 z-20">
-          <select
-            value={language}
-            onChange={(e) => handleLanguageChange(e.target.value)}
-            className="border border-gray-300 px-4 py-2 rounded-lg text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
-          >
-            {languages.map((lang) => (
-              <option key={lang} value={lang}>
-                {lang}
-              </option>
-            ))}
-          </select>
-        </div>
+
 
         <div className="max-w-2xl mx-auto w-full">
           {/* Header */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-8 relative">
+            <div className="absolute top-0 right-0">
+              <SimpleGoogleTranslate className="text-white" buttonText="Translate" showIcon={true} />
+            </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Getting to Know You
               </h1>
@@ -888,7 +812,7 @@ export default function StudentOnboarding() {
                       value={formData.fullName}
                       disabled
                       placeholder="Full Name"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 focus:outline-none"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 focus:outline-none"
                     />
                   </div>
                   <div>
@@ -897,7 +821,7 @@ export default function StudentOnboarding() {
                       value={formData.guardianName}
                       onChange={(e) => handleInputChange('guardianName', e.target.value)}
                       placeholder="Guardian Name"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                     />
                     {errors.guardianName && <p className="text-red-500 text-sm mt-1">{errors.guardianName}</p>}
                   </div>
@@ -906,7 +830,7 @@ export default function StudentOnboarding() {
                       type="date"
                       value={formData.dateOfBirth}
                       onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                     />
                     {!formData.dateOfBirth && (
                       <div className="absolute inset-0 flex items-center px-4 pointer-events-none text-gray-400">
@@ -919,7 +843,7 @@ export default function StudentOnboarding() {
                     <select
                       value={formData.gender}
                       onChange={(e) => handleInputChange('gender', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                     >
                       <option value="">Gender</option>
                       <option value="male">Male</option>
@@ -934,14 +858,14 @@ export default function StudentOnboarding() {
                       value={formData.location}
                       onChange={(e) => handleInputChange('location', e.target.value)}
                       placeholder="Location / City"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                     />
                   </div>
                   <div>
                     <select
                       value={formData.languagePreference}
                       onChange={(e) => handleInputChange('languagePreference', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                     >
                       <option value="">Language</option>
                       {languageOptions.map((lang) => (
@@ -959,7 +883,7 @@ export default function StudentOnboarding() {
                       <select
                         value={formData.classGrade}
                         onChange={(e) => handleInputChange('classGrade', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                       >
                         <option value="">Select Grade</option>
                         <option value="1">Grade 1</option>
@@ -982,7 +906,7 @@ export default function StudentOnboarding() {
                         value={formData.schoolName}
                         onChange={(e) => handleInputChange('schoolName', e.target.value)}
                         placeholder="School Name"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                       />
                     </div>
                     <div>
@@ -991,7 +915,7 @@ export default function StudentOnboarding() {
                         value={formData.schoolId}
                         onChange={(e) => handleInputChange('schoolId', e.target.value)}
                         placeholder="School ID"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                       />
                       {errors.schoolId && <p className="text-red-500 text-sm mt-1">{errors.schoolId}</p>}
                     </div>
@@ -1001,7 +925,7 @@ export default function StudentOnboarding() {
                         value={formData.interestsOutsideClass.join(', ')}
                         onChange={(e) => handleInputChange('interestsOutsideClass', e.target.value.split(', ').filter(i => i.trim()))}
                         placeholder="Favourite Subjects"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                       />
                     </div>
                     <div>
@@ -1010,7 +934,7 @@ export default function StudentOnboarding() {
                         value={formData.learningModePreference.join(', ')}
                         onChange={(e) => handleInputChange('learningModePreference', e.target.value.split(', ').filter(i => i.trim()))}
                         placeholder="Preferred Learning Style (Games, Stories, Videos)"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                       />
                       {errors.learningModePreference && <p className="text-red-500 text-sm mt-1">{errors.learningModePreference}</p>}
                     </div>
@@ -1038,7 +962,7 @@ export default function StudentOnboarding() {
                       value={formData.guardianContactNumber}
                       onChange={(e) => handleInputChange('guardianContactNumber', e.target.value)}
                       placeholder="Guardian Contact Number"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                     />
                     {errors.guardianContactNumber && <p className="text-red-500 text-sm mt-1">{errors.guardianContactNumber}</p>}
                   </div>
@@ -1048,7 +972,7 @@ export default function StudentOnboarding() {
                       value={formData.guardianEmail}
                       onChange={(e) => handleInputChange('guardianEmail', e.target.value)}
                       placeholder="Guardian Email (Optional)"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                     />
                     {errors.guardianEmail && <p className="text-red-500 text-sm mt-1">{errors.guardianEmail}</p>}
                   </div>
@@ -1104,7 +1028,7 @@ export default function StudentOnboarding() {
                   onClick={handlePrevious}
                   className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-200"
                 >
-                  {t.previous}
+                  Previous
                 </button>
                 
                 {currentStep < 3 ? (
@@ -1112,7 +1036,7 @@ export default function StudentOnboarding() {
                     onClick={handleNext}
                     className="px-6 py-2 bg-gradient-to-r from-[#8B3DFF] to-[#6D18CE] text-white rounded-lg hover:shadow-lg transition-all duration-200"
                   >
-                    {t.next}
+                    Next
                   </button>
                 ) : (
                   <button
@@ -1120,7 +1044,7 @@ export default function StudentOnboarding() {
                     disabled={isSubmitting}
                     className="px-6 py-2 bg-gradient-to-r from-[#8B3DFF] to-[#6D18CE] text-white rounded-lg hover:shadow-lg disabled:opacity-50 transition-all duration-200"
                   >
-                    {isSubmitting ? t.submitting : t.submit}
+                    {isSubmitting ? 'Submitting...' : 'Complete Onboarding'}
                   </button>
                 )}
               </div>

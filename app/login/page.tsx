@@ -4,47 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
+import SimpleGoogleTranslate from '../components/SimpleGoogleTranslate';
 
-const languages = ['English (USA)', 'हिन्दी', 'मराठी'];
 
-const translations: Record<string, Record<string, string>> = {
-  'English (USA)': {
-    welcomeBack: 'Welcome back to',
-    jioWorldLearning: 'JioWorld Learning!',
-    continueJourney: 'Continue your learning journey.',
-    loginTitle: 'Sign In',
-    enterEmail: 'Email address',
-    enterPassword: 'Password',
-    login: 'Sign In',
-    loggingIn: 'Signing in...',
-    noAccount: "Don't have an account?",
-    registerHere: 'Register here'
-  },
-  'हिन्दी': {
-    welcomeBack: 'वापस स्वागत है',
-    jioWorldLearning: 'JioWorld Learning में!',
-    continueJourney: 'अपनी सीखने की यात्रा जारी रखें।',
-    loginTitle: 'साइन इन करें',
-    enterEmail: 'ईमेल पता',
-    enterPassword: 'पासवर्ड',
-    login: 'साइन इन करें',
-    loggingIn: 'साइन इन हो रहा है...',
-    noAccount: 'कोई खाता नहीं है?',
-    registerHere: 'यहाँ रजिस्टर करें'
-  },
-  'मराठी': {
-    welcomeBack: 'परत स्वागत आहे',
-    jioWorldLearning: 'JioWorld Learning मध्ये!',
-    continueJourney: 'तुमचा शिकण्याचा प्रवास सुरू ठेवा.',
-    loginTitle: 'साइन इन करा',
-    enterEmail: 'ईमेल पत्ता',
-    enterPassword: 'पासवर्ड',
-    login: 'साइन इन करा',
-    loggingIn: 'साइन इन होत आहे...',
-    noAccount: 'खाते नाही?',
-    registerHere: 'इथे नोंदणी करा'
-  }
-};
 
 export default function Login() {
   const router = useRouter();
@@ -52,19 +14,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [language, setLanguage] = useState('English (USA)');
 
-  const t = translations[language] || translations['English (USA)'];
-
-  useEffect(() => {
-    const savedLang = localStorage.getItem('lang')
-    if (savedLang) setLanguage(savedLang)
-  }, [])
-
-  const handleLanguageChange = (lang: string) => {
-    setLanguage(lang);
-    localStorage.setItem('lang', lang);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,29 +136,18 @@ export default function Login() {
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.8 }}
         >
-          {/* Language Selector */}
+          {/* Google Translate Button */}
           <motion.div 
-            className="absolute top-[40px] right-[40px] w-[145.6px] h-[26.6px] flex items-center gap-2 z-10"
+            className="absolute top-[40px] right-[40px] z-10"
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.6 }}
           >
-            <motion.select
-              value={language}
-              onChange={(e) => handleLanguageChange(e.target.value)}
-              className="text-[15.9955px] font-semibold text-black bg-transparent border-none focus:outline-none cursor-pointer flex-1"
-            >
-              {languages.map((lang) => (
-                <option key={lang} value={lang} className="bg-white text-black">
-                  {lang}
-                </option>
-              ))}
-            </motion.select>
-            <div className="w-[26.6px] h-[26.6px] flex items-center justify-center flex-shrink-0">
-              <svg width="14" height="8" viewBox="0 0 14 8" fill="none">
-                <path d="M1 1L7 7L13 1" stroke="#8E8E8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
+            <SimpleGoogleTranslate 
+          className="text-white"
+          buttonText="Translate"
+          showIcon={true}
+        />
           </motion.div>
 
           {/* Main Content Container */}
@@ -346,7 +285,7 @@ export default function Login() {
                         className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
                         style={{ borderTopColor: '#FFFFFF' }}
                       />
-                      <span className="text-white">{t.loggingIn}</span>
+                      <span className="text-white">Signing in...</span>
                     </motion.div>
                   ) : (
                     <motion.span
