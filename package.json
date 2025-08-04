@@ -34,6 +34,7 @@
     "mongodb": "^6.17.0",
     "mongoose": "^8.16.1",
     "next": "15.3.5",
+    "node-fetch": "^3.3.2",
     "pdfjs-dist": "^5.4.54",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

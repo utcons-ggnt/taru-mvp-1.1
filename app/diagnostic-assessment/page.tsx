@@ -52,13 +52,38 @@ export default function DiagnosticAssessment() {
   // Fetch user profile data
   const fetchUserProfile = async () => {
     try {
+      console.log('🔍 Fetching user profile...');
       const response = await fetch('/api/user/profile');
-      const data = await response.json();
+      
+      console.log('🔍 Profile response status:', response.status);
+      
+      if (!response.ok) {
+        let errorMessage = 'Failed to fetch user profile';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          console.error('Failed to parse profile error response:', parseError);
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        console.error('Failed to fetch user profile:', errorMessage);
+        return;
+      }
+      
+      let data;
+      try {
+        data = await response.json();
+        console.log('🔍 Profile data received:', data);
+      } catch (parseError) {
+        console.error('Failed to parse profile response as JSON:', parseError);
+        return;
+      }
 
-      if (response.ok) {
+      if (data.success && data.user) {
         setUserProfile(data.user);
+        console.log('🔍 User profile set successfully');
       } else {
-        console.error('Failed to fetch user profile:', data.error);
+        console.error('Invalid profile response format:', data);
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -69,14 +94,39 @@ export default function DiagnosticAssessment() {
   const loadQuestion = async () => {
     try {
       setIsLoading(true);
+      setError('');
+      
+      console.log('🔍 Loading question...');
       const response = await fetch('/api/assessment/questions');
-      const data = await response.json();
-
+      
+      console.log('🔍 Response status:', response.status);
+      console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to load question');
+        let errorMessage = 'Failed to load question';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+      
+      // Try to parse JSON response
+      let data;
+      try {
+        data = await response.json();
+        console.log('🔍 Parsed response data:', data);
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        throw new Error('Invalid response format from server');
       }
 
       if (data.completed) {
+        console.log('🔍 Assessment already completed');
         setIsCompleted(true);
         setResult(data.result || {
           type: 'Assessment Completed',
@@ -88,6 +138,18 @@ export default function DiagnosticAssessment() {
         return;
       }
 
+      if (!data.question) {
+        throw new Error('No question data received from server');
+      }
+
+      console.log('🔍 Setting question data:', {
+        id: data.question.id,
+        type: data.question.type,
+        currentQuestion: data.currentQuestion,
+        totalQuestions: data.totalQuestions,
+        progress: data.progress
+      });
+
       setCurrentQuestion(data.question);
       setCurrentQuestionNumber(data.currentQuestion);
       setTotalQuestions(data.totalQuestions);
@@ -96,7 +158,8 @@ export default function DiagnosticAssessment() {
       setSelectedOption('');
     } catch (err) {
       console.error('Error loading question:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load question');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load question';
+      setError(errorMessage);
       
       // If there's an error, check if it's because assessment is completed
       if (err instanceof Error && err.message.includes('completed')) {
@@ -175,9 +238,24 @@ export default function DiagnosticAssessment() {
 
   // Load user profile and first question on component mount
   useEffect(() => {
-    fetchUserProfile();
-    loadQuestion();
-  }, []);
+    const initializeAssessment = async () => {
+      try {
+        // First check if user is authenticated by trying to fetch profile
+        await fetchUserProfile();
+        
+        // If profile fetch succeeds, load the question
+        await loadQuestion();
+      } catch (error) {
+        console.error('Failed to initialize assessment:', error);
+        // If there's an authentication error, redirect to login
+        if (error instanceof Error && error.message.includes('401')) {
+          router.push('/login');
+        }
+      }
+    };
+    
+    initializeAssessment();
+  }, [router]);
 
   // Completion screen
   if (isCompleted && result) {
@@ -328,15 +406,33 @@ export default function DiagnosticAssessment() {
           <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md mx-auto">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Assessment Error</h2>
             <p className="text-gray-600 mb-6">{error}</p>
-          <button
-              onClick={() => {
-                setError('');
-                loadQuestion();
-              }} 
-              className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
-            >
-              Try Again
-          </button>
+            
+            {/* Show additional error details in development */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-left">
+                <h3 className="font-semibold text-red-800 mb-2">Debug Information:</h3>
+                <p className="text-sm text-red-700 mb-2">Error: {error}</p>
+                <p className="text-sm text-red-700">Check browser console for more details.</p>
+              </div>
+            )}
+            
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => {
+                  setError('');
+                  loadQuestion();
+                }} 
+                className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => router.push('/login')} 
+                className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700"
+              >
+                Go to Login
+              </button>
+            </div>
           </div>
         </div>
       </div>

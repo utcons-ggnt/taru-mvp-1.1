@@ -78,11 +78,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Check if user is trying to access onboarding pages
-  const onboardingRoutes = ['/student-onboarding', '/parent-onboarding'];
-  const isOnboardingRoute = onboardingRoutes.some(route => pathname.startsWith(route));
+  // Check if user is trying to access onboarding pages or diagnostic assessment
+  const protectedRoutes = ['/student-onboarding', '/parent-onboarding', '/diagnostic-assessment'];
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
-  if (isOnboardingRoute) {
+  if (isProtectedRoute) {
     const token = request.cookies.get('auth-token')?.value;
 
     if (!token) {
@@ -101,6 +101,9 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
       if (pathname.startsWith('/parent-onboarding') && decoded.role !== 'parent') {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+      if (pathname.startsWith('/diagnostic-assessment') && decoded.role !== 'student') {
         return NextResponse.redirect(new URL('/login', request.url));
       }
 

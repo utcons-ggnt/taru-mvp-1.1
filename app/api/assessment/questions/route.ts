@@ -27,25 +27,75 @@ function convertN8nQuestion(n8nQuestion: any): AssessmentQuestion {
   let type: 'MCQ' | 'OPEN' = 'OPEN';
   let options: string[] | undefined = undefined;
 
-  // Map n8n question types to our format
-  if (questionType === 'Multiple Choice' || questionType === 'Pattern Choice') {
+  // Map n8n question types to our format based on the actual N8N output
+  if (questionType === 'Multiple Choice') {
     type = 'MCQ';
-    // For MCQ questions, we'll need to generate options or get them from n8n
-    if (questionType === 'Pattern Choice') {
-      options = ['Option A', 'Option B', 'Option C', 'Option D'];
-    } else {
-      options = ['Choice 1', 'Choice 2', 'Choice 3', 'Choice 4'];
-    }
+    // For Multiple Choice questions, generate contextually appropriate options
+    options = ['Strongly Agree', 'Agree', 'Disagree', 'Strongly Disagree'];
+  } else if (questionType === 'Pattern Choice') {
+    type = 'MCQ';
+    // For Pattern Choice questions, generate pattern-related options
+    options = ['Organ', 'System', 'Organism', 'Population'];
+  } else {
+    // All other types (Open Text, etc.) are treated as OPEN questions
+    type = 'OPEN';
+  }
+
+  // Map difficulty levels
+  let difficulty: 'easy' | 'medium' | 'hard' = 'easy';
+  if (n8nQuestion.difficulty === 'Middle') {
+    difficulty = 'medium';
+  } else if (n8nQuestion.difficulty === 'Secondary') {
+    difficulty = 'hard';
   }
 
   return {
-    id: n8nQuestion.Q.toString(), // Ensure ID is always a string
+    id: n8nQuestion.id.toString(), // Use the id field from N8N output
     question: n8nQuestion.question,
     type: type,
     options: options,
     category: n8nQuestion.section || 'General',
-    difficulty: n8nQuestion.level?.toLowerCase() === 'middle' ? 'medium' : 'easy'
+    difficulty: difficulty
   };
+}
+
+// Function to parse N8N output format and extract questions
+function parseN8nOutput(n8nOutput: any): AssessmentQuestion[] {
+  try {
+    console.log('🔍 Parsing N8N output:', JSON.stringify(n8nOutput, null, 2));
+    
+    // Handle the N8N format: [{"output": "JSON_STRING_WITH_QUESTIONS"}]
+    if (Array.isArray(n8nOutput) && n8nOutput.length > 0) {
+      const firstItem = n8nOutput[0];
+      if (firstItem && firstItem.output) {
+        console.log('🔍 Found output field in N8N response');
+        
+        // Parse the JSON string inside the output field
+        const parsedOutput = JSON.parse(firstItem.output);
+        console.log('🔍 Parsed output:', JSON.stringify(parsedOutput, null, 2));
+        
+        // Extract questions from the parsed output
+        if (parsedOutput && parsedOutput.questions && Array.isArray(parsedOutput.questions)) {
+          console.log('🔍 Found questions array with', parsedOutput.questions.length, 'questions');
+          return parsedOutput.questions.map((q: any) => convertN8nQuestion(q));
+        }
+      }
+    }
+    
+    // Handle direct object format (fallback)
+    if (n8nOutput && typeof n8nOutput === 'object' && !Array.isArray(n8nOutput)) {
+      if (n8nOutput.questions && Array.isArray(n8nOutput.questions)) {
+        console.log('🔍 Found direct questions array with', n8nOutput.questions.length, 'questions');
+        return n8nOutput.questions.map((q: any) => convertN8nQuestion(q));
+      }
+    }
+    
+    console.warn('🔍 No valid questions found in N8N output');
+    return [];
+  } catch (error) {
+    console.error('🔍 Error parsing N8N output:', error);
+    return [];
+  }
 }
 
 // Fallback questions if n8n hasn't generated questions yet
@@ -161,12 +211,20 @@ export async function GET(request: NextRequest) {
 
     // Get questions from n8n or use fallback
     let questions: AssessmentQuestion[] = fallbackQuestions;
+    
+    // Try to get N8N questions from assessment response
     if (assessmentResponse && assessmentResponse.generatedQuestions && assessmentResponse.generatedQuestions.length > 0) {
-      questions = assessmentResponse.generatedQuestions.map((q: any) => convertN8nQuestion(q));
-      console.log('🔍 Using n8n generated questions for student:', student.uniqueId);
-      console.log('🔍 Number of n8n questions:', questions.length);
+      console.log('🔍 Found stored N8N questions for student:', student.uniqueId);
+      const parsedQuestions = parseN8nOutput(assessmentResponse.generatedQuestions);
+      
+      if (parsedQuestions.length > 0) {
+        questions = parsedQuestions;
+        console.log('🔍 Using parsed N8N questions:', questions.length);
+      } else {
+        console.log('🔍 Failed to parse N8N questions, using fallback');
+      }
     } else {
-      console.log('🔍 Using fallback questions for student:', student.uniqueId);
+      console.log('🔍 No stored N8N questions, using fallback questions for student:', student.uniqueId);
       console.log('🔍 Number of fallback questions:', questions.length);
     }
 
@@ -310,8 +368,15 @@ async function handleAnswerSubmission(decoded: DecodedToken, questionId: string,
     // Get questions (n8n generated or fallback)
     let questions: AssessmentQuestion[] = fallbackQuestions;
     if (assessmentResponse && assessmentResponse.generatedQuestions && assessmentResponse.generatedQuestions.length > 0) {
-      questions = assessmentResponse.generatedQuestions.map((q: any) => convertN8nQuestion(q));
-      console.log('🔍 Using n8n generated questions for submission:', questions.length);
+      console.log('🔍 Found stored N8N questions for submission');
+      const parsedQuestions = parseN8nOutput(assessmentResponse.generatedQuestions);
+      
+      if (parsedQuestions.length > 0) {
+        questions = parsedQuestions;
+        console.log('🔍 Using parsed N8N questions for submission:', questions.length);
+      } else {
+        console.log('🔍 Failed to parse N8N questions for submission, using fallback');
+      }
     } else {
       console.log('🔍 Using fallback questions for submission:', questions.length);
     }

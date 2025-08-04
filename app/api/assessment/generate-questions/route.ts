@@ -2,17 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
-import Assessment from '@/models/Assessment';
+import Student from '@/models/Student';
+import AssessmentResponse from '@/models/AssessmentResponse';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const N8N_WEBHOOK_URL = process.env.N8N_ASSESSMENT_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook/learnign-path';
+const N8N_ASSESSMENT_WEBHOOK_URL = process.env.N8N_ASSESSMENT_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook-test/assessment-questions';
+const N8N_FALLBACK_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook/AI-BUDDY-MAIN';
 
 interface DecodedToken {
   userId: string;
   [key: string]: unknown;
 }
 
-export async function POST(request: NextRequest) {
+interface AssessmentQuestion {
+  id: string;
+  question: string;
+  type: 'MCQ' | 'OPEN';
+  options?: string[];
+  correctAnswer?: string;
+  category: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
+export async function GET(request: NextRequest) {
   try {
     // Get token from HTTP-only cookie
     const token = request.cookies.get('auth-token')?.value;
@@ -46,94 +58,142 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get student's assessment data (skills, interests, goals)
-    const assessment = await Assessment.findOne({ userId: decoded.userId });
-    if (!assessment || !assessment.assessmentCompleted) {
+    // Get student profile
+    const student = await Student.findOne({ userId: decoded.userId });
+    if (!student) {
       return NextResponse.json(
-        { error: 'Please complete skills and interests assessment first' },
-        { status: 400 }
+        { error: 'Student profile not found' },
+        { status: 404 }
       );
     }
 
-    const { retakeCount = 0 } = await request.json();
+    // Get parameters from URL search params for GET request
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type') || 'diagnostic';
 
     // Prepare data for N8N
     const assessmentData = {
-      skills: assessment.subjectsILike || [],
-      interests: assessment.topicsThatExciteMe || [],
-      careerGoals: assessment.currentCareerInterest || [],
-      dreamJob: assessment.dreamJobAsKid || '',
-      aspirations: assessment.whatImMostProudOf || '',
-      problemsToSolve: assessment.ifICouldFixOneProblem || '',
-      learningStyle: assessment.preferredLearningStyle || [],
-      retakeCount,
       studentId: decoded.userId,
       studentName: user.name,
-      grade: user.profile?.grade || '6'
+      uniqueId: student.uniqueId,
+      age: student.age,
+      classGrade: student.classGrade,
+      languagePreference: student.languagePreference,
+      schoolName: student.schoolName,
+      preferredSubject: student.preferredSubject,
+      type: type,
+      timestamp: new Date().toISOString()
     };
 
     // Call N8N webhook to generate questions
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    let webhookUrl = N8N_ASSESSMENT_WEBHOOK_URL;
+    let usedFallback = false;
+    let rawResponse;
 
-    try {
-      const response = await fetch(N8N_WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'generate_assessment_questions',
-          studentData: assessmentData,
-          requirements: {
-            questionCount: 10,
-            categories: ['skills', 'interests', 'aspirations', 'goals'],
-            difficulty: 'adaptive',
-            format: 'multiple_choice'
-          }
-        }),
-        signal: controller.signal
-      });
+    // Try primary webhook first, then fallback if needed
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        console.log(`🔄 Attempt ${attempt}: Trying webhook:`, webhookUrl);
 
-      clearTimeout(timeoutId);
+        // Add timeout to prevent hanging requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      if (response.ok) {
-        const result = await response.json();
-        
-        // Extract questions from N8N response
-        const questions = result.questions || result.data?.questions || [];
-        
-        if (questions.length === 0) {
-          throw new Error('No questions generated');
-        }
-
-        return NextResponse.json({
-          success: true,
-          questions: questions.map((q: any, index: number) => ({
-            id: `ai_${Date.now()}_${index}`,
-            question: q.question || q.prompt,
-            options: q.options || q.choices || [],
-            category: q.category || 'General',
-            points: q.points || 10,
-            timeLimit: q.timeLimit || 120,
-            type: 'multiple-choice'
-          })),
-          metadata: {
-            generatedAt: new Date().toISOString(),
-            studentId: decoded.userId,
-            retakeCount,
-            totalQuestions: questions.length
-          }
+        // Convert payload to URL parameters for GET request
+        const urlParams = new URLSearchParams({
+          uniqueID: 'TRANSCRIBE_003', // Use fixed uniqueID like original implementation
+          submittedAt: new Date().toISOString()
         });
 
-      } else {
-        throw new Error(`N8N returned ${response.status}`);
-      }
+        const getUrl = `${webhookUrl}?${urlParams.toString()}`;
+        console.log('🔗 Full webhook URL:', getUrl);
 
-    } catch (error) {
-      console.error('N8N assessment generation error:', error);
-      
-      // Fallback to static questions if N8N fails
+        const response = await fetch(getUrl, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        console.log('📡 Webhook response status:', response.status);
+
+        try {
+          const responseText = await response.text();
+          console.log('📥 N8N Raw response text:', responseText);
+
+          if (!responseText || responseText.trim() === '') {
+            console.warn('📥 Empty response from N8N webhook');
+            if (attempt === 1) {
+              console.log('🔄 Empty response, trying fallback webhook...');
+              webhookUrl = N8N_FALLBACK_WEBHOOK_URL;
+              usedFallback = true;
+              continue;
+            } else {
+              rawResponse = { error: 'Empty response from N8N webhook' };
+              break;
+            }
+          } else {
+            try {
+              rawResponse = JSON.parse(responseText);
+              console.log('📥 N8N Parsed Response:', JSON.stringify(rawResponse, null, 2));
+              break; // Success, exit the retry loop
+            } catch (parseError) {
+              console.error('📥 Failed to parse response text as JSON:', parseError);
+              if (attempt === 1) {
+                console.log('🔄 JSON parse error, trying fallback webhook...');
+                webhookUrl = N8N_FALLBACK_WEBHOOK_URL;
+                usedFallback = true;
+                continue;
+              } else {
+                rawResponse = { error: 'Invalid JSON response from N8N', rawText: responseText };
+                break;
+              }
+            }
+          }
+        } catch (textError) {
+          console.error('📥 Failed to get response text:', textError);
+          if (attempt === 1) {
+            console.log('🔄 Text read error, trying fallback webhook...');
+            webhookUrl = N8N_FALLBACK_WEBHOOK_URL;
+            usedFallback = true;
+            continue;
+          } else {
+            rawResponse = { error: 'Failed to read response from N8N' };
+            break;
+          }
+        }
+      } catch (fetchError: unknown) {
+        const error = fetchError as Error & { code?: string };
+        console.error(`🔄 Attempt ${attempt} failed:`, error);
+
+        if (attempt === 1) {
+          console.log('🔄 Fetch error, trying fallback webhook...');
+          webhookUrl = N8N_FALLBACK_WEBHOOK_URL;
+          usedFallback = true;
+          continue;
+        } else {
+          let errorMessage = 'Connection failed';
+          if (error.name === 'AbortError') {
+            errorMessage = 'Webhook timeout (30s)';
+          } else if (error.code === 'ENOTFOUND') {
+            errorMessage = 'Webhook URL not found';
+          } else if (error.code === 'ECONNREFUSED') {
+            errorMessage = 'Connection refused';
+          }
+
+          console.error('Diagnosed issue:', errorMessage);
+          rawResponse = { error: `Webhook unreachable: ${errorMessage}` };
+          break;
+        }
+      }
+    }
+
+    // Parse N8N response and extract questions
+    const questions = parseN8nOutput(rawResponse);
+    
+    if (questions.length === 0) {
+      console.log('🔍 No questions generated from N8N, using fallback');
       const fallbackQuestions = generateFallbackQuestions(assessmentData);
       
       return NextResponse.json({
@@ -143,12 +203,47 @@ export async function POST(request: NextRequest) {
         metadata: {
           generatedAt: new Date().toISOString(),
           studentId: decoded.userId,
-          retakeCount,
+          type: type,
           totalQuestions: fallbackQuestions.length,
           error: 'Using fallback questions due to N8N unavailability'
         }
       });
     }
+
+    // Store the generated questions in the database
+    let assessmentResponse = await AssessmentResponse.findOne({
+      uniqueId: student.uniqueId,
+      assessmentType: type
+    });
+
+    if (!assessmentResponse) {
+      assessmentResponse = new AssessmentResponse({
+        uniqueId: student.uniqueId,
+        assessmentType: type,
+        responses: [],
+        webhookTriggered: true,
+        generatedQuestions: rawResponse
+      });
+    } else {
+      assessmentResponse.generatedQuestions = rawResponse;
+      assessmentResponse.webhookTriggered = true;
+    }
+
+    await assessmentResponse.save();
+    console.log('🔍 Saved N8N questions to database for student:', student.uniqueId);
+
+    return NextResponse.json({
+      success: true,
+      questions: questions,
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        studentId: decoded.userId,
+        type: type,
+        totalQuestions: questions.length,
+        usedFallback: usedFallback,
+        webhookUrl: webhookUrl
+      }
+    });
 
   } catch (error) {
     console.error('Generate assessment questions error:', error);
@@ -158,76 +253,163 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Function to parse N8N output format and extract questions
+function parseN8nOutput(n8nOutput: any): AssessmentQuestion[] {
+  try {
+    console.log('🔍 Parsing N8N output:', JSON.stringify(n8nOutput, null, 2));
+    
+    // Handle the N8N format: [{"output": "JSON_STRING_WITH_QUESTIONS"}]
+    if (Array.isArray(n8nOutput) && n8nOutput.length > 0) {
+      const firstItem = n8nOutput[0];
+      if (firstItem && firstItem.output) {
+        console.log('🔍 Found output field in N8N response');
+        
+        // Parse the JSON string inside the output field
+        const parsedOutput = JSON.parse(firstItem.output);
+        console.log('🔍 Parsed output:', JSON.stringify(parsedOutput, null, 2));
+        
+        // Extract questions from the parsed output
+        if (parsedOutput && parsedOutput.questions && Array.isArray(parsedOutput.questions)) {
+          console.log('🔍 Found questions array with', parsedOutput.questions.length, 'questions');
+          return parsedOutput.questions.map((q: any) => convertN8nQuestion(q));
+        }
+      }
+    }
+    
+    // Handle direct object format (fallback)
+    if (n8nOutput && typeof n8nOutput === 'object' && !Array.isArray(n8nOutput)) {
+      if (n8nOutput.questions && Array.isArray(n8nOutput.questions)) {
+        console.log('🔍 Found direct questions array with', n8nOutput.questions.length, 'questions');
+        return n8nOutput.questions.map((q: any) => convertN8nQuestion(q));
+      }
+    }
+    
+    console.warn('🔍 No valid questions found in N8N output');
+    return [];
+  } catch (error) {
+    console.error('🔍 Error parsing N8N output:', error);
+    return [];
+  }
+}
+
+// Function to convert n8n question format to our internal format
+function convertN8nQuestion(n8nQuestion: any): AssessmentQuestion {
+  const questionType = n8nQuestion.type;
+  let type: 'MCQ' | 'OPEN' = 'OPEN';
+  let options: string[] | undefined = undefined;
+
+  // Map n8n question types to our format based on the actual N8N output
+  if (questionType === 'Multiple Choice') {
+    type = 'MCQ';
+    // For Multiple Choice questions, generate contextually appropriate options
+    options = ['Strongly Agree', 'Agree', 'Disagree', 'Strongly Disagree'];
+  } else if (questionType === 'Pattern Choice') {
+    type = 'MCQ';
+    // For Pattern Choice questions, generate pattern-related options
+    options = ['Organ', 'System', 'Organism', 'Population'];
+  } else {
+    // All other types (Open Text, etc.) are treated as OPEN questions
+    type = 'OPEN';
+  }
+
+  // Map difficulty levels
+  let difficulty: 'easy' | 'medium' | 'hard' = 'easy';
+  if (n8nQuestion.difficulty === 'Middle') {
+    difficulty = 'medium';
+  } else if (n8nQuestion.difficulty === 'Secondary') {
+    difficulty = 'hard';
+  }
+
+  return {
+    id: n8nQuestion.id.toString(),
+    question: n8nQuestion.question,
+    type: type,
+    options: options,
+    category: n8nQuestion.section || 'General',
+    difficulty: difficulty
+  };
+}
+
 // Fallback question generator
-function generateFallbackQuestions(studentData: any) {
-  const questions: any[] = [];
-  
-  // Generate questions based on student's skills
-  if (studentData.skills.length > 0) {
-    studentData.skills.slice(0, 3).forEach((skill: string) => {
-      questions.push({
-        id: `fallback_skill_${Date.now()}_${questions.length}`,
-        question: `How confident are you in ${skill}?`,
-        options: ['Very confident', 'Somewhat confident', 'Not very confident', 'Need to learn more'],
-        category: 'Skills Assessment',
-        points: 10,
-        timeLimit: 120,
-        type: 'multiple-choice'
-      });
-    });
-  }
-
-  // Generate questions based on interests
-  if (studentData.interests.length > 0) {
-    studentData.interests.slice(0, 3).forEach((interest: string) => {
-      questions.push({
-        id: `fallback_interest_${Date.now()}_${questions.length}`,
-        question: `What would you like to learn most about ${interest}?`,
-        options: ['The basics', 'Advanced concepts', 'Practical applications', 'Career opportunities'],
-        category: 'Interest Exploration',
-        points: 10,
-        timeLimit: 120,
-        type: 'multiple-choice'
-      });
-    });
-  }
-
-  // Generate questions based on career goals
-  if (studentData.careerGoals.length > 0) {
-    studentData.careerGoals.slice(0, 2).forEach((goal: string) => {
-      questions.push({
-        id: `fallback_career_${Date.now()}_${questions.length}`,
-        question: `What skills do you think are most important for a career in ${goal}?`,
-        options: ['Technical skills', 'Communication skills', 'Problem-solving', 'Creativity'],
-        category: 'Career Planning',
-        points: 10,
-        timeLimit: 120,
-        type: 'multiple-choice'
-      });
-    });
-  }
-
-  // Add general questions to reach 10 total
-  const generalQuestions = [
+function generateFallbackQuestions(studentData: any): AssessmentQuestion[] {
+  // Generate diagnostic assessment questions
+  const diagnosticQuestions: AssessmentQuestion[] = [
     {
-      id: `fallback_general_${Date.now()}_${questions.length}`,
-      question: 'How do you prefer to learn new things?',
-      options: ['By watching videos', 'By reading', 'By doing hands-on activities', 'By discussing with others'],
-      category: 'Learning Style',
-      points: 10,
-      timeLimit: 120,
-      type: 'multiple-choice'
+      id: '1',
+      question: 'What is your favorite subject in school?',
+      type: 'MCQ',
+      options: ['Mathematics', 'Science', 'English', 'History', 'Art'],
+      category: 'Learning Preferences',
+      difficulty: 'easy'
     },
     {
-      id: `fallback_general_${Date.now()}_${questions.length + 1}`,
-      question: 'What motivates you to learn?',
-      options: ['Getting good grades', 'Understanding new concepts', 'Solving problems', 'Helping others'],
+      id: '2',
+      question: 'How do you prefer to learn new concepts?',
+      type: 'MCQ',
+      options: ['Reading and writing', 'Visual diagrams and charts', 'Hands-on practice', 'Listening to explanations'],
+      category: 'Learning Style',
+      difficulty: 'easy'
+    },
+    {
+      id: '3',
+      question: 'Describe a time when you solved a difficult problem. What approach did you use?',
+      type: 'OPEN',
+      category: 'Problem Solving',
+      difficulty: 'medium'
+    },
+    {
+      id: '4',
+      question: 'What career interests you the most?',
+      type: 'MCQ',
+      options: ['Technology and Engineering', 'Healthcare and Medicine', 'Arts and Design', 'Business and Finance', 'Education and Teaching'],
+      category: 'Career Interests',
+      difficulty: 'medium'
+    },
+    {
+      id: '5',
+      question: 'How do you handle challenges or difficulties when learning something new?',
+      type: 'OPEN',
+      category: 'Learning Attitude',
+      difficulty: 'medium'
+    },
+    {
+      id: '6',
+      question: 'Which of these activities do you enjoy the most?',
+      type: 'MCQ',
+      options: ['Working in teams', 'Working independently', 'Creative projects', 'Analytical tasks'],
+      category: 'Work Preferences',
+      difficulty: 'easy'
+    },
+    {
+      id: '7',
+      question: 'What motivates you to learn and improve?',
+      type: 'OPEN',
       category: 'Motivation',
-      points: 10,
-      timeLimit: 120,
-      type: 'multiple-choice'
+      difficulty: 'medium'
+    },
+    {
+      id: '8',
+      question: 'How do you prefer to receive feedback on your work?',
+      type: 'MCQ',
+      options: ['Immediate feedback', 'Detailed written feedback', 'One-on-one discussions', 'Group discussions'],
+      category: 'Feedback Preferences',
+      difficulty: 'easy'
+    },
+    {
+      id: '9',
+      question: 'What is your biggest strength as a learner?',
+      type: 'OPEN',
+      category: 'Self-Assessment',
+      difficulty: 'medium'
+    },
+    {
+      id: '10',
+      question: 'What area would you like to improve the most?',
+      type: 'OPEN',
+      category: 'Growth Areas',
+      difficulty: 'medium'
     }
   ];
 
-  return [...questions, ...generalQuestions].slice(0, 10);
+  return diagnosticQuestions;
 } 
