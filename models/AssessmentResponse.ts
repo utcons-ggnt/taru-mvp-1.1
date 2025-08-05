@@ -45,6 +45,13 @@ const assessmentResponseSchema = new mongoose.Schema({
     submittedAt: {
       type: Date,
       default: Date.now
+    },
+    formattedResponse: {
+      Q: String,
+      section: String,
+      question: String,
+      studentAnswer: String,
+      type: String
     }
   }],
   result: {
@@ -79,11 +86,22 @@ const assessmentResponseSchema = new mongoose.Schema({
     type: Array, // Store the n8n generated questions
     default: []
   },
+  collectedAnswers: {
+    type: Array, // Store the collected answers in the required format
+    default: []
+  },
   webhookTriggered: {
     type: Boolean,
     default: false
   },
   webhookTriggeredAt: {
+    type: Date
+  },
+  webhookDataSent: {
+    type: Boolean,
+    default: false
+  },
+  webhookSentAt: {
     type: Date
   },
   analysisCompleted: {

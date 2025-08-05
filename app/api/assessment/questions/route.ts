@@ -37,6 +37,9 @@ interface ParsedOutput {
   questions: N8nQuestion[];
 }
 
+// Type for N8N output that can be stored as string array
+type N8nOutput = N8nOutputItem[] | ParsedOutput | string[];
+
 // Function to convert n8n question format to our internal format
 function convertN8nQuestion(n8nQuestion: N8nQuestion): AssessmentQuestion {
   const questionType = n8nQuestion.type;
@@ -76,14 +79,30 @@ function convertN8nQuestion(n8nQuestion: N8nQuestion): AssessmentQuestion {
 }
 
 // Function to parse N8N output format and extract questions
-function parseN8nOutput(n8nOutput: N8nOutputItem[] | ParsedOutput): AssessmentQuestion[] {
+function parseN8nOutput(n8nOutput: N8nOutput): AssessmentQuestion[] {
   try {
     console.log('🔍 Parsing N8N output:', JSON.stringify(n8nOutput, null, 2));
+    
+    // Handle string array format (when N8N output is stored as string array)
+    if (Array.isArray(n8nOutput) && n8nOutput.length > 0 && typeof n8nOutput[0] === 'string') {
+      console.log('🔍 Found string array format, attempting to parse first element');
+      try {
+        const parsedOutput = JSON.parse(n8nOutput[0]);
+        console.log('🔍 Successfully parsed string array element:', JSON.stringify(parsedOutput, null, 2));
+        
+        if (parsedOutput && parsedOutput.questions && Array.isArray(parsedOutput.questions)) {
+          console.log('🔍 Found questions array with', parsedOutput.questions.length, 'questions');
+          return parsedOutput.questions.map((q: N8nQuestion) => convertN8nQuestion(q));
+        }
+      } catch (parseError) {
+        console.error('🔍 Failed to parse string array element:', parseError);
+      }
+    }
     
     // Handle the N8N format: [{"output": "JSON_STRING_WITH_QUESTIONS"}]
     if (Array.isArray(n8nOutput) && n8nOutput.length > 0) {
       const firstItem = n8nOutput[0];
-      if (firstItem && firstItem.output) {
+      if (firstItem && typeof firstItem === 'object' && 'output' in firstItem) {
         console.log('🔍 Found output field in N8N response');
         
         // Parse the JSON string inside the output field
@@ -199,10 +218,17 @@ export async function GET(request: NextRequest) {
     const questionId = searchParams.get('questionId');
     const answer = searchParams.get('answer');
     const questionNumber = parseInt(searchParams.get('questionNumber') || '0');
+    const isPrevious = searchParams.get('previous') === 'true';
+    const currentQuestionParam = parseInt(searchParams.get('currentQuestion') || '0');
 
     // If parameters are provided, handle as submission
     if (questionId && answer !== null) {
       return await handleAnswerSubmission(decoded, questionId, answer, questionNumber);
+    }
+
+    // If this is a previous question request
+    if (isPrevious && currentQuestionParam > 0) {
+      return await handlePreviousQuestion(decoded, currentQuestionParam);
     }
 
     // Otherwise, handle as question fetch request
@@ -232,11 +258,16 @@ export async function GET(request: NextRequest) {
     // Try to get N8N questions from assessment response
     if (assessmentResponse && assessmentResponse.generatedQuestions && assessmentResponse.generatedQuestions.length > 0) {
       console.log('🔍 Found stored N8N questions for student:', student.uniqueId);
+      console.log('🔍 Raw generatedQuestions type:', typeof assessmentResponse.generatedQuestions);
+      console.log('🔍 Raw generatedQuestions length:', assessmentResponse.generatedQuestions.length);
+      console.log('🔍 Raw generatedQuestions first element type:', typeof assessmentResponse.generatedQuestions[0]);
+      
       const parsedQuestions = parseN8nOutput(assessmentResponse.generatedQuestions);
       
       if (parsedQuestions.length > 0) {
         questions = parsedQuestions;
         console.log('🔍 Using parsed N8N questions:', questions.length);
+        console.log('🔍 First parsed question:', questions[0]);
       } else {
         console.log('🔍 Failed to parse N8N questions, using fallback');
       }
@@ -358,6 +389,7 @@ export async function GET(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     );
+  }
 }
 
 // Helper function to handle answer submission
@@ -386,11 +418,16 @@ async function handleAnswerSubmission(decoded: DecodedToken, questionId: string,
     let questions: AssessmentQuestion[] = fallbackQuestions;
     if (assessmentResponse && assessmentResponse.generatedQuestions && assessmentResponse.generatedQuestions.length > 0) {
       console.log('🔍 Found stored N8N questions for submission');
+      console.log('🔍 Raw generatedQuestions type:', typeof assessmentResponse.generatedQuestions);
+      console.log('🔍 Raw generatedQuestions length:', assessmentResponse.generatedQuestions.length);
+      console.log('🔍 Raw generatedQuestions first element type:', typeof assessmentResponse.generatedQuestions[0]);
+      
       const parsedQuestions = parseN8nOutput(assessmentResponse.generatedQuestions);
       
       if (parsedQuestions.length > 0) {
         questions = parsedQuestions;
         console.log('🔍 Using parsed N8N questions for submission:', questions.length);
+        console.log('🔍 First parsed question for submission:', questions[0]);
       } else {
         console.log('🔍 Failed to parse N8N questions for submission, using fallback');
       }
@@ -427,47 +464,62 @@ async function handleAnswerSubmission(decoded: DecodedToken, questionId: string,
       });
     }
 
-    // Add the response
-    assessmentResponse.responses.push({
-      questionId: currentQuestion.id,
-      question: currentQuestion.question,
-      answer: answer,
-      questionType: currentQuestion.type,
-      category: currentQuestion.category,
-      difficulty: currentQuestion.difficulty,
-      isCorrect: isCorrect,
-      submittedAt: new Date()
-    });
+         // Add the response in the required format
+     const formattedResponse = {
+       Q: currentQuestion.id,
+       section: currentQuestion.category,
+       question: currentQuestion.question,
+       studentAnswer: answer,
+       type: currentQuestion.type === 'MCQ' ? 'Multiple Choice' : 'Open Text'
+     };
+
+     assessmentResponse.responses.push({
+       questionId: currentQuestion.id,
+       question: currentQuestion.question,
+       answer: answer,
+       questionType: currentQuestion.type,
+       category: currentQuestion.category,
+       difficulty: currentQuestion.difficulty,
+       isCorrect: isCorrect,
+       submittedAt: new Date(),
+       formattedResponse: formattedResponse
+     });
 
     // Check if this is the last question
     const totalQuestions = questions.length;
     const isCompleted = questionNumber >= totalQuestions;
 
-    if (isCompleted) {
-      // Calculate score for MCQ questions
-      const mcqResponses = assessmentResponse.responses.filter((r: { questionType: string }) => r.questionType === 'MCQ');
-      const correctAnswers = mcqResponses.filter((r: { isCorrect: boolean }) => r.isCorrect).length;
-      const score = mcqResponses.length > 0 ? Math.round((correctAnswers / mcqResponses.length) * 100) : 85;
+         if (isCompleted) {
+       // Calculate score for MCQ questions
+       const mcqResponses = assessmentResponse.responses.filter((r: { questionType: string }) => r.questionType === 'MCQ');
+       const correctAnswers = mcqResponses.filter((r: { isCorrect: boolean }) => r.isCorrect).length;
+       const score = mcqResponses.length > 0 ? Math.round((correctAnswers / mcqResponses.length) * 100) : 85;
 
-      // Set completion data
-      assessmentResponse.isCompleted = true;
-      assessmentResponse.completedAt = new Date();
-      
-      // Set final result - can be enhanced with AI analysis later
-      assessmentResponse.result = {
-        type: 'Visual Superstar',
-        description: 'You learn best with fun visuals and bright colors!',
-        score: score,
-        learningStyle: 'Visual',
-        recommendations: [
-          { title: 'The Water Cycle', description: 'Learn about water cycle with visual animations', xp: 75 },
-          { title: 'Shapes Adventure', description: 'Explore geometric shapes through games', xp: 50 },
-          { title: 'Story of the Moon', description: 'Discover moon phases with storytelling', xp: 30 }
-        ]
-      };
+       // Collect all formatted responses for N8N webhook
+       const formattedResponses = assessmentResponse.responses.map((r: any) => r.formattedResponse);
+       assessmentResponse.collectedAnswers = formattedResponses;
 
-      console.log(`🔍 Assessment completed for student ${student.uniqueId} with score: ${score}%`);
-    }
+       // Set completion data
+       assessmentResponse.isCompleted = true;
+       assessmentResponse.completedAt = new Date();
+       
+       // Set final result - can be enhanced with AI analysis later
+       assessmentResponse.result = {
+         type: 'Visual Superstar',
+         description: 'You learn best with fun visuals and bright colors!',
+         score: score,
+         learningStyle: 'Visual',
+         recommendations: [
+           { title: 'The Water Cycle', description: 'Learn about water cycle with visual animations', xp: 75 },
+           { title: 'Shapes Adventure', description: 'Explore geometric shapes through games', xp: 50 },
+           { title: 'Story of the Moon', description: 'Discover moon phases with storytelling', xp: 30 }
+         ]
+       };
+
+       console.log(`🔍 Assessment completed for student ${student.uniqueId} with score: ${score}%`);
+       console.log(`🔍 Collected ${formattedResponses.length} formatted responses for N8N webhook`);
+       console.log(`🔍 Formatted responses:`, JSON.stringify(formattedResponses, null, 2));
+     }
 
     // Save the assessment response
     await assessmentResponse.save();
@@ -520,4 +572,80 @@ async function handleAnswerSubmission(decoded: DecodedToken, questionId: string,
       { status: 500 }
     );
   }
-}}
+}
+
+// Helper function to handle previous question request
+async function handlePreviousQuestion(decoded: DecodedToken, currentQuestionNumber: number) {
+  try {
+    // Verify student exists
+    const student = await Student.findOne({ 
+      userId: decoded.userId,
+      onboardingCompleted: true 
+    });
+
+    if (!student) {
+      return NextResponse.json(
+        { error: 'Student not found' },
+        { status: 404 }
+      );
+    }
+
+    // Find assessment response
+    const assessmentResponse = await AssessmentResponse.findOne({
+      uniqueId: student.uniqueId,
+      assessmentType: 'diagnostic'
+    });
+
+    // Get questions (n8n generated or fallback)
+    let questions: AssessmentQuestion[] = fallbackQuestions;
+    if (assessmentResponse && assessmentResponse.generatedQuestions && assessmentResponse.generatedQuestions.length > 0) {
+      const parsedQuestions = parseN8nOutput(assessmentResponse.generatedQuestions);
+      if (parsedQuestions.length > 0) {
+        questions = parsedQuestions;
+      }
+    }
+
+    // Calculate previous question number
+    const previousQuestionNumber = currentQuestionNumber - 1;
+    
+    if (previousQuestionNumber < 0 || previousQuestionNumber >= questions.length) {
+      return NextResponse.json(
+        { error: 'Invalid question number' },
+        { status: 400 }
+      );
+    }
+
+    const previousQuestion = questions[previousQuestionNumber];
+
+    if (!previousQuestion) {
+      return NextResponse.json(
+        { error: 'Question not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      question: {
+        id: previousQuestion.id,
+        question: previousQuestion.question,
+        type: previousQuestion.type,
+        options: previousQuestion.options,
+        section: previousQuestion.category,
+        questionNumber: previousQuestionNumber + 1,
+        totalQuestions: questions.length
+      },
+      currentQuestion: previousQuestionNumber + 1,
+      totalQuestions: questions.length,
+      progress: Math.round(((previousQuestionNumber + 1) / questions.length) * 100),
+      isLast: (previousQuestionNumber + 1) === questions.length
+    });
+
+  } catch (error) {
+    console.error('Previous question error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

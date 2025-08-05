@@ -87,6 +87,124 @@ export default function ModulesTab() {
   // N8N Webhook URL
   const N8N_WEBHOOK_URL = 'https://nclbtaru.app.n8n.cloud/webhook/MCQ/Flash/questions';
 
+  // Generate fallback MCQ questions when N8N fails
+  const generateFallbackMCQQuestions = (module: Module | null): MCQQuestion[] => {
+    if (!module) return [];
+    
+    const subject = module.subject.toLowerCase();
+    const moduleTitle = module.title.toLowerCase();
+    
+    // Generate contextually appropriate questions based on module content
+    const fallbackQuestions: MCQQuestion[] = [
+      {
+        Q: "1",
+        question: `What is the main topic of ${module.title}?`,
+        options: [
+          `Understanding ${module.subject} concepts`,
+          "Advanced mathematics",
+          "Historical events",
+          "Scientific discoveries"
+        ],
+        answer: `Understanding ${module.subject} concepts`,
+        level: module.difficulty || "easy"
+      },
+      {
+        Q: "2",
+        question: `Which of the following best describes ${module.subject}?`,
+        options: [
+          "A complex subject requiring careful study",
+          "A simple topic that doesn't need much attention",
+          "An optional subject for students",
+          "A subject only for advanced learners"
+        ],
+        answer: "A complex subject requiring careful study",
+        level: module.difficulty || "easy"
+      },
+      {
+        Q: "3",
+        question: `What grade level is this ${module.subject} module designed for?`,
+        options: [
+          module.grade,
+          "All grade levels",
+          "Only advanced students",
+          "Elementary students only"
+        ],
+        answer: module.grade,
+        level: module.difficulty || "easy"
+      },
+      {
+        Q: "4",
+        question: `How long does this ${module.subject} module typically take to complete?`,
+        options: [
+          `${module.duration} minutes`,
+          "1 hour",
+          "30 minutes",
+          "2 hours"
+        ],
+        answer: `${module.duration} minutes`,
+        level: module.difficulty || "easy"
+      },
+      {
+        Q: "5",
+        question: `What is the difficulty level of this ${module.subject} module?`,
+        options: [
+          module.difficulty,
+          "Very easy",
+          "Very difficult",
+          "Intermediate"
+        ],
+        answer: module.difficulty,
+        level: module.difficulty || "easy"
+      }
+    ];
+    
+    return fallbackQuestions;
+  };
+
+  // Generate fallback flashcards when N8N fails
+  const generateFallbackFlashcards = (module: Module | null): any[] => {
+    if (!module) return [];
+    
+    const subject = module.subject.toLowerCase();
+    const moduleTitle = module.title.toLowerCase();
+    
+    // Generate contextually appropriate flashcards based on module content
+    const fallbackFlashcards = [
+      {
+        question: `What is the main subject of this module?`,
+        answer: module.subject,
+        definition: `The primary academic discipline covered in this learning module.`,
+        explanation: `This module focuses on ${module.subject} concepts and principles.`
+      },
+      {
+        question: `What is the title of this learning module?`,
+        answer: module.title,
+        definition: `The specific name given to this educational content.`,
+        explanation: `The module is titled "${module.title}" and covers ${module.subject} topics.`
+      },
+      {
+        question: `What grade level is this module designed for?`,
+        answer: module.grade,
+        definition: `The target educational level for this content.`,
+        explanation: `This module is specifically designed for ${module.grade} students.`
+      },
+      {
+        question: `How long does this module take to complete?`,
+        answer: `${module.duration} minutes`,
+        definition: `The estimated time required to finish this module.`,
+        explanation: `Students typically need ${module.duration} minutes to complete all activities in this module.`
+      },
+      {
+        question: `What is the difficulty level of this module?`,
+        answer: module.difficulty,
+        definition: `The complexity level of the content and activities.`,
+        explanation: `This module is rated as ${module.difficulty} difficulty, suitable for ${module.grade} students.`
+      }
+    ];
+    
+    return fallbackFlashcards;
+  };
+
   // Initialize AI Services
   useEffect(() => {
     n8nService.current = new N8NService();
@@ -378,51 +496,164 @@ export default function ModulesTab() {
       setMcqScore(0);
       setCurrentMcqIndex(0);
       
-      const response = await fetch('/api/modules/generate-content', {
-        method: 'POST',
+      // Build URL parameters for N8N webhook
+      const params = new URLSearchParams({
+        type: 'mcq',
+        uniqueid: selectedModule.uniqueID,
+        subject: selectedModule.subject,
+        module: selectedModule.title,
+        grade: selectedModule.grade,
+        difficulty: selectedModule.difficulty,
+        studentName: user?.fullName || 'Student',
+        studentGrade: user?.classGrade || '',
+        submittedAt: new Date().toISOString()
+      });
+
+      const webhookUrl = `${N8N_WEBHOOK_URL}?${params.toString()}`;
+      console.log('🔍 Sending MCQ request to N8N webhook:', {
+        type: 'mcq',
+        uniqueid: selectedModule.uniqueID,
+        subject: selectedModule.subject,
+        module: selectedModule.title
+      });
+
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+      const response = await fetch(webhookUrl, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          type: 'mcq',
-          uniqueId: selectedModule.uniqueID
-        })
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         let data;
+        let responseText;
         try {
-          const responseText = await response.text();
+          responseText = await response.text();
+          console.log('🔍 N8N MCQ raw response:', responseText);
+          
           if (!responseText || responseText.trim() === '') {
-            throw new Error('Empty response from API');
+            console.warn('⚠️ Empty response from N8N webhook, using fallback questions');
+            const fallbackQuestions = generateFallbackMCQQuestions(selectedModule);
+            setMcqQuestions(fallbackQuestions);
+            return;
           }
+          
           data = JSON.parse(responseText);
+          console.log('🔍 N8N MCQ response:', data);
         } catch (parseError) {
-          console.error('Failed to parse MCQ response:', parseError);
-          setMcqQuestions([]);
+          console.error('🔍 Failed to parse N8N MCQ response:', parseError);
+          if (responseText) {
+            console.log('🔍 Raw response text:', responseText);
+          }
+          // Use fallback questions instead of throwing error
+          const fallbackQuestions = generateFallbackMCQQuestions(selectedModule);
+          setMcqQuestions(fallbackQuestions);
           return;
         }
         
-        if (data.success && data.content && data.content.length > 0) {
-          setMcqQuestions(data.content);
-          console.log('✅ MCQ questions generated:', data.content);
+        // Check for empty or null data after parsing
+        if (!data || (Array.isArray(data) && data.length === 0) || (typeof data === 'object' && Object.keys(data).length === 0)) {
+          console.log('⚠️ Empty or null data from N8N, using fallback questions');
+          const fallbackQuestions = generateFallbackMCQQuestions(selectedModule);
+          setMcqQuestions(fallbackQuestions);
+          return;
+        }
+        
+        // Parse N8N response format with better error handling
+        let mcqQuestions: MCQQuestion[] = [];
+        
+        console.log('🔍 Attempting to parse N8N response:', typeof data, data);
+        
+        // Handle N8N format: [{"output": "JSON_STRING_WITH_QUESTIONS"}]
+        if (data && Array.isArray(data) && data.length > 0) {
+          const firstItem = data[0];
+          console.log('🔍 First item in array:', firstItem);
+          
+          if (firstItem && typeof firstItem === 'object') {
+            // Try to find the output field
+            const outputField = firstItem.output || firstItem.response || firstItem.data || firstItem.content;
+            
+            if (outputField && typeof outputField === 'string') {
+              try {
+                console.log('🔍 Attempting to parse output field:', outputField.substring(0, 100) + '...');
+                const parsedOutput = JSON.parse(outputField);
+                console.log('🔍 Successfully parsed output field:', parsedOutput);
+                
+                if (parsedOutput && Array.isArray(parsedOutput)) {
+                  mcqQuestions = parsedOutput;
+                } else if (parsedOutput && parsedOutput.questions && Array.isArray(parsedOutput.questions)) {
+                  mcqQuestions = parsedOutput.questions;
+                } else if (parsedOutput && parsedOutput.content && Array.isArray(parsedOutput.content)) {
+                  mcqQuestions = parsedOutput.content;
+                }
+              } catch (parseError) {
+                console.error('🔍 Failed to parse N8N output as JSON:', parseError);
+                console.log('🔍 Raw output field:', outputField);
+              }
+            } else if (Array.isArray(firstItem)) {
+              // Direct array in first item
+              mcqQuestions = firstItem;
+            } else if (firstItem.questions && Array.isArray(firstItem.questions)) {
+              // Direct questions array
+              mcqQuestions = firstItem.questions;
+            } else if (firstItem.content && Array.isArray(firstItem.content)) {
+              // Direct content array
+              mcqQuestions = firstItem.content;
+            }
+          }
+        } 
+        // Handle direct array format
+        else if (data && Array.isArray(data)) {
+          mcqQuestions = data;
+        }
+        // Handle direct object format
+        else if (data && typeof data === 'object') {
+          if (data.questions && Array.isArray(data.questions)) {
+            mcqQuestions = data.questions;
+          } else if (data.content && Array.isArray(data.content)) {
+            mcqQuestions = data.content;
+          } else if (data.data && Array.isArray(data.data)) {
+            mcqQuestions = data.data;
+          } else if (data.response && Array.isArray(data.response)) {
+            mcqQuestions = data.response;
+          }
+        }
+        // Handle string format (try to parse as JSON)
+        else if (data && typeof data === 'string') {
+          try {
+            const parsedData = JSON.parse(data);
+            if (Array.isArray(parsedData)) {
+              mcqQuestions = parsedData;
+            } else if (parsedData && parsedData.questions && Array.isArray(parsedData.questions)) {
+              mcqQuestions = parsedData.questions;
+            }
+          } catch (parseError) {
+            console.error('🔍 Failed to parse string data as JSON:', parseError);
+          }
+        }
+        
+        if (mcqQuestions.length > 0) {
+          setMcqQuestions(mcqQuestions);
+          console.log('✅ MCQ questions generated from N8N:', mcqQuestions);
         } else {
-          console.log('⚠️ No MCQ questions received');
-          setMcqQuestions([]);
+          console.log('⚠️ No MCQ questions received from N8N, generating fallback questions');
+          // Generate fallback questions based on module content
+          const fallbackQuestions = generateFallbackMCQQuestions(selectedModule);
+          setMcqQuestions(fallbackQuestions);
         }
       } else {
-        let errorData;
-        try {
-          const errorText = await response.text();
-          errorData = errorText ? JSON.parse(errorText) : { error: 'Unknown error' };
-        } catch {
-          errorData = { error: 'Failed to parse error response' };
-        }
-        console.error('❌ Error generating MCQ questions:', errorData);
+        console.error('❌ N8N MCQ webhook error:', response.status, response.statusText);
         setMcqQuestions([]);
       }
     } catch (error) {
-      console.error('❌ Error generating MCQ questions:', error);
+      console.error('❌ Error generating MCQ questions from N8N:', error);
       setMcqQuestions([]);
     } finally {
       setMcqLoading(false);
@@ -436,17 +667,65 @@ export default function ModulesTab() {
     }));
   };
 
-  const submitMCQAnswers = () => {
-    let correctAnswers = 0;
-    mcqQuestions.forEach((question, index) => {
-      if (mcqAnswers[index] === question.answer) {
-        correctAnswers++;
+  const submitMCQAnswers = async () => {
+    try {
+      // Calculate score locally first
+      let correctAnswers = 0;
+      mcqQuestions.forEach((question, index) => {
+        if (mcqAnswers[index] === question.answer) {
+          correctAnswers++;
+        }
+      });
+      
+      const score = (correctAnswers / mcqQuestions.length) * 100;
+      setMcqScore(score);
+      setMcqSubmitted(true);
+
+      // Prepare answers data for N8N webhook
+      const answersData = mcqQuestions.map((question, index) => ({
+        Q: question.Q || (index + 1).toString(),
+        section: selectedModule?.subject || 'General',
+        question: question.question,
+        studentAnswer: mcqAnswers[index] || 'Not answered',
+        type: 'Multiple Choice'
+      }));
+
+      // Send answers to N8N webhook for assessment
+      const webhookData = {
+        studentId: user?.uniqueId || 'unknown',
+        studentName: user?.fullName || 'Unknown Student',
+        moduleId: selectedModule?.uniqueID || 'unknown',
+        moduleTitle: selectedModule?.title || 'Unknown Module',
+        subject: selectedModule?.subject || 'General',
+        answers: answersData,
+        score: score,
+        totalQuestions: mcqQuestions.length,
+        correctAnswers: correctAnswers,
+        submittedAt: new Date().toISOString()
+      };
+
+      console.log('🔍 Sending MCQ answers to N8N webhook:', webhookData);
+
+      // Send to N8N webhook for assessment scoring
+      const assessmentResponse = await fetch('https://nclbtaru.app.n8n.cloud/webhook/Score-result', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookData),
+      });
+
+      if (assessmentResponse.ok) {
+        const assessmentResult = await assessmentResponse.json();
+        console.log('🔍 MCQ assessment result from N8N:', assessmentResult);
+      } else {
+        console.error('🔍 Failed to send MCQ answers to N8N webhook:', assessmentResponse.status);
       }
-    });
-    
-    const score = (correctAnswers / mcqQuestions.length) * 100;
-    setMcqScore(score);
-    setMcqSubmitted(true);
+
+    } catch (error) {
+      console.error('🔍 Error submitting MCQ answers to N8N:', error);
+      // Still show local results even if N8N submission fails
+    }
   };
 
   const resetMCQ = () => {
@@ -465,51 +744,164 @@ export default function ModulesTab() {
       setCurrentFlashcardIndex(0);
       setFlippedCards({});
       
-      const response = await fetch('/api/modules/generate-content', {
-        method: 'POST',
+      // Build URL parameters for N8N webhook
+      const params = new URLSearchParams({
+        type: 'flash',
+        uniqueid: selectedModule.uniqueID,
+        subject: selectedModule.subject,
+        module: selectedModule.title,
+        grade: selectedModule.grade,
+        difficulty: selectedModule.difficulty,
+        studentName: user?.fullName || 'Student',
+        studentGrade: user?.classGrade || '',
+        submittedAt: new Date().toISOString()
+      });
+
+      const webhookUrl = `${N8N_WEBHOOK_URL}?${params.toString()}`;
+      console.log('🔍 Sending flashcard request to N8N webhook:', {
+        type: 'flash',
+        uniqueid: selectedModule.uniqueID,
+        subject: selectedModule.subject,
+        module: selectedModule.title
+      });
+
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+      const response = await fetch(webhookUrl, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          type: 'flash',
-          uniqueId: selectedModule.uniqueID
-        })
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         let data;
+        let responseText;
         try {
-          const responseText = await response.text();
+          responseText = await response.text();
+          console.log('🔍 N8N flashcard raw response:', responseText);
+          
           if (!responseText || responseText.trim() === '') {
-            throw new Error('Empty response from API');
+            console.warn('⚠️ Empty response from N8N webhook, using fallback flashcards');
+            const fallbackFlashcards = generateFallbackFlashcards(selectedModule);
+            setFlashcardData(fallbackFlashcards);
+            return;
           }
+          
           data = JSON.parse(responseText);
+          console.log('🔍 N8N flashcard response:', data);
         } catch (parseError) {
-          console.error('Failed to parse flashcard response:', parseError);
-          setFlashcardData([]);
+          console.error('🔍 Failed to parse N8N flashcard response:', parseError);
+          if (responseText) {
+            console.log('🔍 Raw flashcard response text:', responseText);
+          }
+          // Use fallback flashcards instead of throwing error
+          const fallbackFlashcards = generateFallbackFlashcards(selectedModule);
+          setFlashcardData(fallbackFlashcards);
           return;
         }
         
-        if (data.success && data.content && data.content.length > 0) {
-          setFlashcardData(data.content);
-          console.log('✅ Flashcards generated:', data.content);
+        // Check for empty or null data after parsing
+        if (!data || (Array.isArray(data) && data.length === 0) || (typeof data === 'object' && Object.keys(data).length === 0)) {
+          console.log('⚠️ Empty or null data from N8N, using fallback flashcards');
+          const fallbackFlashcards = generateFallbackFlashcards(selectedModule);
+          setFlashcardData(fallbackFlashcards);
+          return;
+        }
+        
+        // Parse N8N response format with better error handling
+        let flashcardData: any[] = [];
+        
+        console.log('🔍 Attempting to parse N8N flashcard response:', typeof data, data);
+        
+        // Handle N8N format: [{"output": "JSON_STRING_WITH_FLASHCARDS"}]
+        if (data && Array.isArray(data) && data.length > 0) {
+          const firstItem = data[0];
+          console.log('🔍 First item in flashcard array:', firstItem);
+          
+          if (firstItem && typeof firstItem === 'object') {
+            // Try to find the output field
+            const outputField = firstItem.output || firstItem.response || firstItem.data || firstItem.content;
+            
+            if (outputField && typeof outputField === 'string') {
+              try {
+                console.log('🔍 Attempting to parse flashcard output field:', outputField.substring(0, 100) + '...');
+                const parsedOutput = JSON.parse(outputField);
+                console.log('🔍 Successfully parsed flashcard output field:', parsedOutput);
+                
+                if (parsedOutput && Array.isArray(parsedOutput)) {
+                  flashcardData = parsedOutput;
+                } else if (parsedOutput && parsedOutput.flashcards && Array.isArray(parsedOutput.flashcards)) {
+                  flashcardData = parsedOutput.flashcards;
+                } else if (parsedOutput && parsedOutput.content && Array.isArray(parsedOutput.content)) {
+                  flashcardData = parsedOutput.content;
+                }
+              } catch (parseError) {
+                console.error('🔍 Failed to parse N8N flashcard output as JSON:', parseError);
+                console.log('🔍 Raw flashcard output field:', outputField);
+              }
+            } else if (Array.isArray(firstItem)) {
+              // Direct array in first item
+              flashcardData = firstItem;
+            } else if (firstItem.flashcards && Array.isArray(firstItem.flashcards)) {
+              // Direct flashcards array
+              flashcardData = firstItem.flashcards;
+            } else if (firstItem.content && Array.isArray(firstItem.content)) {
+              // Direct content array
+              flashcardData = firstItem.content;
+            }
+          }
+        } 
+        // Handle direct array format
+        else if (data && Array.isArray(data)) {
+          flashcardData = data;
+        }
+        // Handle direct object format
+        else if (data && typeof data === 'object') {
+          if (data.flashcards && Array.isArray(data.flashcards)) {
+            flashcardData = data.flashcards;
+          } else if (data.content && Array.isArray(data.content)) {
+            flashcardData = data.content;
+          } else if (data.data && Array.isArray(data.data)) {
+            flashcardData = data.data;
+          } else if (data.response && Array.isArray(data.response)) {
+            flashcardData = data.response;
+          }
+        }
+        // Handle string format (try to parse as JSON)
+        else if (data && typeof data === 'string') {
+          try {
+            const parsedData = JSON.parse(data);
+            if (Array.isArray(parsedData)) {
+              flashcardData = parsedData;
+            } else if (parsedData && parsedData.flashcards && Array.isArray(parsedData.flashcards)) {
+              flashcardData = parsedData.flashcards;
+            }
+          } catch (parseError) {
+            console.error('🔍 Failed to parse flashcard string data as JSON:', parseError);
+          }
+        }
+        
+        if (flashcardData.length > 0) {
+          setFlashcardData(flashcardData);
+          console.log('✅ Flashcards generated from N8N:', flashcardData);
         } else {
-          console.log('⚠️ No flashcards received');
-          setFlashcardData([]);
+          console.log('⚠️ No flashcards received from N8N, generating fallback flashcards');
+          // Generate fallback flashcards based on module content
+          const fallbackFlashcards = generateFallbackFlashcards(selectedModule);
+          setFlashcardData(fallbackFlashcards);
         }
       } else {
-        let errorData;
-        try {
-          const errorText = await response.text();
-          errorData = errorText ? JSON.parse(errorText) : { error: 'Unknown error' };
-        } catch {
-          errorData = { error: 'Failed to parse error response' };
-        }
-        console.error('❌ Error generating flashcards:', errorData);
+        console.error('❌ N8N flashcard webhook error:', response.status, response.statusText);
         setFlashcardData([]);
       }
     } catch (error) {
-      console.error('❌ Error generating flashcards:', error);
+      console.error('❌ Error generating flashcards from N8N:', error);
       setFlashcardData([]);
     } finally {
       setFlashcardLoading(false);
@@ -544,6 +936,57 @@ export default function ModulesTab() {
       [currentFlashcardIndex]: !prev[currentFlashcardIndex]
     }));
   };
+
+  // Track flashcard progress and send to N8N
+  const trackFlashcardProgress = async () => {
+    if (!selectedModule || flashcardData.length === 0) return;
+
+    try {
+      const flippedCount = Object.values(flippedCards).filter(flipped => flipped).length;
+      const progressData = {
+        studentId: user?.uniqueId || 'unknown',
+        studentName: user?.fullName || 'Unknown Student',
+        moduleId: selectedModule.uniqueID,
+        moduleTitle: selectedModule.title,
+        subject: selectedModule.subject,
+        flashcardProgress: {
+          totalCards: flashcardData.length,
+          flippedCards: flippedCount,
+          currentCard: currentFlashcardIndex + 1,
+          completionPercentage: Math.round((flippedCount / flashcardData.length) * 100)
+        },
+        submittedAt: new Date().toISOString()
+      };
+
+      console.log('🔍 Sending flashcard progress to N8N:', progressData);
+
+      // Send progress to N8N webhook
+      const progressResponse = await fetch('https://nclbtaru.app.n8n.cloud/webhook/Score-result', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(progressData),
+      });
+
+      if (progressResponse.ok) {
+        const progressResult = await progressResponse.json();
+        console.log('🔍 Flashcard progress result from N8N:', progressResult);
+      } else {
+        console.error('🔍 Failed to send flashcard progress to N8N webhook:', progressResponse.status);
+      }
+
+    } catch (error) {
+      console.error('🔍 Error tracking flashcard progress:', error);
+    }
+  };
+
+  // Track progress when flashcard is flipped
+  useEffect(() => {
+    if (flashcardData.length > 0 && Object.keys(flippedCards).length > 0) {
+      trackFlashcardProgress();
+    }
+  }, [flippedCards, currentFlashcardIndex]);
 
   return (
     <div className="min-h-screen bg-gray-50">

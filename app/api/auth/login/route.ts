@@ -4,6 +4,7 @@ import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Student from '@/models/Student';
 import Parent from '@/models/Parent';
+import Organization from '@/models/Organization';
 import AssessmentResponse from '@/models/AssessmentResponse';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -69,6 +70,9 @@ export async function POST(request: NextRequest) {
     } else if (user.role === 'parent') {
       const parentProfile = await Parent.findOne({ userId: user._id.toString() });
       requiresOnboarding = !parentProfile?.onboardingCompleted;
+    } else if (user.role === 'organization') {
+      const organizationProfile = await Organization.findOne({ userId: user._id.toString() });
+      requiresOnboarding = !organizationProfile?.onboardingCompleted;
     }
 
     // Generate JWT token

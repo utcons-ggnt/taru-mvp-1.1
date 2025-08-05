@@ -14,6 +14,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedRole, setSelectedRole] = useState('Student');
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,6 +45,9 @@ export default function Login() {
         } else if (data.user.role === 'parent') {
           router.push('/parent-onboarding');
           return;
+        } else if (data.user.role === 'organization') {
+          router.push('/organization-onboarding');
+          return;
         }
       }
 
@@ -61,6 +65,8 @@ export default function Login() {
       } else if (data.user.role === 'teacher') {
         router.push('/dashboard/teacher');
       } else if (data.user.role === 'organization') {
+        router.push('/dashboard/admin');
+      } else if (data.user.role === 'admin') {
         router.push('/dashboard/admin');
       } else {
         throw new Error('Unknown user role');
@@ -129,26 +135,13 @@ export default function Login() {
            </motion.div>
          </motion.section>
 
-        {/* Right Section - White Form Card */}
-        <motion.section 
-          className="w-[823px] h-[800px] bg-white rounded-[40px] shadow-[-21px_0px_144px_#6219B5] relative"
-          initial={{ x: 100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.8 }}
-        >
-          {/* Google Translate Button */}
-          <motion.div 
-            className="absolute top-[40px] right-[40px] z-10"
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-          >
-            <SimpleGoogleTranslate 
-          className="text-white"
-          buttonText="Translate"
-          showIcon={true}
-        />
-          </motion.div>
+                 {/* Right Section - White Form Card */}
+         <motion.section 
+           className="w-[823px] h-[800px] bg-white rounded-[40px] shadow-[-21px_0px_144px_#6219B5] relative"
+           initial={{ x: 100, opacity: 0 }}
+           animate={{ x: 0, opacity: 1 }}
+           transition={{ duration: 0.8 }}
+         >
 
           {/* Main Content Container */}
           <div className="relative w-full h-full">
@@ -160,11 +153,12 @@ export default function Login() {
               transition={{ delay: 0.9, duration: 0.5 }}
             >
               <div className="flex bg-[#F2F4F7] rounded-xl p-1 h-full">
-                {['Student', 'Teacher', 'Parent'].map((role, index) => (
+                {['Student', 'Teacher', 'Parent', 'Organization'].map((role, index) => (
                   <motion.button 
                     key={role}
-                    className={`flex-1 px-6 py-3 rounded-lg font-normal text-[14px] transition-all duration-200 ${
-                      index === 0 
+                    onClick={() => setSelectedRole(role)}
+                    className={`flex-1 px-4 py-3 rounded-lg font-normal text-[13px] transition-all duration-200 ${
+                      selectedRole === role
                         ? 'bg-white text-[#101828] shadow-sm' 
                         : 'text-[#667085]'
                     }`}
@@ -320,7 +314,23 @@ export default function Login() {
             </motion.div>
           </div>
         </motion.section>
-      </motion.div>
-    </motion.main>
-  );
+             </motion.div>
+       
+       {/* Google Translate Button - Bottom Left of Screen */}
+       <motion.div 
+         className="fixed bottom-4 left-4 z-50"
+         initial={{ y: 20, opacity: 0 }}
+         animate={{ y: 0, opacity: 1 }}
+         transition={{ delay: 0.4, duration: 0.6 }}
+       >
+         <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-3 py-2 shadow-lg">
+           <SimpleGoogleTranslate 
+             className="text-gray-700"
+             buttonText="Translate"
+             showIcon={true}
+           />
+         </div>
+       </motion.div>
+     </motion.main>
+   );
 } 

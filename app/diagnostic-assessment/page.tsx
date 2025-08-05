@@ -34,6 +34,14 @@ interface UserProfile {
   classGrade?: string;
 }
 
+interface CollectedAnswer {
+  Q: string;
+  section: string;
+  question: string;
+  studentAnswer: string;
+  type: string;
+}
+
 export default function DiagnosticAssessment() {
   const [currentQuestion, setCurrentQuestion] = useState<AssessmentQuestion | null>(null);
   const [currentQuestionNumber, setCurrentQuestionNumber] = useState(1);
@@ -47,6 +55,8 @@ export default function DiagnosticAssessment() {
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [error, setError] = useState('');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [collectedAnswers, setCollectedAnswers] = useState<CollectedAnswer[]>([]);
+  const [allAnswers, setAllAnswers] = useState<{ [key: string]: string }>({});
   const router = useRouter();
 
   // Fetch user profile data
@@ -144,7 +154,10 @@ export default function DiagnosticAssessment() {
 
       console.log('🔍 Setting question data:', {
         id: data.question.id,
+        question: data.question.question,
         type: data.question.type,
+        section: data.question.section,
+        options: data.question.options,
         currentQuestion: data.currentQuestion,
         totalQuestions: data.totalQuestions,
         progress: data.progress
@@ -154,8 +167,21 @@ export default function DiagnosticAssessment() {
       setCurrentQuestionNumber(data.currentQuestion);
       setTotalQuestions(data.totalQuestions);
       setProgress(data.progress);
-      setAnswer('');
-      setSelectedOption('');
+      
+      // Load previous answer if exists
+      const previousAnswer = allAnswers[data.question.id];
+      if (previousAnswer) {
+        if (data.question.type === 'MCQ') {
+          setSelectedOption(previousAnswer);
+          setAnswer('');
+        } else {
+          setAnswer(previousAnswer);
+          setSelectedOption('');
+        }
+      } else {
+        setAnswer('');
+        setSelectedOption('');
+      }
     } catch (err) {
       console.error('Error loading question:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to load question';
@@ -177,6 +203,63 @@ export default function DiagnosticAssessment() {
     }
   };
 
+  // Go to previous question
+  const goToPreviousQuestion = async () => {
+    if (currentQuestionNumber <= 1) return;
+
+    try {
+      setIsSubmitting(true);
+      setError('');
+
+      // Save current answer if any
+      if (currentQuestion) {
+        const currentAnswer = currentQuestion.type === 'MCQ' ? selectedOption : answer;
+        if (currentAnswer.trim()) {
+          setAllAnswers(prev => ({
+            ...prev,
+            [currentQuestion.id]: currentAnswer
+          }));
+        }
+      }
+
+      // Load previous question
+      const response = await fetch(`/api/assessment/questions?previous=true&currentQuestion=${currentQuestionNumber}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to load previous question');
+      }
+
+      const data = await response.json();
+
+      if (data.question) {
+        setCurrentQuestion(data.question);
+        setCurrentQuestionNumber(data.currentQuestion);
+        setTotalQuestions(data.totalQuestions);
+        setProgress(data.progress);
+        
+        // Load previous answer if exists
+        const previousAnswer = allAnswers[data.question.id];
+        if (previousAnswer) {
+          if (data.question.type === 'MCQ') {
+            setSelectedOption(previousAnswer);
+            setAnswer('');
+          } else {
+            setAnswer(previousAnswer);
+            setSelectedOption('');
+          }
+        } else {
+          setAnswer('');
+          setSelectedOption('');
+        }
+      }
+    } catch (err) {
+      console.error('Error loading previous question:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load previous question');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Submit answer and move to next question
   const submitAnswer = async () => {
     if (!currentQuestion) return;
@@ -190,6 +273,24 @@ export default function DiagnosticAssessment() {
     try {
       setIsSubmitting(true);
       setError('');
+
+      // Collect the current answer
+      const currentAnswer: CollectedAnswer = {
+        Q: currentQuestion.id,
+        section: currentQuestion.section || currentQuestion.category || 'General',
+        question: currentQuestion.question,
+        studentAnswer: answerToSubmit,
+        type: currentQuestion.type === 'MCQ' ? 'Multiple Choice' : 'Open Text'
+      };
+
+      // Add to collected answers
+      setCollectedAnswers(prev => [...prev, currentAnswer]);
+      
+      // Save to all answers for navigation
+      setAllAnswers(prev => ({
+        ...prev,
+        [currentQuestion.id]: answerToSubmit
+      }));
 
       console.log('🔍 Submitting answer:', {
         questionId: currentQuestion.id,
@@ -216,12 +317,12 @@ export default function DiagnosticAssessment() {
       }
 
       if (data.completed) {
+        // Send all collected answers to N8N webhook
+        await sendAnswersToWebhook([...collectedAnswers, currentAnswer]);
+        
         setIsCompleted(true);
         setResult(data.result);
-        // Redirect to student dashboard after assessment completion
-        setTimeout(() => {
-          router.push('/dashboard/student');
-        }, 2000); // 2 second delay to show completion message
+        // Don't auto-redirect - let user click "Go to Dashboard" button
       } else {
         // Load next question
         loadQuestion();
@@ -235,6 +336,65 @@ export default function DiagnosticAssessment() {
   };
 
 
+
+  // Function to send answers to N8N webhook
+  const sendAnswersToWebhook = async (answers: CollectedAnswer[]) => {
+    try {
+      console.log('🔍 Sending answers to N8N webhook:', answers);
+      
+      const webhookData = {
+        studentId: userProfile?.uniqueId || 'unknown',
+        studentName: userProfile?.fullName || 'Unknown Student',
+        answers: answers
+      };
+
+      console.log('🔍 Sending webhook data:', JSON.stringify(webhookData, null, 2));
+
+      const response = await fetch('https://nclbtaru.app.n8n.cloud/webhook/Score-result', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookData),
+      });
+
+      if (!response.ok) {
+        console.error('🔍 Webhook request failed:', response.status, response.statusText);
+        throw new Error(`Webhook request failed: ${response.status}`);
+      }
+
+      const webhookResponse = await response.json();
+      console.log('🔍 Webhook response:', webhookResponse);
+      
+      // Also store answers in database via API
+      await storeAnswersInDatabase(answers);
+      
+    } catch (error) {
+      console.error('🔍 Error sending answers to webhook:', error);
+      // Don't throw error to avoid blocking assessment completion
+    }
+  };
+
+  // Function to store answers in database
+  const storeAnswersInDatabase = async (answers: CollectedAnswer[]) => {
+    try {
+      const response = await fetch('/api/assessment/store-answers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ answers }),
+      });
+
+      if (!response.ok) {
+        console.error('🔍 Failed to store answers in database:', response.status);
+      } else {
+        console.log('🔍 Answers stored in database successfully');
+      }
+    } catch (error) {
+      console.error('🔍 Error storing answers in database:', error);
+    }
+  };
 
   // Load user profile and first question on component mount
   useEffect(() => {
@@ -340,17 +500,7 @@ export default function DiagnosticAssessment() {
               </button>
             </motion.div>
 
-            {/* Redirect Message */}
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 1.0, duration: 0.5 }}
-              className="text-center mb-4"
-            >
-              <p className="text-white/80 text-sm">
-                Redirecting to your dashboard in 2 seconds...
-              </p>
-            </motion.div>
+
 
             <motion.div
               initial={{ y: 20, opacity: 0 }}
@@ -509,8 +659,8 @@ export default function DiagnosticAssessment() {
                     </span>
                   </div>
                   <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                {currentQuestion.question}
-              </h2>
+                    {currentQuestion.question}
+                  </h2>
                 </div>
 
                 {/* MCQ Options */}
@@ -533,7 +683,7 @@ export default function DiagnosticAssessment() {
                           onChange={(e) => setSelectedOption(e.target.value)}
                           className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
                         />
-                        <span className="ml-3 text-gray-800">{option}</span>
+                        <span className="ml-3 text-black">{option}</span>
                       </label>
                     ))}
                   </div>
@@ -546,7 +696,7 @@ export default function DiagnosticAssessment() {
                       value={answer}
                       onChange={(e) => setAnswer(e.target.value)}
                       placeholder="Type your answer here..."
-                      className="w-full h-32 p-4 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none"
+                      className="w-full h-32 p-4 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-black"
                     />
                   </div>
                 )}
@@ -562,9 +712,28 @@ export default function DiagnosticAssessment() {
             </motion.div>
                 )}
 
-                {/* Submit Button */}
-                <div className="flex justify-end">
-            <button
+                {/* Navigation Buttons */}
+                <div className="flex justify-between">
+                  {/* Previous Button */}
+                  <button
+                    onClick={goToPreviousQuestion}
+                    disabled={isSubmitting || currentQuestionNumber <= 1}
+                    className="bg-gray-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        ← Previous Question
+                      </>
+                    )}
+                  </button>
+
+                  {/* Next/Complete Button */}
+                  <button
                     onClick={submitAnswer}
                     disabled={isSubmitting || (!selectedOption && !answer.trim())}
                     className="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
@@ -579,8 +748,8 @@ export default function DiagnosticAssessment() {
                     ) : (
                       'Next Question →'
                     )}
-            </button>
-          </div>
+                  </button>
+                </div>
                     </motion.div>
             ) : (
               <div className="bg-white rounded-2xl shadow-lg p-8 text-center">

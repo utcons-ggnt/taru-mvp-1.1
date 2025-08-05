@@ -236,26 +236,13 @@ export default function Register() {
           </motion.div>
         </motion.section>
 
-        {/* Right Section - White Form Card */}
-        <motion.section 
-          className="w-[823px] h-[800px] bg-white rounded-[40px] shadow-[-21px_0px_144px_#6219B5] relative"
-          initial={{ x: 100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.8 }}
-        >
-          {/* Google Translate */}
-          <motion.div 
-            className="absolute top-[40px] right-[40px] z-10"
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-          >
-            <SimpleGoogleTranslate 
-          className="text-white"
-          buttonText="Translate"
-          showIcon={true}
-        />
-          </motion.div>
+                 {/* Right Section - White Form Card */}
+         <motion.section 
+           className="w-[823px] h-[800px] bg-white rounded-[40px] shadow-[-21px_0px_144px_#6219B5] relative"
+           initial={{ x: 100, opacity: 0 }}
+           animate={{ x: 0, opacity: 1 }}
+           transition={{ duration: 0.8 }}
+         >
 
           {/* Main Content Container */}
           <div className="px-[60px] py-[40px] h-full flex flex-col">
@@ -512,7 +499,23 @@ export default function Register() {
             </motion.form>
           </div>
         </motion.section>
-      </motion.div>
-    </motion.main>
-  )
+             </motion.div>
+       
+       {/* Google Translate Button - Bottom Left of Screen */}
+       <motion.div 
+         className="fixed bottom-4 left-4 z-50"
+         initial={{ y: 20, opacity: 0 }}
+         animate={{ y: 0, opacity: 1 }}
+         transition={{ delay: 0.4, duration: 0.6 }}
+       >
+         <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-3 py-2 shadow-lg">
+           <SimpleGoogleTranslate 
+             className="text-gray-700"
+             buttonText="Translate"
+             showIcon={true}
+           />
+         </div>
+       </motion.div>
+     </motion.main>
+   )
 } 

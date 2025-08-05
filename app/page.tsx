@@ -114,14 +114,7 @@ export default function Home() {
          animate={{ y: 0, opacity: 1 }}
          transition={{ delay: 0.4, duration: 0.6 }}
        >
-         {/* Google Translate */}
-         <div className="flex items-center gap-3 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
-           <SimpleGoogleTranslate 
-             className="text-white"
-             buttonText="Translate"
-             showIcon={true}
-           />
-         </div>
+
 
          {/* Login Link */}
          <Link
@@ -138,7 +131,7 @@ export default function Home() {
        </motion.div>
 
              {/* Main Content - Full Screen Card Layout */}
-       <div className="flex-1 relative overflow-hidden bg-gray-700">
+               <div className="flex-1 relative overflow-hidden bg-gray-700">
          <AnimatePresence mode="wait">
            <motion.div
              key={currentCard}
@@ -148,12 +141,37 @@ export default function Home() {
              exit={{ opacity: 0, x: -100 }}
              transition={{ duration: 0.5 }}
            >
-             {/* Main Card */}
-             <motion.div 
-               className="bg-white w-full h-full relative overflow-hidden flex flex-col"
-               whileHover={{ scale: 1.005 }}
-               transition={{ duration: 0.3 }}
-             >
+                           {/* Main Card */}
+              <motion.div 
+                className="bg-white w-full h-full relative overflow-hidden flex flex-col"
+                whileHover={{ scale: 1.005 }}
+                transition={{ duration: 0.3 }}
+              >
+                                 {/* Grid Pattern - Left Bottom Corner on White Background */}
+                 <div className="absolute bottom-0 left-0 w-64 h-64 pointer-events-none z-10">
+                   
+                   <svg className="absolute inset-0 w-full h-full" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+                     <defs>
+                       <pattern id="grid-left-bottom-white" x="0" y="0" width="64" height="64" patternUnits="userSpaceOnUse">
+                         <path d="M 64 0 L 0 0 0 64" fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="1"/>
+                       </pattern>
+                     </defs>
+                     <rect width="320" height="320" fill="url(#grid-left-bottom-white)" />
+                   </svg>
+                 </div>
+
+                 {/* Grid Pattern - Right Top Corner on White Background */}
+                 <div className="absolute top-0 right-0 w-64 h-64 pointer-events-none z-10">
+                   
+                   <svg className="absolute inset-0 w-full h-full" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+                     <defs>
+                       <pattern id="grid-right-top-white" x="0" y="0" width="64" height="64" patternUnits="userSpaceOnUse">
+                         <path d="M64 0 L 0 0 0 64" fill="none" stroke="rgba(0, 0, 0, 0.25)" strokeWidth="0.5"/>
+                       </pattern>
+                     </defs>
+                     <rect width="320" height="320" fill="url(#grid-right-top-white)" />
+                   </svg>
+                 </div>
               {/* Jio Logo in Card */}
               <motion.div
                 className="absolute top-6 left-6 bg-blue-600 rounded-full p-3"
@@ -324,25 +342,41 @@ export default function Home() {
                 </motion.div>
               </div>
 
-              {/* Card Indicators */}
-              <motion.div 
-                className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-3"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7, duration: 0.5 }}
-              >
-                {[0, 1, 2].map((index) => (
-                  <motion.button
-                    key={index}
-                    onClick={() => setCurrentCard(index)}
-                    className={`w-4 h-4 rounded-full transition-all duration-300 ${
-                      currentCard === index ? 'bg-blue-600 scale-125' : 'bg-gray-300'
-                    }`}
-                    whileHover={{ scale: 1.2 }}
-                    whileTap={{ scale: 0.9 }}
-                  />
-                ))}
-              </motion.div>
+                             {/* Card Indicators */}
+               <motion.div 
+                 className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-3"
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 transition={{ delay: 0.7, duration: 0.5 }}
+               >
+                 {[0, 1, 2].map((index) => (
+                   <motion.button
+                     key={index}
+                     onClick={() => setCurrentCard(index)}
+                     className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                       currentCard === index ? 'bg-blue-600 scale-125' : 'bg-gray-300'
+                     }`}
+                     whileHover={{ scale: 1.2 }}
+                     whileTap={{ scale: 0.9 }}
+                   />
+                 ))}
+               </motion.div>
+
+               {/* Google Translate - Bottom Left */}
+               <motion.div 
+                 className="absolute bottom-6 left-6 z-30"
+                 initial={{ opacity: 0, x: -20 }}
+                 animate={{ opacity: 1, x: 0 }}
+                 transition={{ delay: 0.8, duration: 0.5 }}
+               >
+                 <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-3 py-2 shadow-lg">
+                   <SimpleGoogleTranslate 
+                     className="text-gray-700"
+                     buttonText="Translate"
+                     showIcon={true}
+                   />
+                 </div>
+               </motion.div>              
             </motion.div>
           </motion.div>
         </AnimatePresence>
