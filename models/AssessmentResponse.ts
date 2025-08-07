@@ -47,11 +47,13 @@ const assessmentResponseSchema = new mongoose.Schema({
       default: Date.now
     },
     formattedResponse: {
-      Q: String,
-      section: String,
-      question: String,
-      studentAnswer: String,
-      type: String
+      type: {
+        Q: String,
+        section: String,
+        question: String,
+        studentAnswer: String,
+        type: String
+      }
     }
   }],
   result: {

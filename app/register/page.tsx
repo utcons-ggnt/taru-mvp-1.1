@@ -184,21 +184,21 @@ export default function Register() {
 
   return (
     <motion.main 
-      className="min-h-screen flex items-center justify-center overflow-hidden bg-[#6D18CE] p-4"
+      className="min-h-screen flex items-center justify-center overflow-hidden bg-[#6D18CE] p-4 relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
     >
       {/* Main Registration Popup Container */}
       <motion.div 
-        className="relative w-full max-w-[1400px] h-[800px] bg-[#6D18CE] rounded-[40px] flex"
+        className="relative w-[1400px] h-[856px] bg-[#6D18CE] rounded-[40px] flex"
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
         {/* Left Section - Purple Background with Content */}
         <motion.section 
-          className="w-[577px] h-[800px] relative"
+          className="w-[577px] h-[856px] relative"
           initial={{ x: -100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.8 }}
@@ -238,7 +238,7 @@ export default function Register() {
 
                  {/* Right Section - White Form Card */}
          <motion.section 
-           className="w-[823px] h-[800px] bg-white rounded-[40px] shadow-[-21px_0px_144px_#6219B5] relative"
+           className="w-[823px] h-[856px] bg-white rounded-[40px] shadow-[-21px_0px_144px_#6219B5] relative"
            initial={{ x: 100, opacity: 0 }}
            animate={{ x: 0, opacity: 1 }}
            transition={{ duration: 0.8 }}
@@ -277,7 +277,7 @@ export default function Register() {
 
             {/* Create Account Title */}
             <motion.h2 
-              className="text-[24.7297px] leading-[30px] font-bold text-black mb-4"
+              className="text-[24.7297px] leading-[30px] font-bold text-black mb-4 w-[190px] h-[30px]"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.5 }}
@@ -294,7 +294,7 @@ export default function Register() {
               transition={{ delay: 1.1, duration: 0.6 }}
             >
               {/* Form Fields Container */}
-              <div className="flex-1 space-y-3">
+              <div className="flex-1 space-y-6">
                 {/* Full Name */}
                 <div className="relative">
                   <label className="block text-[16.0016px] font-medium leading-[19px] text-[#C2C2C2] mb-1">Full Name</label>
@@ -324,46 +324,226 @@ export default function Register() {
                   />
                 </div>
 
-                {/* Class/Grade and Language - Side by side */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="relative">
-                    <label className="block text-[16.0016px] font-medium leading-[19px] text-[#C2C2C2] mb-1">
-                      {selectedRole === 'student' ? 'Class/Grade' : 
-                       selectedRole === 'teacher' ? 'Subject' : 
-                       selectedRole === 'parent' ? 'Student ID' : 
-                       selectedRole === 'organization' ? 'Organization Type' :
-                       'Organization Type'}
-                    </label>
-                    <input
-                      type="text"
-                      name="classGrade"
-                      value={formData.classGrade}
-                      onChange={handleInputChange}
-                      placeholder={selectedRole === 'parent' ? 'e.g., STUabc123def' : 
-                                  selectedRole === 'organization' ? 'e.g., School, NGO, Company' : ''}
-                      className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors"
-                      required
-                    />
-                  </div>
-                  <div className="relative">
-                    <label className="block text-[16.0016px] font-medium leading-[19px] text-[#C2C2C2] mb-1">
-                      {selectedRole === 'student' ? 'Language' : 
-                       selectedRole === 'teacher' ? 'Experience' : 
-                       selectedRole === 'parent' ? 'Location' : 
-                       selectedRole === 'organization' ? 'Industry' :
-                       'Industry'}
-                    </label>
-                    <input
-                      type="text"
-                      name="language"
-                      value={formData.language}
-                      onChange={handleInputChange}
-                      placeholder={selectedRole === 'organization' ? 'e.g., Education, Technology, Healthcare' : ''}
-                      className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors"
-                      required
-                    />
-                  </div>
-                </div>
+                                 {/* Class/Grade and Language - Side by side */}
+                 <div className="grid grid-cols-2 gap-[378px]">
+                   <div className="relative">
+                     <label className="block text-[16.0016px] font-medium leading-[19px] text-[#C2C2C2] mb-1">
+                       {selectedRole === 'student' ? 'Class/Grade' : 
+                        selectedRole === 'teacher' ? 'Subject' : 
+                        selectedRole === 'parent' ? 'Student ID' : 
+                        selectedRole === 'organization' ? 'Organization Type' :
+                        'Organization Type'}
+                     </label>
+                                           {selectedRole === 'student' ? (
+                        <div className="relative">
+                          <select
+                            name="classGrade"
+                            value={formData.classGrade}
+                            onChange={handleInputChange}
+                            className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors appearance-none cursor-pointer pr-8"
+                            required
+                          >
+                         <option value="" disabled>Select Grade</option>
+                         <option value="Pre-K">Pre-K</option>
+                         <option value="Kindergarten">Kindergarten</option>
+                         <option value="Grade 1">Grade 1</option>
+                         <option value="Grade 2">Grade 2</option>
+                         <option value="Grade 3">Grade 3</option>
+                         <option value="Grade 4">Grade 4</option>
+                         <option value="Grade 5">Grade 5</option>
+                         <option value="Grade 6">Grade 6</option>
+                         <option value="Grade 7">Grade 7</option>
+                         <option value="Grade 8">Grade 8</option>
+                         <option value="Grade 9">Grade 9</option>
+                         <option value="Grade 10">Grade 10</option>
+                                                   <option value="Grade 11">Grade 11</option>
+                          <option value="Grade 12">Grade 12</option>
+                        </select>
+                        <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                          <svg className="w-4 h-4 text-[#C2C2C2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                        </div>
+                      ) : selectedRole === 'teacher' ? (
+                        <div className="relative">
+                          <select
+                            name="classGrade"
+                            value={formData.classGrade}
+                            onChange={handleInputChange}
+                            className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors appearance-none cursor-pointer pr-8"
+                            required
+                          >
+                            <option value="" disabled>Select Subject</option>
+                            <option value="Mathematics">Mathematics</option>
+                            <option value="Science">Science</option>
+                            <option value="English">English</option>
+                            <option value="History">History</option>
+                            <option value="Geography">Geography</option>
+                            <option value="Computer Science">Computer Science</option>
+                            <option value="Art">Art</option>
+                            <option value="Music">Music</option>
+                            <option value="Physical Education">Physical Education</option>
+                            <option value="Languages">Languages</option>
+                            <option value="Social Studies">Social Studies</option>
+                            <option value="Other">Other</option>
+                          </select>
+                          <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <svg className="w-4 h-4 text-[#C2C2C2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
+                      ) : selectedRole === 'organization' ? (
+                        <div className="relative">
+                          <select
+                            name="classGrade"
+                            value={formData.classGrade}
+                            onChange={handleInputChange}
+                            className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors appearance-none cursor-pointer pr-8"
+                            required
+                          >
+                            <option value="" disabled>Select Organization Type</option>
+                            <option value="School">School</option>
+                            <option value="University">University</option>
+                            <option value="NGO">NGO</option>
+                            <option value="Corporate">Corporate</option>
+                            <option value="Government">Government</option>
+                            <option value="Non-Profit">Non-Profit</option>
+                            <option value="Educational Institute">Educational Institute</option>
+                            <option value="Training Center">Training Center</option>
+                            <option value="Other">Other</option>
+                          </select>
+                          <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <svg className="w-4 h-4 text-[#C2C2C2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
+                     ) : (
+                       <input
+                         type="text"
+                         name="classGrade"
+                         value={formData.classGrade}
+                         onChange={handleInputChange}
+                         placeholder="e.g., STUabc123def"
+                         className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors"
+                         required
+                       />
+                     )}
+                   </div>
+                   <div className="relative">
+                     <label className="block text-[16.0016px] font-medium leading-[19px] text-[#C2C2C2] mb-1">
+                       {selectedRole === 'student' ? 'Language' : 
+                        selectedRole === 'teacher' ? 'Experience' : 
+                        selectedRole === 'parent' ? 'Location' : 
+                        selectedRole === 'organization' ? 'Industry' :
+                        'Industry'}
+                     </label>
+                     {selectedRole === 'student' ? (
+                       <div className="relative">
+                         <select
+                           name="language"
+                           value={formData.language}
+                           onChange={handleInputChange}
+                           className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors appearance-none cursor-pointer pr-8"
+                           required
+                         >
+                         <option value="" disabled>Select Language</option>
+                         <option value="English">English</option>
+                         <option value="Hindi">Hindi</option>
+                         <option value="Spanish">Spanish</option>
+                         <option value="French">French</option>
+                         <option value="German">German</option>
+                         <option value="Chinese">Chinese</option>
+                         <option value="Japanese">Japanese</option>
+                         <option value="Korean">Korean</option>
+                         <option value="Arabic">Arabic</option>
+                         <option value="Russian">Russian</option>
+                         <option value="Portuguese">Portuguese</option>
+                         <option value="Italian">Italian</option>
+                         <option value="Dutch">Dutch</option>
+                         <option value="Swedish">Swedish</option>
+                         <option value="Norwegian">Norwegian</option>
+                         <option value="Danish">Danish</option>
+                         <option value="Finnish">Finnish</option>
+                         <option value="Polish">Polish</option>
+                         <option value="Turkish">Turkish</option>
+                         <option value="Other">Other</option>
+                       </select>
+                       <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                         <svg className="w-4 h-4 text-[#C2C2C2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                         </svg>
+                       </div>
+                       </div>
+                     ) : selectedRole === 'teacher' ? (
+                       <div className="relative">
+                         <select
+                           name="language"
+                           value={formData.language}
+                           onChange={handleInputChange}
+                           className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors appearance-none cursor-pointer pr-8"
+                           required
+                         >
+                           <option value="" disabled>Select Experience</option>
+                           <option value="0-2 years">0-2 years</option>
+                           <option value="3-5 years">3-5 years</option>
+                           <option value="6-10 years">6-10 years</option>
+                           <option value="11-15 years">11-15 years</option>
+                           <option value="16-20 years">16-20 years</option>
+                           <option value="20+ years">20+ years</option>
+                         </select>
+                         <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                           <svg className="w-4 h-4 text-[#C2C2C2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                           </svg>
+                         </div>
+                       </div>
+                     ) : selectedRole === 'organization' ? (
+                       <div className="relative">
+                         <select
+                           name="language"
+                           value={formData.language}
+                           onChange={handleInputChange}
+                           className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors appearance-none cursor-pointer pr-8"
+                           required
+                         >
+                           <option value="" disabled>Select Industry</option>
+                           <option value="Education">Education</option>
+                           <option value="Technology">Technology</option>
+                           <option value="Healthcare">Healthcare</option>
+                           <option value="Finance">Finance</option>
+                           <option value="Manufacturing">Manufacturing</option>
+                           <option value="Retail">Retail</option>
+                           <option value="Media & Entertainment">Media & Entertainment</option>
+                           <option value="Transportation">Transportation</option>
+                           <option value="Energy">Energy</option>
+                           <option value="Real Estate">Real Estate</option>
+                           <option value="Consulting">Consulting</option>
+                           <option value="Non-Profit">Non-Profit</option>
+                           <option value="Government">Government</option>
+                           <option value="Other">Other</option>
+                         </select>
+                         <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                           <svg className="w-4 h-4 text-[#C2C2C2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                           </svg>
+                         </div>
+                       </div>
+                     ) : (
+                       <input
+                         type="text"
+                         name="language"
+                         value={formData.language}
+                         onChange={handleInputChange}
+                         placeholder="Enter location"
+                         className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors"
+                         required
+                       />
+                     )}
+                   </div>
+                 </div>
 
                 {/* Location */}
                 <div className="relative">
@@ -434,11 +614,11 @@ export default function Register() {
               </AnimatePresence>
 
               {/* Bottom Section */}
-              <div className="mt-4 space-y-3">
+              <div className="mt-8 space-y-4">
                 {/* Register Button */}
                 <motion.button
                   type="submit"
-                  className="w-full h-[50px] bg-[#6D18CE] text-white rounded-[90px] font-semibold text-[16.0016px] flex items-center justify-center"
+                  className="w-[514px] h-[69px] bg-[#6D18CE] text-white rounded-[90px] font-semibold text-[16.0016px] flex items-center justify-center mx-auto"
                   disabled={isLoading}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -477,7 +657,7 @@ export default function Register() {
 
                 {/* Sign In Link */}
                 <motion.div 
-                  className="text-center"
+                  className="text-center w-[205px] h-[16px] mx-auto"
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 2.0, duration: 0.4 }}

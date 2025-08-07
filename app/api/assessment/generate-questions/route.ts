@@ -6,7 +6,7 @@ import Student from '@/models/Student';
 import AssessmentResponse from '@/models/AssessmentResponse';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const N8N_ASSESSMENT_WEBHOOK_URL = process.env.N8N_ASSESSMENT_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook-test/assessment-questions';
+const N8N_ASSESSMENT_WEBHOOK_URL = process.env.N8N_ASSESSMENT_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook/assessment-questions';
 const N8N_FALLBACK_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook/AI-BUDDY-MAIN';
 
 interface DecodedToken {

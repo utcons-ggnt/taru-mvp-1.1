@@ -464,62 +464,84 @@ async function handleAnswerSubmission(decoded: DecodedToken, questionId: string,
       });
     }
 
-         // Add the response in the required format
-     const formattedResponse = {
-       Q: currentQuestion.id,
-       section: currentQuestion.category,
-       question: currentQuestion.question,
-       studentAnswer: answer,
-       type: currentQuestion.type === 'MCQ' ? 'Multiple Choice' : 'Open Text'
-     };
+    // Add the response in the required format
+    const formattedResponse = {
+      Q: currentQuestion.id,
+      section: currentQuestion.category,
+      question: currentQuestion.question,
+      studentAnswer: answer,
+      type: currentQuestion.type === 'MCQ' ? 'Multiple Choice' : 'Open Text'
+    };
 
-     assessmentResponse.responses.push({
-       questionId: currentQuestion.id,
-       question: currentQuestion.question,
-       answer: answer,
-       questionType: currentQuestion.type,
-       category: currentQuestion.category,
-       difficulty: currentQuestion.difficulty,
-       isCorrect: isCorrect,
-       submittedAt: new Date(),
-       formattedResponse: formattedResponse
-     });
+    console.log('🔍 Adding response with formattedResponse:', formattedResponse);
+
+    // Find the index of the existing response to update it
+    const existingResponseIndex = assessmentResponse.responses.findIndex(
+      (r: any) => r.questionId === currentQuestion.id
+    );
+
+    if (existingResponseIndex >= 0) {
+      // Update existing response
+      assessmentResponse.responses[existingResponseIndex] = {
+        questionId: currentQuestion.id,
+        question: currentQuestion.question,
+        answer: answer,
+        questionType: currentQuestion.type,
+        category: currentQuestion.category,
+        difficulty: currentQuestion.difficulty,
+        isCorrect: isCorrect,
+        submittedAt: new Date(),
+        formattedResponse: formattedResponse
+      };
+    } else {
+      // Add new response
+      assessmentResponse.responses.push({
+        questionId: currentQuestion.id,
+        question: currentQuestion.question,
+        answer: answer,
+        questionType: currentQuestion.type,
+        category: currentQuestion.category,
+        difficulty: currentQuestion.difficulty,
+        isCorrect: isCorrect,
+        submittedAt: new Date(),
+        formattedResponse: formattedResponse
+      });
+    }
 
     // Check if this is the last question
     const totalQuestions = questions.length;
-    const isCompleted = questionNumber >= totalQuestions;
+    const isCompleted = assessmentResponse.responses.length >= totalQuestions;
 
-         if (isCompleted) {
-       // Calculate score for MCQ questions
-       const mcqResponses = assessmentResponse.responses.filter((r: { questionType: string }) => r.questionType === 'MCQ');
-       const correctAnswers = mcqResponses.filter((r: { isCorrect: boolean }) => r.isCorrect).length;
-       const score = mcqResponses.length > 0 ? Math.round((correctAnswers / mcqResponses.length) * 100) : 85;
+    if (isCompleted) {
+      // Calculate score for MCQ questions
+      const mcqResponses = assessmentResponse.responses.filter((r: { questionType: string }) => r.questionType === 'MCQ');
+      const correctAnswers = mcqResponses.filter((r: { isCorrect: boolean }) => r.isCorrect).length;
+      const score = mcqResponses.length > 0 ? Math.round((correctAnswers / mcqResponses.length) * 100) : 85;
 
-       // Collect all formatted responses for N8N webhook
-       const formattedResponses = assessmentResponse.responses.map((r: any) => r.formattedResponse);
-       assessmentResponse.collectedAnswers = formattedResponses;
+      // Collect all formatted responses for N8N webhook
+      const formattedResponses = assessmentResponse.responses.map((r: any) => r.formattedResponse);
+      assessmentResponse.collectedAnswers = formattedResponses;
 
-       // Set completion data
-       assessmentResponse.isCompleted = true;
-       assessmentResponse.completedAt = new Date();
-       
-       // Set final result - can be enhanced with AI analysis later
-       assessmentResponse.result = {
-         type: 'Visual Superstar',
-         description: 'You learn best with fun visuals and bright colors!',
-         score: score,
-         learningStyle: 'Visual',
-         recommendations: [
-           { title: 'The Water Cycle', description: 'Learn about water cycle with visual animations', xp: 75 },
-           { title: 'Shapes Adventure', description: 'Explore geometric shapes through games', xp: 50 },
-           { title: 'Story of the Moon', description: 'Discover moon phases with storytelling', xp: 30 }
-         ]
-       };
+      // Set completion data
+      assessmentResponse.isCompleted = true;
+      assessmentResponse.completedAt = new Date();
+      
+      // Set final result - can be enhanced with AI analysis later
+      assessmentResponse.result = {
+        type: 'Visual Superstar',
+        description: 'You learn best with fun visuals and bright colors!',
+        score: score,
+        learningStyle: 'Visual',
+        recommendations: [
+          { title: 'The Water Cycle', description: 'Learn about water cycle with visual animations', xp: 75 },
+          { title: 'Shapes Adventure', description: 'Explore geometric shapes through games', xp: 50 },
+          { title: 'Story of the Moon', description: 'Discover moon phases with storytelling', xp: 30 }
+        ]
+      };
 
-       console.log(`🔍 Assessment completed for student ${student.uniqueId} with score: ${score}%`);
-       console.log(`🔍 Collected ${formattedResponses.length} formatted responses for N8N webhook`);
-       console.log(`🔍 Formatted responses:`, JSON.stringify(formattedResponses, null, 2));
-     }
+      console.log(`🔍 Assessment completed for student ${student.uniqueId} with score: ${score}%`);
+      console.log(`🔍 Collected ${formattedResponses.length} formatted responses`);
+    }
 
     // Save the assessment response
     await assessmentResponse.save();

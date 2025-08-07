@@ -23,11 +23,11 @@ export default function Home() {
   }, [])
 
   const nextCard = () => {
-    setCurrentCard((prev) => (prev + 1) % 3)
+    setCurrentCard((prev) => (prev + 1) % 4)
   }
 
   const prevCard = () => {
-    setCurrentCard((prev) => (prev - 1 + 3) % 3)
+    setCurrentCard((prev) => (prev - 1 + 4) % 4)
   }
 
   const cards = [
@@ -50,10 +50,18 @@ export default function Home() {
     {
       title: "Ready to Learn?",
       description: "Start your journey with just one click. Choose your role and unlock a world of learning. Let's get started!",
+      buttonText: "Continue",
+      buttonAction: nextCard,
+      showBack: true,
+      illustration: "ready"
+    },
+    {
+      title: "Testimonials",
+      description: "Embark on an exciting journey to discover how water moves through our planet! This interactive module combines stunning animations, fun experiments and engaging quizzes to help you understand the water cycle like never before.",
       buttonText: "Register",
       buttonAction: () => router.push('/register'),
       showBack: true,
-      illustration: "ready"
+      illustration: "testimonials"
     }
   ]
 
@@ -182,105 +190,227 @@ export default function Home() {
                 <Image src="/jio-logo.png" alt="Jio Logo" width={32} height={32} className="w-8 h-8 object-contain filter brightness-0 invert" />
               </motion.div>
 
-                             {/* Content Container */}
-               <div className="flex-1 flex flex-col items-center justify-center text-center p-8 sm:p-12 md:p-16">
-                
-                {/* Illustration Area */}
-                <motion.div 
-                  className="mb-8 sm:mb-12"
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.3, duration: 0.5 }}
-                >
-                  {cards[currentCard].illustration === "learning" && (
-                    <div className="flex items-center justify-center gap-6 flex-wrap">
-                      {/* Teacher/Presentation */}
-                      <div className="relative bg-orange-100 rounded-2xl p-6 w-32 h-32 flex items-center justify-center">
-                        <div className="text-6xl">👨‍🏫</div>
-                        <div className="absolute -top-2 -right-2 bg-purple-500 rounded-full w-8 h-8 flex items-center justify-center">
-                          <span className="text-white text-sm">AI</span>
-                        </div>
-                      </div>
-                      
-                      {/* Books */}
-                      <div className="bg-green-100 rounded-2xl p-6 w-24 h-24 flex items-center justify-center">
-                        <div className="text-4xl">📚</div>
-                      </div>
-                      
-                      {/* Computer */}
-                      <div className="bg-blue-100 rounded-2xl p-6 w-32 h-32 flex items-center justify-center">
-                        <div className="text-6xl">💻</div>
-                      </div>
-                      
-                      {/* Graduation */}
-                      <div className="bg-purple-100 rounded-2xl p-6 w-24 h-24 flex items-center justify-center">
-                        <div className="text-4xl">🎓</div>
-                      </div>
-                    </div>
-                  )}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               {/* Content Container */}
+                                   <div className="flex-1 flex flex-col items-center justify-end text-center p-8 sm:p-12 md:p-16 pb-32">
+                 
+                 {/* Illustration Area */}
+                 <motion.div 
+                   className="mb-8 sm:mb-12"
+                   initial={{ scale: 0.8, opacity: 0 }}
+                   animate={{ scale: 1, opacity: 1 }}
+                   transition={{ delay: 0.3, duration: 0.5 }}
+                 >
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               {cards[currentCard].illustration === "learning" && (
+                         <div className="absolute inset-0 pointer-events-none">
+                           {/* Top Left - AI Logo */}
+                           <div className="absolute top-[100px] left-[180px]">
+                             <Image 
+                               src="/ai_landing.png" 
+                               alt="AI Logo" 
+                               width={142} 
+                               height={142} 
+                               className="w-[142px] h-[142px] object-contain"
+                             />
+                           </div>
+                           
+                           {/* Top Right - Computer Monitor */}
+                           <div className="absolute top-[100px] right-[180px]">
+                             <Image 
+                               src="/comcap_landing.png" 
+                               alt="Computer Monitor" 
+                               width={164} 
+                               height={164} 
+                               className="w-[164px] h-[164px] object-contain transform rotate-[8.37deg]"
+                             />
+                           </div>
+                           
+                           {/* Above Welcome - Teacher/Presentation (larger) */}
+                           <div className="absolute top-[50px] left-1/2 transform -translate-x-1/2">
+                             <Image 
+                               src="/teacher_landing.png" 
+                               alt="Teacher" 
+                               width={400 } 
+                               height={400} 
+                               className="w-[400px] h-[400px] object-contain"
+                             />
+                           </div>
+                           
+                           {/* Bottom Left - Graduation Cap and Diploma */}
+                           <div className="absolute bottom-[39px] left-[147px]">
+                             <Image 
+                               src="/cap_landing.png" 
+                               alt="Graduation Cap and Diploma" 
+                               width={196} 
+                               height={196} 
+                               className="w-[196px] h-[196px] object-contain"
+                             />
+                           </div>
+                           
+                           {/* Bottom Right - Robot Teaching */}
+                           <div className="absolute bottom-[103px] right-[106px]">
+                             <Image 
+                               src="/robo_landing.png" 
+                               alt="Robot Teaching" 
+                               width={158} 
+                               height={158} 
+                               className="w-[158px] h-[158px] object-contain transform -rotate-[9.6deg]"
+                             />
+                           </div>
+                         </div>
+                       )}
                   
-                  {cards[currentCard].illustration === "ai" && (
-                    <div className="flex items-center justify-center gap-6 flex-wrap">
-                      {/* AI Brain */}
-                      <div className="relative bg-purple-100 rounded-2xl p-6 w-32 h-32 flex items-center justify-center">
-                        <div className="text-6xl">🤖</div>
-                        <div className="absolute -top-2 -right-2 bg-blue-500 rounded-full w-8 h-8 flex items-center justify-center">
-                          <span className="text-white text-sm">AI</span>
-                        </div>
-                      </div>
-                      
-                      {/* Data/Analytics */}
-                      <div className="bg-blue-100 rounded-2xl p-6 w-24 h-24 flex items-center justify-center">
-                        <div className="text-4xl">📊</div>
-                      </div>
-                      
-                      {/* Globe/Language */}
-                      <div className="bg-green-100 rounded-2xl p-6 w-32 h-32 flex items-center justify-center">
-                        <div className="text-6xl">🌍</div>
-                      </div>
-                      
-                      {/* Lightbulb */}
-                      <div className="bg-yellow-100 rounded-2xl p-6 w-24 h-24 flex items-center justify-center">
-                        <div className="text-4xl">💡</div>
-                      </div>
-                    </div>
-                  )}
+                                     {cards[currentCard].illustration === "ai" && (
+                     <div className="absolute inset-0 pointer-events-none">
+                       {/* Top Left - Books */}
+                       <div className="absolute top-[100px] left-[180px]">
+                         <Image 
+                           src="/book_landing.png" 
+                           alt="Books" 
+                           width={180} 
+                           height={180} 
+                           className="w-[180px] h-[180px] object-contain"
+                         />
+                       </div>
+                       
+                       {/* Top Right - Robot Star */}
+                       <div className="absolute top-[100px] right-[180px]">
+                         <Image 
+                           src="/robostar_landing.png" 
+                           alt="Robot Star" 
+                           width={180} 
+                           height={180} 
+                           className="w-[180px] h-[180px] object-contain transform rotate-[8.37deg]"
+                         />
+                       </div>
+                       
+                       {/* Center - Robot Class */}
+                       <div className="absolute top-[100px] left-1/2 transform -translate-x-1/2 bottom-[100px]">
+                         <Image 
+                           src="/robo_class_landing.png" 
+                           alt="Robot Class" 
+                           width={300} 
+                           height={300} 
+                           className="w-[300px] h-[300px] object-contain"
+                         />
+                       </div>
+                       
+                       {/* Bottom Right - Bulb Books */}
+                       <div className="absolute bottom-[103px] right-[106px]">
+                         <Image 
+                           src="/bulbook_landing.png" 
+                           alt="Bulb Books" 
+                           width={180} 
+                           height={180} 
+                           className="w-[180px] h-[180px] object-contain transform -rotate-[9.6deg]"
+                         />
+                       </div>
+                     </div>
+                   )}
                   
-                  {cards[currentCard].illustration === "ready" && (
-                    <div className="flex items-center justify-center gap-6 flex-wrap">
-                      {/* Student */}
-                      <div className="relative bg-green-100 rounded-2xl p-6 w-32 h-32 flex items-center justify-center">
-                        <div className="text-6xl">👨‍🎓</div>
-                        <div className="absolute -top-2 -right-2 bg-green-500 rounded-full w-8 h-8 flex items-center justify-center">
-                          <span className="text-white text-sm">✓</span>
+                                                                                                                                                       {cards[currentCard].illustration === "ready" && (
+                       <div className="absolute inset-0 pointer-events-none">
+                         {/* Left Center - Computer */}
+                         <div className="absolute top-1/2 left-[180px] transform -translate-y-1/2">
+                           <Image 
+                             src="/landing3_comp.png" 
+                             alt="Computer" 
+                             width={180} 
+                             height={180} 
+                             className="w-[180px] h-[180px] object-contain"
+                           />
+                         </div>
+                         
+                         {/* Top Right - TV/Monitor */}
+                         <div className="absolute top-[100px] right-[180px]">
+                           <Image 
+                             src="/landing3_tv.png" 
+                             alt="TV/Monitor" 
+                             width={180} 
+                             height={180} 
+                             className="w-[180px] h-[180px] object-contain transform rotate-[8.37deg]"
+                           />
+                         </div>
+                         
+                         {/* Center - Man with Laptop */}
+                         <div className="absolute top-[100px] left-1/2 transform -translate-x-1/2">
+                           <Image 
+                             src="/landing3_man.png" 
+                             alt="Man with Laptop" 
+                             width={300} 
+                             height={300} 
+                             className="w-[300px] h-[300px] object-contain"
+                           />
+                         </div>
+                         
+                         {/* Bottom Right - Kid with Laptop */}
+                         <div className="absolute bottom-[103px] right-[106px]">
+                           <Image 
+                             src="/landing3_kid.png" 
+                             alt="Kid with Laptop" 
+                             width={180} 
+                             height={180} 
+                             className="w-[180px] h-[180px] object-contain transform -rotate-[9.6deg]"
+                           />
+                         </div>
+                                               </div>
+                      )}
+                      
+                      {cards[currentCard].illustration === "testimonials" && (
+                        <div className="absolute inset-0 pointer-events-none">
+                          {/* Top Right - Bell */}
+                          <div className="absolute top-16 right-20 z-20">
+                            <Image 
+                              src="/landing4_bell.png" 
+                              alt="Bell" 
+                              width={120} 
+                              height={120} 
+                              className="w-[120px] h-[120px] object-contain" 
+                            />
+                          </div>
+                          
+                          {/* Center Above Text - Center Icon */}
+                          <div className="absolute left-1/2 top-10 transform -translate-x-1/2 z-20">
+                            <Image 
+                              src="/landing4_center.png" 
+                              alt="Center Icon" 
+                              width={500} 
+                              height={500} 
+                              className="w-[500px] h-[500px] object-contain" 
+                            />
+                          </div>
+                          
+                          {/* Bottom Left - Message Icon */}
+                          <div className="absolute bottom-16 left-20 z-20">
+                            <Image 
+                              src="/landing4_msg.png" 
+                              alt="Message Icon" 
+                              width={200} 
+                              height={200} 
+                              className="w-[200px] h-[200px] object-contain" 
+                            />
+                          </div>
+                          
+                          {/* Below Text Center - Avishkar Icon */}
+                          <div className="absolute left-1/2 bottom-20 transform -translate-x-1/2 z-20">
+                            <Image 
+                              src="/landing4_avishkar.png" 
+                              alt="Avishkar" 
+                              width={160} 
+                              height={160} 
+                              className="w-[160px] h-[160px] object-contain" 
+                            />
+                          </div>
                         </div>
-                      </div>
-                      
-                      {/* Laptop */}
-                      <div className="bg-blue-100 rounded-2xl p-6 w-24 h-24 flex items-center justify-center">
-                        <div className="text-4xl">💻</div>
-                      </div>
-                      
-                      {/* Learning Path */}
-                      <div className="bg-orange-100 rounded-2xl p-6 w-32 h-32 flex items-center justify-center">
-                        <div className="text-6xl">🎯</div>
-                      </div>
-                      
-                      {/* Rocket */}
-                      <div className="bg-purple-100 rounded-2xl p-6 w-24 h-24 flex items-center justify-center">
-                        <div className="text-4xl">🚀</div>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
+                      )}
+                 </motion.div>
 
-                {/* Title */}
-                <motion.h2 
-                  className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 sm:mb-8"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.4, duration: 0.5 }}
-                >
+                                 {/* Title */}
+                 <motion.h2 
+                   className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 mb-6 sm:mb-8 tracking-tight"
+                   initial={{ y: 20, opacity: 0 }}
+                   animate={{ y: 0, opacity: 1 }}
+                   transition={{ delay: 0.4, duration: 0.5 }}
+                 >
                   {currentCard === 0 && (
                     <>
                       <span className="text-black">Welcome to the </span>
@@ -295,12 +425,17 @@ export default function Home() {
                       <span className="text-black"> Learning Environments</span>
                     </>
                   )}
-                  {currentCard === 2 && (
-                    <>
-                      <span className="text-black">Ready to </span>
-                      <span className="text-blue-600">Learn?</span>
-                    </>
-                  )}
+                                     {currentCard === 2 && (
+                     <>
+                       <span className="text-black">Ready to </span>
+                       <span className="text-blue-600">Learn?</span>
+                     </>
+                   )}
+                   {currentCard === 3 && (
+                     <>
+                       <span className="text-black">Testimonials</span>
+                     </>
+                   )}
                 </motion.h2>
 
                 {/* Description */}
@@ -349,7 +484,7 @@ export default function Home() {
                  animate={{ opacity: 1 }}
                  transition={{ delay: 0.7, duration: 0.5 }}
                >
-                 {[0, 1, 2].map((index) => (
+                                   {[0, 1, 2, 3].map((index) => (
                    <motion.button
                      key={index}
                      onClick={() => setCurrentCard(index)}

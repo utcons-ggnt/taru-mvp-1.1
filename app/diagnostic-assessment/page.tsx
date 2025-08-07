@@ -21,6 +21,13 @@ interface AssessmentResult {
   score: number;
   learningStyle?: string;
   recommendations?: { title: string; description: string; xp: number }[];
+  totalQuestions?: number;
+  n8nResults?: {
+    'Total Questions'?: number;
+    Score?: number;
+    Summery?: string;
+    [key: string]: any;
+  };
 }
 
 interface UserProfile {
@@ -168,14 +175,14 @@ export default function DiagnosticAssessment() {
       setTotalQuestions(data.totalQuestions);
       setProgress(data.progress);
       
-      // Load previous answer if exists
-      const previousAnswer = allAnswers[data.question.id];
+      // Load previous answer from collected answers
+      const previousAnswer = collectedAnswers.find(answer => answer.Q === data.question.id);
       if (previousAnswer) {
         if (data.question.type === 'MCQ') {
-          setSelectedOption(previousAnswer);
+          setSelectedOption(previousAnswer.studentAnswer);
           setAnswer('');
         } else {
-          setAnswer(previousAnswer);
+          setAnswer(previousAnswer.studentAnswer);
           setSelectedOption('');
         }
       } else {
@@ -200,6 +207,63 @@ export default function DiagnosticAssessment() {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Load previous answers from database
+  const loadPreviousAnswers = async () => {
+    try {
+      console.log('🔍 Loading previous answers from database...');
+      const response = await fetch('/api/assessment/questions');
+      
+      if (!response.ok) {
+        console.error('Failed to load previous answers');
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (data.responses && Array.isArray(data.responses)) {
+        const answers: CollectedAnswer[] = data.responses.map((response: any) => ({
+          Q: response.questionId,
+          section: response.category,
+          question: response.question,
+          studentAnswer: response.answer,
+          type: response.questionType === 'MCQ' ? 'Multiple Choice' : 'Open Text'
+        }));
+        
+        setCollectedAnswers(answers);
+        console.log('🔍 Loaded previous answers:', answers.length);
+      }
+    } catch (error) {
+      console.error('Error loading previous answers:', error);
+    }
+  };
+
+  // Generate N8N questions if not already generated
+  const generateN8NQuestions = async () => {
+    try {
+      console.log('🔍 Generating N8N questions...');
+      const response = await fetch('/api/assessment/generate-questions?type=diagnostic');
+      
+      if (!response.ok) {
+        console.error('Failed to generate N8N questions');
+        return false;
+      }
+
+      const data = await response.json();
+      console.log('🔍 N8N questions generated:', data);
+      
+      if (data.success && data.questions && data.questions.length > 0) {
+        console.log('🔍 Successfully generated', data.questions.length, 'N8N questions');
+        return true;
+      } else {
+        console.log('🔍 No N8N questions generated, using fallback');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error generating N8N questions:', error);
+      return false;
     }
   };
 
@@ -317,15 +381,50 @@ export default function DiagnosticAssessment() {
       }
 
       if (data.completed) {
-        // Send all collected answers to N8N webhook
-        await sendAnswersToWebhook([...collectedAnswers, currentAnswer]);
+        console.log('🔍 Assessment completed! Getting N8N results...');
         
-        setIsCompleted(true);
-        setResult(data.result);
-        // Don't auto-redirect - let user click "Go to Dashboard" button
+        // Save all collected answers to database
+        await storeAnswersInDatabase([...collectedAnswers, currentAnswer]);
+        
+        // Get N8N results
+        try {
+          const resultResponse = await fetch('/api/assessment/result', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+
+          if (resultResponse.ok) {
+            const resultData = await resultResponse.json();
+            console.log('🔍 N8N results received:', resultData);
+            
+            // Update the result with N8N data
+            const updatedResult = {
+              ...data.result,
+              totalQuestions: resultData.result.totalQuestions,
+              score: resultData.result.score,
+              description: resultData.result.summary,
+              n8nResults: resultData.result.n8nResults
+            };
+            
+            setIsCompleted(true);
+            setResult(updatedResult);
+          } else {
+            console.error('🔍 Failed to get N8N results:', resultResponse.status);
+            // Still show completion with default result
+            setIsCompleted(true);
+            setResult(data.result);
+          }
+        } catch (resultError) {
+          console.error('🔍 Error getting N8N results:', resultError);
+          // Still show completion with default result
+          setIsCompleted(true);
+          setResult(data.result);
+        }
       } else {
         // Load next question
-        loadQuestion();
+        await loadQuestion();
       }
     } catch (err) {
       console.error('Error submitting answer:', err);
@@ -337,47 +436,11 @@ export default function DiagnosticAssessment() {
 
 
 
-  // Function to send answers to N8N webhook
-  const sendAnswersToWebhook = async (answers: CollectedAnswer[]) => {
-    try {
-      console.log('🔍 Sending answers to N8N webhook:', answers);
-      
-      const webhookData = {
-        studentId: userProfile?.uniqueId || 'unknown',
-        studentName: userProfile?.fullName || 'Unknown Student',
-        answers: answers
-      };
-
-      console.log('🔍 Sending webhook data:', JSON.stringify(webhookData, null, 2));
-
-      const response = await fetch('https://nclbtaru.app.n8n.cloud/webhook/Score-result', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(webhookData),
-      });
-
-      if (!response.ok) {
-        console.error('🔍 Webhook request failed:', response.status, response.statusText);
-        throw new Error(`Webhook request failed: ${response.status}`);
-      }
-
-      const webhookResponse = await response.json();
-      console.log('🔍 Webhook response:', webhookResponse);
-      
-      // Also store answers in database via API
-      await storeAnswersInDatabase(answers);
-      
-    } catch (error) {
-      console.error('🔍 Error sending answers to webhook:', error);
-      // Don't throw error to avoid blocking assessment completion
-    }
-  };
-
   // Function to store answers in database
   const storeAnswersInDatabase = async (answers: CollectedAnswer[]) => {
     try {
+      console.log('🔍 Storing answers in database:', answers.length, 'answers');
+      
       const response = await fetch('/api/assessment/store-answers', {
         method: 'POST',
         headers: {
@@ -388,6 +451,8 @@ export default function DiagnosticAssessment() {
 
       if (!response.ok) {
         console.error('🔍 Failed to store answers in database:', response.status);
+        const errorData = await response.json();
+        console.error('🔍 Error details:', errorData);
       } else {
         console.log('🔍 Answers stored in database successfully');
       }
@@ -400,8 +465,16 @@ export default function DiagnosticAssessment() {
   useEffect(() => {
     const initializeAssessment = async () => {
       try {
+        console.log('🔍 Initializing diagnostic assessment...');
+        
         // First check if user is authenticated by trying to fetch profile
         await fetchUserProfile();
+        
+        // Load previous answers from database
+        await loadPreviousAnswers();
+        
+        // Try to generate N8N questions if not already generated
+        await generateN8NQuestions();
         
         // If profile fetch succeeds, load the question
         await loadQuestion();
@@ -478,9 +551,53 @@ export default function DiagnosticAssessment() {
               <h1 className="text-4xl font-bold mb-4">
                 🎭 You&apos;re a {result.type}! 🏆
               </h1>
-              <p className="text-xl mb-8 opacity-90">
-                {result.description}
-              </p>
+              
+              {/* Student Info */}
+              {userProfile && (
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6">
+                  <div className="text-center">
+                    <h3 className="text-lg font-semibold mb-2">Personalized Results for</h3>
+                    <p className="text-xl font-bold text-blue-200">
+                      {userProfile.fullName} #{userProfile.uniqueId}
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Display N8N Results */}
+              {result.n8nResults && (
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-center mb-6">
+                    <div className="bg-white/5 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold mb-2">Total Questions</h3>
+                      <p className="text-4xl font-bold text-blue-200">
+                        {result.n8nResults['Total Questions'] || result.totalQuestions || 0}
+                      </p>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold mb-2">Your Score</h3>
+                      <p className="text-4xl font-bold text-yellow-300">
+                        {result.n8nResults.Score || result.score || 0}%
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* N8N Summary */}
+                  <div className="bg-white/5 rounded-lg p-6 text-left">
+                    <h3 className="text-xl font-semibold mb-4 text-center">🎯 Your Assessment Summary</h3>
+                    <p className="text-lg leading-relaxed opacity-95">
+                      {result.n8nResults.Summery || result.description}
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Fallback description if no N8N results */}
+              {!result.n8nResults && (
+                <p className="text-xl mb-8 opacity-90">
+                  {result.description}
+                </p>
+              )}
             </motion.div>
 
             <motion.div 

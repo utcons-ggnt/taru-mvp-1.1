@@ -81,21 +81,21 @@ export default function Login() {
 
   return (
     <motion.main 
-      className="min-h-screen flex items-center justify-center overflow-hidden bg-[#6D18CE] p-4"
+      className="min-h-screen flex items-center justify-center overflow-hidden bg-[#6D18CE] p-4 relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
     >
       {/* Main Login Popup Container */}
       <motion.div 
-        className="relative w-full max-w-[1400px] h-[800px] bg-[#6D18CE] rounded-[40px] flex"
+        className="relative w-[1400px] h-[856px] bg-[#6D18CE] rounded-[40px] flex"
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
                  {/* Left Section - Purple Background with Content */}
          <motion.section 
-           className="w-[577px] h-[800px] relative"
+           className="w-[577px] h-[856px] relative"
            initial={{ x: -100, opacity: 0 }}
            animate={{ x: 0, opacity: 1 }}
            transition={{ duration: 0.8 }}
@@ -137,7 +137,7 @@ export default function Login() {
 
                  {/* Right Section - White Form Card */}
          <motion.section 
-           className="w-[823px] h-[800px] bg-white rounded-[40px] shadow-[-21px_0px_144px_#6219B5] relative"
+           className="w-[823px] h-[856px] bg-white rounded-[40px] shadow-[-21px_0px_144px_#6219B5] relative"
            initial={{ x: 100, opacity: 0 }}
            animate={{ x: 0, opacity: 1 }}
            transition={{ duration: 0.8 }}
@@ -176,7 +176,7 @@ export default function Login() {
 
             {/* Welcome back Title */}
             <motion.h2 
-              className="absolute top-[267px] left-[154px] text-[24.7297px] leading-[30px] font-bold text-black"
+              className="absolute top-[258px] left-[154px] text-[24.7297px] leading-[30px] font-bold text-black w-[190px] h-[30px]"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.5 }}
@@ -197,7 +197,7 @@ export default function Login() {
             {/* Login Form */}
             <motion.form 
               onSubmit={handleSubmit}
-              className="absolute top-[359px] left-[155px] w-[513px]"
+              className="absolute top-[359px] left-[155px] w-[514px]"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 1.1, duration: 0.6 }}
@@ -259,7 +259,7 @@ export default function Login() {
               <motion.button
                 type="submit"
                 disabled={loading}
-                className="w-[514px] h-[69px] bg-[#6D18CE] text-white rounded-[90px] font-semibold text-[16.0016px] flex items-center justify-center"
+                className="w-[514px] h-[69px] bg-[#6D18CE] text-white rounded-[90px] font-semibold text-[16.0016px] flex items-center justify-center mx-auto"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 initial={{ y: 20, opacity: 0 }}
@@ -297,7 +297,7 @@ export default function Login() {
 
             {/* Register Link */}
             <motion.div 
-              className="absolute top-[655px] left-[308px] text-center"
+              className="absolute top-[809px] left-[308px] text-center w-[205px] h-[16px]"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 1.3, duration: 0.4 }}
