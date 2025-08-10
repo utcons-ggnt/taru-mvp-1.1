@@ -7,13 +7,42 @@ const mongoose = require('mongoose');
 const magnetBrainsVideos = {
   geography: [
     {
-      title: "6th Grade Geography",
+      title: "Complete English Transcription and Translation of the Solar System & C…",
       description: "Learn fundamental geographical concepts, continents, countries, and maps",
       subject: "Geography",
       grade: "Class 6",
       difficulty: "beginner",
       duration: 45,
       videoUrl: "https://www.youtube.com/embed/Al9v3jxSW1I",
+      transcribe: `Hello everyone! Special Vikrant Singh Rajput, welcome to Magnet Brains. In this video, we are starting a new chapter – yes, the Geography of Plastics, Chapter 10 – Our Solar System. This chapter is quite interesting; everyone is always curious about celestial bodies and all the wonders floating in space. In this chapter, we will get to know and understand all those things – what they look like, what they are. This video is basically the introduction to the chapter, where I will tell you what we’re going to study and how we’re going to start.
+
+Let me ask you something: when we go out in the evening as it begins to get dark, have you noticed the sky at sunset? You can see the sun setting, and at the same time the moon rising. Sometimes in the morning, too, both sun and moon are visible. What happens as sunset passes and night draws in? The light slowly reduces, and as the sky gets darker, stars start to twinkle.
+
+You’ll see many stars in the sky and the big moon. Where does the sun go? The sun doesn’t literally drown in the sea; it stays there, but the earth rotates, and that’s why it looks that way. Two things happen to the earth – it rotates (spins on its own axis) and revolves (moves around the sun). We’ll discuss the differences and details of these movements. The solar system includes the earth, other planets, moons, stars, asteroids, meteors, galaxies, and more. We’ll learn about all of this in the chapter and also some interesting facts.
+
+You can easily download notes for this chapter on our official website magnetbrains.com, where all subjects and topics are arranged from Class 4 to Class 12. Enjoy learning!
+
+---
+
+What are celestial bodies? Celestial bodies are everything that we see in the universe – stars, planets, moons, asteroids, etc. At night, you can see bright stars and the moon. The appearance of the moon changes – sometimes you see the full moon, sometimes none at all, or just a part of it. These are the different phases of the moon (full moon and new moon, also called Purnima and Amavasya in Hindi).
+
+Why do some stars appear bright, and others not so much? It’s all about distance. The sun appears very bright and hot because it’s the nearest star to us, while other stars are actually much bigger but appear as tiny dots because they’re so far away.
+
+Now, about constellations. A group of stars forming a particular pattern is called a constellation. These patterns are often named after mythological figures, animals, objects, etc. The most easily identifiable constellation is the Great Bear (Ursa Major), called Saptarshi in Hindi. The pole star (Dhruv Tara) helps determine the North direction at night.
+
+Some celestial bodies, like planets, don’t have their own light or heat; they reflect the sun’s light. The planets in our solar system – Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune – all revolve around the sun. Our earth is a planet, and its only natural satellite is the moon.
+
+There are human-made satellites too, which are launched into space for communication, weather forecasting, and scientific studies, like INSAT and NAVIC.
+
+Asteroids and meteors: Between Mars and Jupiter is the asteroid belt, made up of large rocky bodies. When smaller pieces called meteoroids enter the earth’s atmosphere, they burn up because of friction with the air and create what we call a “shooting star.” If some survive and hit earth, they are called meteorites.
+
+Our solar system is a small part of a galaxy – the Milky Way, known as Akash Ganga in Hindi. A galaxy is a massive collection of stars, dust, and gas, and our universe consists of millions of galaxies.
+
+Some interesting facts: Light travels at approximately 300,000 kilometers per second, yet it takes sun’s light about 8 minutes to reach earth. The first man to step on the moon was Neil Armstrong (July 20, 1969). India’s first astronaut was Rakesh Sharma. Earth is called the “Blue Planet” because 70% of its surface is water and appears blue from space.
+
+The chapter ends with NCERT questions and answers, covering differences between stars and planets, why earth is unique, what’s a constellation, why we always see only one side of the moon, and what is the universe.
+
+You can find detailed notes, exercises, and explanations for all topics on magnetbrains.com, covering all subjects and classes from 4 to 12 – free to download and study!`, // Add your transcription string here using template literals for multiline support
       quizQuestions: [
         {
           question: "What is geography?",
@@ -86,13 +115,41 @@ const magnetBrainsVideos = {
   ],
   science: [
     {
-      title: "Nutrition in Plants - Full Chapter",
+      title: "Comprehensive Overview of Nutrition in Plants - Class 7 Science",
       description: "Complete understanding of how plants make their own food through photosynthesis",
       subject: "Science",
       grade: "Class 7",
       difficulty: "beginner",
       duration: 50,
       videoUrl: "https://www.youtube.com/embed/oP2sbq9G5PI",
+      transcribe: `Hello everyone, welcome to Make Any Difference. Today we will learn about Nutrition in Plants, a chapter from Class 7 Science. So, what is nutrition? We are all born and the food we eat gives us energy, which enables all our life processes. The process which supplies us with food and energy is known as nutrition.
+
+Definition of Nutrition: Food enables living beings to carry out the basic activities of life - the life processes. The process by which organisms obtain food required for sustaining this is called nutrition. Nutrition is important for both plants and animals. This chapter focuses on Nutrition in Plants.
+
+Primarily, there are two types of nutrition: autotrophic and heterotrophic. Autotrophic nutrition is when organisms make their own food, for example, green plants. Heterotrophic is when organisms depend on others for food. In this chapter, our focus is on autotrophic nutrition as we discuss nutrition in plants.
+
+How do plants prepare their food? Plants take in carbon dioxide from air and water from soil. Water is absorbed through roots and reaches the leaves via stem. Carbon dioxide enters through tiny pores in leaves called stomata. Leaves also contain green pigment called chlorophyll. In the presence of chlorophyll and sunlight, green plants synthesize their own food – this process is called photosynthesis.
+
+Photosynthesis: The process by which green plants make food (glucose) from carbon dioxide and water using sunlight and chlorophyll is called photosynthesis. The general chemical equation of photosynthesis is: Carbon dioxide (CO2) + Water (H2O) –(in sunlight & chlorophyll)→ Glucose (C6H12O6) + Oxygen (O2).
+
+Experiment: Take a green plant and cover part of its leaf with black paper. Expose it to sunlight, later remove the covered part and test it with iodine solution. Part exposed to sunlight turns blue-black (indicating starch formation), while covered part doesn't – proving sunlight is essential for photosynthesis.
+
+Modes of Nutrition in Plants: Not all plants can make their own food. Some, lacking chlorophyll, depend on others. Such plants are called parasitic plants (e.g., Cuscuta), which live on host plants and absorb nutrients from them. Another mode is insectivorous plants (e.g., pitcher plant), which trap insects for nutrition due to lack of certain nutrients in the soil.
+
+A third mode is saprophytic nutrition, where organisms like fungi obtain nutrition from decaying organic matter (e.g., fungi on bread). Detailed diagrams often show this process.
+
+Symbiosis: Some organisms, such as certain plants and fungi, coexist for mutual benefit. For instance, fungi help plant roots absorb minerals and water more efficiently, while plants provide food for the fungi. A well-known example of symbiosis is the relationship between legume roots and Rhizobium bacteria, which helps in nitrogen fixation and in-turn supports plant growth.
+
+Replenishing Nutrients in Soil: Growing crops depletes soil nutrients, which can be replenished by adding fertilizers or through natural processes like nitrogen fixation by Rhizobium bacteria.
+
+Frequently Asked Questions from the Chapter:
+1. Differentiate between parasite and saprophyte: Parasites (e.g., Cuscuta) depend on host plants for food, whereas saprophytes (e.g., fungi) feed on decaying matter.
+2. How do green plants store their food? As starch.
+3. Which pigment helps in capturing solar energy? Chlorophyll, present in chloroplasts.
+4. During photosynthesis, which gas is released? Oxygen.
+5. Why is sunlight necessary for photosynthesis? Because it drives the food-making process in plants.
+
+So, these are some highlights and important concepts from Nutrition in Plants, Class 7 Science. In the next video, we will cover more chapters. Thank you!`, // Add your transcription string here using template literals for multiline support
       quizQuestions: [
         {
           question: "What is the process by which plants make their own food?",
@@ -158,13 +215,69 @@ const magnetBrainsVideos = {
       tags: ["photosynthesis", "plant-nutrition", "autotrophs"]
     },
     {
-      title: "Nutrition in Plants - Chapter Explanation & Solutions",
+      title: "Complete Overview and Analysis of Class 7 Science Chapter 1: Nutrition…",
       description: "Detailed explanation of plant nutrition with NCERT solutions and examples",
       subject: "Science",
       grade: "Class 7",
       difficulty: "intermediate",
       duration: 55,
       videoUrl: "https://www.youtube.com/embed/JbnxZR01HrY",
+      transcribe: `Hello students! This is Dissolve Tiwari and you are watching your favorite educational channel, Magnet Brains. Here, we offer you 100% free, quality educational products—meaning all subject-related videos are available to you at no cost, and they are of high quality. You can watch our videos, and today, I'm going to teach and give you an overview of the Class 7th Science book, especially Chapter 1: Nutrition in Plants. I will explain what we will study, how we’ll proceed, and what our teaching pattern will be. We will do a deep study of the NCERT book for Class 7 Science.
+
+First, I’ll give you a syllabus overview, telling you which chapters are important, which require more attention, and which are easier. All chapters are interesting and informative, providing new insights. My pattern is to comprehensively discuss each chapter, go through all topics and subtopics, and also include necessary topics not explicitly mentioned in the book but essential for understanding. We’ll start with Chapter 1: Nutrition in Plants and proceed through the chapters such as Nutrition in Animals, Fiber to Fabric, Heat, Acids Bases & Salts, Physical & Chemical Changes, Weather & Climate, Winds Storms & Cyclones, Soil, Respiration in Organisms, and so on, up to Wastewater Story (Chapter 18). Each chapter introduces new concepts essential for higher studies and real life.
+
+We’ll first discuss the chapters, then activities, then solutions to exercises and examples, and finally, discuss possible exam questions. Quality learning is our aim!
+
+-----------------------------
+
+Chapter 1: Nutrition in Plants
+
+Plants need nutrition just like animals for growth, fighting diseases, reproduction, and surviving adverse conditions. The three primary nutrients are:
+- Phosphorus: Vital for seed germination and root development.
+- Nitrogen: Essential for forming amino acids, which create proteins necessary for leaf and stem growth.
+- Potassium: Important for flowers, fruits, disease resistance, water regulation, respiration, and photosynthesis.
+
+Secondary nutrients include Calcium (for cell strength), Magnesium (for chlorophyll and healthy leaves), and Sulfur (for amino acid synthesis). Trace elements like Boron, Copper, Iron, Manganese, Zinc, etc., are also necessary.
+
+Plants obtain nutrients in two ways (modes of nutrition):
+1. Autotrophic: They prepare their own food from simple substances like water, carbon dioxide, and minerals using sunlight and chlorophyll. Plants are called autotrophs for this reason.
+2. Heterotrophic: Some plants, like Amarbel (Cuscuta), cannot prepare their own food and depend on other plants—they are called parasites. Some trap insects (insectivorous plants like pitcher plants) for nutrition.
+
+Photosynthesis is the process through which green plants make their food using sunlight, water, carbon dioxide, and minerals. Oxygen is released in this process. The leaf is the food factory of the plant. Water and minerals from the soil travel via roots and vessels to the leaves. Carbon dioxide enters through tiny pores called stomata on the leaf surface. Chlorophyll in the leaves captures solar energy, enabling photosynthesis. The general equation is:
+   Carbon dioxide + Water --(Sunlight, Chlorophyll)--> Carbohydrate (Sugar) + Oxygen
+
+Only green parts (due to the pigment chlorophyll) perform photosynthesis. Light is essential; this is verified in practical activities included in your textbook.
+
+-----------------------------------
+
+Other Modes of Nutrition
+Some plants, like Cuscuta (Amarbel), are parasites—they lack chlorophyll and steal nutrition from host plants. Insectivorous plants like the pitcher plant trap insects and digest them to supplement poor soil nutrition, especially nitrogen. Saprotrophic nutrition is seen in fungi and bacteria—they draw nutrition from dead organic matter and are crucial decomposers, recycling nutrients into the soil.
+
+-----------------------------------------------
+
+Soil Nutrient Replenishment
+Plants absorb nutrients from soil. After one crop, soil loses nutrients and needs replenishment via fertilizers or manure. Pulses like gram and beans have nodules containing rhizobium bacteria, which convert atmospheric nitrogen into usable forms for plants, reducing the need for external nitrogen fertilizers. Other minerals are restored to the soil by decomposers breaking down dead plants and animals.
+
+-------------------------------------------
+
+Activities:
+- Test for starch (indicates photosynthesis in leaves).
+- Demonstrating the necessity of sunlight for photosynthesis.
+- Observing the growth and role of fungi (like mold on bread).
+
+---------------------------------------------
+
+NCERT Solutions/Tips:
+- Food is essential for growth, energy, repair, and protection from diseases for all living organisms.
+- Differences between parasitic and saprotrophic nutrition.
+- Only green parts of plants perform photosynthesis.
+- Solar energy is trapped by chlorophyll; oxygen is released during photosynthesis.
+- Bacteria like Rhizobium in legume roots help restore soil nitrogen.
+
+----------------------------------------------
+
+Summary/Conclusion:
+Chapter 1 covers how plants need and obtain nutrients, the role of photosynthesis, special cases like parasites and insectivorous plants, the importance of soil nutrients, and the role of decomposers and symbiotic bacteria. Understanding these concepts is crucial not only for exams but also for real-life applications and future studies. Videos for all activities and solution explanations are available free of cost on our website. Join us for more lessons, stay curious, and keep learning!`, // Add your transcription string here using template literals for multiline support
       quizQuestions: [
         {
           question: "Why are plants called producers in the food chain?",
@@ -247,13 +360,30 @@ const magnetBrainsVideos = {
   ],
   mathematics: [
     {
-      title: "Integers - Chapter Overview and Introduction",
+      title: "Introduction to Integers: Class 7 Maths Chapter Overview & Basics",
       description: "Complete introduction to integers, positive and negative numbers, and their operations",
       subject: "Mathematics",
       grade: "Class 7",
       difficulty: "beginner",
       duration: 40,
       videoUrl: "https://www.youtube.com/embed/qOfN5jA8eMc",
+      transcribe: `Hello students, welcome to Magnet Brains! How are you all? I hope you're doing well. Before starting the video, let me tell you that Magnet Brains provides free quality education from Kindergarten to Class 12. Yes, you heard it right! Complete education is provided free of cost from class K to class 12. What do you need to do? Even for different state boards like CBSE, UP Board, MP Board, and Bihar Board, Magnet Brains provides education free of cost, along with free e-books and e-notes—links are in the description box. So, quickly subscribe to the Magnet Brains channel.
+
+Today, we’re going to look at the first chapter of our Class 7 syllabus, which is "Integers." In this video, I’ll give you a chapter overview—what all we will study in this chapter—and then we’ll move to the introduction. In the introduction, we will cover what integers are and some related terms like whole numbers and natural numbers, their definitions, etc. Let’s start the video!
+
+First, as I mentioned, we'll cover the Introduction section—what are integers, negative integers, positive integers, and related basic terms and their definitions. Next, we have Properties of Addition of Integers—the properties used for integers in addition, as well as the Properties of Subtraction of Integers. These two are interrelated—the properties used in addition are also used in subtraction, which will be explained as we proceed. Then, we have Multiplication of Integers, Properties of Multiplication of Integers, and Division of Integers—when we divide integers, do we get an integer as the answer or something else? Properties of Division of Integers—almost the same as addition, subtraction, multiplication, and division, so don't get confused, we'll cover the topics step by step.
+
+Now, moving on to the types of numbers—first, natural numbers. Counting numbers are called natural numbers, like 1, 2, 3, 4, 5, and so on, because we can count these numbers. Next, whole numbers—all natural numbers together with zero are called whole numbers. Zero is not a natural number but it is a whole number, so 0, 1, 2, 3, 4, etc., are whole numbers. Every natural number is a whole number, but zero is a whole number and not a natural number.
+
+Next, what are integers? All natural numbers, zero, and negatives of counting numbers are called integers, i.e., ..., -3, -2, -1, 0, 1, 2, 3, ... Positive integers are 1, 2, 3, 4, etc.; negative integers are -1, -2, -3, -4, etc.; and zero is an integer that is neither positive nor negative.
+
+Some basic rules for signs in addition and subtraction: plus and minus is minus, minus and plus is also minus, minus and minus is plus, and plus and plus remains plus. For example, -3 + 2 (negative and positive) is the same as minus sign; so 3 - 2 is 1. Since 3 is larger and has the negative sign, the answer is -1. Another example: -5 - 4, both are negatives, so we add (as minus and minus is plus), but the answer is negative (-9), because the higher value is negative. Positive and positive, like 3 + 2, add up to 5.
+
+Regarding BODMAS: B for Bracket, O for Of, D for Divide, M for Multiply, A for Add, S for Subtract—solve in this order, starting with the bracket. For a sum like 11 + (-3), once you open the bracket using rules, it becomes 11 - 3 = 8. The higher value is positive, so the answer is positive.
+
+Now, representation of integers on a number line: A straight line (use a scale in your notebook). Start from zero. The right side shows positive integers (1, 2, 3, ...), the left side negative integers (-1, -2, -3, ...), and zero in the center. For questions like -3 + 5, solve as 5 - 3 = 2, so locate 2 on the right side of zero. For 2 - 7, solve as -5, so from 2, move left 7 spaces to -5. Addition moves you right, subtraction moves you left on the number line.
+
+That’s all for the basic rules and number line representation. For more explanation and free access to e-books and e-notes, check the description for links. Stay tuned for more videos and social media links!`, // Add your transcription string here using template literals for multiline support
       quizQuestions: [
         {
           question: "What are integers?",
@@ -344,10 +474,15 @@ async function seedModules() {
     });
 
          // Add additional fields and ensure schema compliance
-     const modulesToInsert = allModules.map((module, index) => ({
-       ...module,
-       uniqueID: `TRANSCRIBE_${String(index + 3).padStart(3, '0')}`, // Use transcribe IDs starting from 003
-       learningType: 'hybrid',
+     const modulesToInsert = allModules.map((module, index) => {
+       const transID = `TRANSCRIBE_${String(index + 1).padStart(3, '0')}`; // Use transcribe IDs starting from 001
+       console.log(`Generating transID for "${module.title}": ${transID}`);
+       
+       return {
+         ...module,
+         uniqueID: transID, // Keep uniqueID for schema compliance
+         transID: transID,  // Add transID as requested
+         learningType: 'hybrid',
        contentTypes: {
          video: {
            url: module.videoUrl,
@@ -377,7 +512,8 @@ async function seedModules() {
        isActive: true,
        createdAt: new Date(),
        updatedAt: new Date()
-     }));
+     };
+   });
 
     // Insert modules
     await Module.insertMany(modulesToInsert);
@@ -389,11 +525,18 @@ async function seedModules() {
       subjectCounts[module.subject] = (subjectCounts[module.subject] || 0) + 1;
     });
 
+    console.log('\n=== MODULE SEEDING SUMMARY ===');
     console.log('\nModules by subject:');
     Object.entries(subjectCounts).forEach(([subject, count]) => {
       const subjectModules = modulesToInsert.filter(m => m.subject === subject);
       console.log(`${subject}: ${subjectModules.map(m => m.title).join(', ')}`);
     });
+
+         console.log('\n=== GENERATED TRANS IDs ===');
+     modulesToInsert.forEach(module => {
+       console.log(`${module.transID}: ${module.title} (${module.subject})`);
+     });
+     console.log('=============================\n');
 
     await mongoose.disconnect();
     console.log('Disconnected from MongoDB');
@@ -488,4 +631,17 @@ function generateAchievements(difficulty) {
   return baseAchievements;
 }
 
-seedModules(); 
+// Run the script
+if (require.main === module) {
+  seedModules()
+    .then(() => {
+      console.log('\n✅ Modules seeded successfully!');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('\n❌ Module seeding failed:', error);
+      process.exit(1);
+    });
+}
+
+module.exports = { seedModules };

@@ -64,6 +64,7 @@ export default function DiagnosticAssessment() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [collectedAnswers, setCollectedAnswers] = useState<CollectedAnswer[]>([]);
   const [allAnswers, setAllAnswers] = useState<{ [key: string]: string }>({});
+  const [isResetting, setIsResetting] = useState(false);
   const router = useRouter();
 
   // Fetch user profile data
@@ -175,9 +176,9 @@ export default function DiagnosticAssessment() {
       setTotalQuestions(data.totalQuestions);
       setProgress(data.progress);
       
-      // Load previous answer from collected answers
+      // Load previous answer from collected answers (ignore skipped)
       const previousAnswer = collectedAnswers.find(answer => answer.Q === data.question.id);
-      if (previousAnswer) {
+      if (previousAnswer && previousAnswer.studentAnswer !== 'Skipped') {
         if (data.question.type === 'MCQ') {
           setSelectedOption(previousAnswer.studentAnswer);
           setAnswer('');
@@ -399,15 +400,19 @@ export default function DiagnosticAssessment() {
             const resultData = await resultResponse.json();
             console.log('🔍 N8N results received:', resultData);
             
-            // Update the result with N8N data
+            // Update the result with N8N data - Enhanced mapping for actual N8N structure
+            const n8nData = resultData.output?.[0] || resultData.result || resultData;
+            console.log('🔍 Raw N8N data structure:', n8nData);
+            
             const updatedResult = {
               ...data.result,
-              totalQuestions: resultData.result.totalQuestions,
-              score: resultData.result.score,
-              description: resultData.result.summary,
-              n8nResults: resultData.result.n8nResults
+              totalQuestions: parseInt(n8nData?.['Total Questions']) || n8nData?.totalQuestions || n8nData?.['total_questions'] || 0,
+              score: parseInt(n8nData?.Score) || n8nData?.score || n8nData?.['score'] || 0,
+              description: n8nData?.Summery || n8nData?.summary || n8nData?.['summary'] || n8nData?.['description'] || data.result.description,
+              n8nResults: n8nData
             };
             
+            console.log('🔍 Updated result with N8N data:', updatedResult);
             setIsCompleted(true);
             setResult(updatedResult);
           } else {
@@ -429,6 +434,91 @@ export default function DiagnosticAssessment() {
     } catch (err) {
       console.error('Error submitting answer:', err);
       setError(err instanceof Error ? err.message : 'Failed to submit answer');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+  // Skip current question without providing an answer
+  const skipQuestion = async () => {
+    if (!currentQuestion) return;
+
+    try {
+      setIsSubmitting(true);
+      setError('');
+
+      // Collect the skipped answer for analytics/N8N, but do not prefill on revisit
+      const skippedAnswer: CollectedAnswer = {
+        Q: currentQuestion.id,
+        section: currentQuestion.section || currentQuestion.category || 'General',
+        question: currentQuestion.question,
+        studentAnswer: 'Skipped',
+        type: currentQuestion.type === 'MCQ' ? 'Multiple Choice' : 'Open Text'
+      };
+
+      setCollectedAnswers(prev => [...prev, skippedAnswer]);
+
+      // Build URL with query parameters using a sentinel value for skipped
+      const params = new URLSearchParams({
+        questionId: currentQuestion.id,
+        answer: 'Skipped',
+        questionNumber: currentQuestionNumber.toString()
+      });
+
+      const response = await fetch(`/api/assessment/questions?${params}`, {
+        method: 'GET',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to skip question');
+      }
+
+      if (data.completed) {
+        // Save all collected answers to database
+        await storeAnswersInDatabase([...collectedAnswers, skippedAnswer]);
+
+        // Get N8N results
+        try {
+          const resultResponse = await fetch('/api/assessment/result', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+
+          if (resultResponse.ok) {
+            const resultData = await resultResponse.json();
+            const n8nData = resultData.output?.[0] || resultData.result || resultData;
+
+            const updatedResult = {
+              ...data.result,
+              totalQuestions: parseInt(n8nData?.['Total Questions']) || n8nData?.totalQuestions || n8nData?.['total_questions'] || 0,
+              score: parseInt(n8nData?.Score) || n8nData?.score || n8nData?.['score'] || 0,
+              description: n8nData?.Summery || n8nData?.summary || n8nData?.['summary'] || n8nData?.['description'] || data.result?.description,
+              n8nResults: n8nData
+            } as AssessmentResult;
+
+            setIsCompleted(true);
+            setResult(updatedResult);
+          } else {
+            // Fallback to default result if N8N fails
+            setIsCompleted(true);
+            setResult(data.result);
+          }
+        } catch {
+          setIsCompleted(true);
+          setResult(data.result);
+        }
+      } else {
+        // Load next question
+        await loadQuestion();
+      }
+    } catch (err) {
+      console.error('Error skipping question:', err);
+      setError(err instanceof Error ? err.message : 'Failed to skip question');
     } finally {
       setIsSubmitting(false);
     }
@@ -458,6 +548,56 @@ export default function DiagnosticAssessment() {
       }
     } catch (error) {
       console.error('🔍 Error storing answers in database:', error);
+    }
+  };
+
+  // Function to reset assessment and start fresh
+  const resetAssessment = async () => {
+    try {
+      console.log('🔍 Resetting assessment...');
+      setIsResetting(true);
+      
+      // Call the API to reset the assessment
+      const response = await fetch('/api/assessment/diagnostic/reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (response.ok) {
+        const resetData = await response.json();
+        console.log('🔍 Assessment reset successfully:', resetData.message);
+        
+        // Reset all state variables
+        setCurrentQuestion(null);
+        setCurrentQuestionNumber(1);
+        setTotalQuestions(0);
+        setProgress(0);
+        setAnswer('');
+        setSelectedOption('');
+        setIsLoading(true);
+        setIsSubmitting(false);
+        setIsCompleted(false);
+        setResult(null);
+        setError('');
+        setCollectedAnswers([]);
+        setAllAnswers({});
+        
+        // Reload the first question
+        await loadQuestion();
+      } else {
+        const errorData = await response.json();
+        console.error('🔍 Failed to reset assessment:', errorData.error);
+        // If reset fails, just reload the page as fallback
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('🔍 Error resetting assessment:', error);
+      // If there's an error, reload the page as fallback
+      window.location.reload();
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -564,33 +704,71 @@ export default function DiagnosticAssessment() {
                 </div>
               )}
               
-              {/* Display N8N Results */}
-              {result.n8nResults && (
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-center mb-6">
-                    <div className="bg-white/5 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold mb-2">Total Questions</h3>
-                      <p className="text-4xl font-bold text-blue-200">
-                        {result.n8nResults['Total Questions'] || result.totalQuestions || 0}
-                      </p>
-                    </div>
-                    <div className="bg-white/5 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold mb-2">Your Score</h3>
-                      <p className="text-4xl font-bold text-yellow-300">
-                        {result.n8nResults.Score || result.score || 0}%
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* N8N Summary */}
-                  <div className="bg-white/5 rounded-lg p-6 text-left">
-                    <h3 className="text-xl font-semibold mb-4 text-center">🎯 Your Assessment Summary</h3>
-                    <p className="text-lg leading-relaxed opacity-95">
-                      {result.n8nResults.Summery || result.description}
-                    </p>
-                  </div>
-                </div>
-              )}
+                             {/* Assessment Results Display - Enhanced N8N Data Alignment */}
+               {result.n8nResults && (
+                 <div className="space-y-6 mb-8">
+                   {/* Score and Stats Cards */}
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 backdrop-blur-sm rounded-xl p-6 text-center border border-blue-300/30">
+                       <div className="text-4xl mb-2">📊</div>
+                       <h3 className="text-lg font-semibold mb-2 text-blue-200">Total Questions</h3>
+                       <p className="text-3xl font-bold text-blue-100">
+                         {result.n8nResults?.['Total Questions'] || result.totalQuestions || 0}
+                       </p>
+                     </div>
+                     
+                     <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 backdrop-blur-sm rounded-xl p-6 text-center border border-yellow-300/30">
+                       <div className="text-4xl mb-2">🏆</div>
+                       <h3 className="text-lg font-semibold mb-2 text-yellow-200">Your Score</h3>
+                       <p className="text-3xl font-bold text-yellow-100">
+                         {result.n8nResults?.Score || result.score || 0}%
+                       </p>
+                     </div>
+                     
+                     <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-sm rounded-xl p-6 text-center border border-green-300/30">
+                       <div className="text-4xl mb-2">⭐</div>
+                       <h3 className="text-lg font-semibold mb-2 text-green-200">Performance</h3>
+                       <p className="text-3xl font-bold text-green-100">
+                         {(() => {
+                           const scoreStr = String(result.n8nResults?.Score || result.score || 0);
+                           const score = parseInt(scoreStr);
+                           if (score >= 90) return 'Excellent';
+                           if (score >= 80) return 'Great';
+                           if (score >= 70) return 'Good';
+                           if (score >= 60) return 'Fair';
+                           return 'Needs Work';
+                         })()}
+                       </p>
+                     </div>
+                   </div>
+                   
+                   {/* Assessment Summary */}
+                   <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 backdrop-blur-sm rounded-xl p-8 border border-purple-300/30">
+                     <div className="text-center mb-6">
+                       <h3 className="text-2xl font-bold text-purple-100 mb-2">🎯 Assessment Summary</h3>
+                       <div className="w-24 h-1 bg-purple-300 mx-auto rounded-full"></div>
+                     </div>
+                     
+                     <div className="bg-white/10 rounded-lg p-6 text-left">
+                       <p className="text-lg leading-relaxed text-white/95 font-medium">
+                         {result.n8nResults?.Summery || result.description || 'Assessment completed successfully.'}
+                       </p>
+                     </div>
+                   </div>
+                   
+                   {/* Debug: Show raw N8N data */}
+                   <div className="bg-gradient-to-br from-gray-500/20 to-gray-600/20 backdrop-blur-sm rounded-xl p-6 border border-gray-300/30">
+                     <h3 className="text-xl font-bold text-gray-100 mb-4 text-center">🔧 Debug: N8N Data Structure</h3>
+                     <div className="bg-white/10 rounded-lg p-4">
+                       <pre className="text-sm text-gray-100/90 overflow-x-auto">
+                         {JSON.stringify(result.n8nResults, null, 2)}
+                       </pre>
+                               </div>
+                           </div>
+                 </div>
+               )}
+              
+
               
               {/* Fallback description if no N8N results */}
               {!result.n8nResults && (
@@ -598,53 +776,54 @@ export default function DiagnosticAssessment() {
                   {result.description}
                 </p>
               )}
+              
+
             </motion.div>
 
-            <motion.div 
-              className="flex justify-center gap-4 mb-8"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6, duration: 0.5 }}
-            >
-              <button className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-full font-semibold hover:bg-white/30 transition-colors flex items-center gap-2">
-                😊 Try Again with Me!
+                         <motion.div 
+               className="flex flex-col sm:flex-row justify-center gap-4 mb-8"
+               initial={{ y: 20, opacity: 0 }}
+               animate={{ y: 0, opacity: 1 }}
+               transition={{ delay: 0.6, duration: 0.5 }}
+             >
+                               <button 
+                  onClick={resetAssessment}
+                  disabled={isResetting}
+                  className="bg-gradient-to-r from-blue-500/20 to-blue-600/20 backdrop-blur-sm text-white px-8 py-4 rounded-full font-semibold hover:from-blue-500/30 hover:to-blue-600/30 transition-all duration-300 flex items-center gap-3 border border-blue-300/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isResetting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                      <span>Resetting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-2xl">🔄</span>
+                      <span>Take Assessment Again</span>
+                    </>
+                  )}
                 </button>
-                <button
-                onClick={() => router.push('/dashboard/student')}
-                className="bg-white text-purple-600 px-6 py-3 rounded-full font-semibold hover:bg-gray-100 transition-colors"
-              >
-                Go to Dashboard
-              </button>
-            </motion.div>
+               <button
+                 onClick={() => router.push('/dashboard/student')}
+                 className="bg-gradient-to-r from-white to-gray-100 text-purple-600 px-8 py-4 rounded-full font-semibold hover:from-gray-100 hover:to-gray-200 transition-all duration-300 flex items-center gap-3 shadow-lg"
+               >
+                 <span className="text-2xl">🏠</span>
+                 <span>Go to Dashboard</span>
+               </button>
+               <button
+                 onClick={() => router.push('/recommended-modules')}
+                 className="bg-gradient-to-r from-green-500/20 to-green-600/20 backdrop-blur-sm text-white px-8 py-4 rounded-full font-semibold hover:from-green-500/30 hover:to-green-600/30 transition-all duration-300 flex items-center gap-3 border border-green-300/30"
+               >
+                 <span className="text-2xl">📚</span>
+                 <span>Start Learning</span>
+               </button>
+             </motion.div>
 
 
 
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.5 }}
-            >
-              <h2 className="text-2xl font-bold mb-4">Magical Suggestions!</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                  <h3 className="font-semibold mb-2">The Water Cycle</h3>
-                  <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-sm">75+ XP</span>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                  <h3 className="font-semibold mb-2">Shapes Adventure</h3>
-                  <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-sm">50+ XP</span>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                  <h3 className="font-semibold mb-2">Story of the Moon</h3>
-                  <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-sm">30+ XP</span>
-                </div>
-            </div>
-            </motion.div>
 
-            {/* Decorative elements */}
-            <div className="absolute top-4 right-4 text-4xl">⭐</div>
-            <div className="absolute bottom-4 left-4 text-2xl">✨</div>
-            <div className="absolute top-1/2 right-8 text-3xl">☁️</div>
+
+
           </motion.div>
         </div>
       </motion.main>
@@ -710,7 +889,7 @@ export default function DiagnosticAssessment() {
   if (!isCompleted) {
   return (
     <motion.main 
-      className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex flex-col"
+      className="min-h-screen bg-white flex flex-col"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -732,21 +911,86 @@ export default function DiagnosticAssessment() {
       </header>
 
           {/* Progress Bar */}
-      <div className="bg-white px-6 py-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-700">Question {currentQuestionNumber} of {totalQuestions}</span>
-            <span className="text-sm font-medium text-purple-600">{progress}% Complete</span>
+      <div className="bg-white px-6 py-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Progress Steps Container */}
+          <div className="relative">
+            {/* Connecting Lines */}
+            <div className="absolute top-5 left-0 right-0 h-1 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 z-0"></div>
+            
+            {/* Progress Steps */}
+            <div className="relative flex items-start justify-between w-full z-10 px-4">
+              {Array.from({ length: Math.min(totalQuestions, 10) }, (_, index) => {
+                const stepNumber = index + 1;
+                const isCompleted = stepNumber < currentQuestionNumber;
+                const isCurrent = stepNumber === currentQuestionNumber;
+                const isPending = stepNumber > currentQuestionNumber;
+                
+                return (
+                  <div key={stepNumber} className="flex flex-col items-center relative flex-1 max-w-32">
+                    {/* Step Circle */}
+                    <div className="relative mb-6">
+                      {isCompleted ? (
+                        // Completed step
+                        <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center shadow-lg border-2 border-purple-700">
+                          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                          </svg>
           </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <motion.div
-              className="bg-purple-600 h-2 rounded-full"
-              style={{ width: `${progress}%` }}
-              initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.5 }}
-              />
+                      ) : isCurrent ? (
+                        // Current step
+                        <div className="relative">
+                          <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center shadow-xl border-2 border-purple-700">
+                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                            </svg>
             </div>
+                          <div className="absolute -inset-3 bg-purple-100 rounded-full -z-10 animate-pulse"></div>
+                        </div>
+                      ) : stepNumber === totalQuestions ? (
+                        // Final step with grid icon
+                        <div className="w-10 h-10 border-3 border-gray-400 rounded-full flex items-center justify-center bg-white shadow-sm">
+                          <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                          </svg>
+                        </div>
+                      ) : (
+                        // Pending step with lock icon
+                        <div className="w-10 h-10 border-3 border-gray-400 rounded-full flex items-center justify-center bg-white shadow-sm">
+                          <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Step Label */}
+                    <div className="text-center w-full">
+                      <div className="text-xs text-gray-500 font-normal mb-2 leading-tight">
+                        {stepNumber === totalQuestions ? 'Final Question' : `Question ${stepNumber} of ${totalQuestions}`}
+                      </div>
+                      <div className={`inline-block px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap shadow-sm ${
+                        isCompleted 
+                          ? 'bg-gradient-to-r from-green-100 to-green-50 text-green-700 border border-green-300' 
+                          : isCurrent 
+                            ? 'bg-gradient-to-r from-purple-100 to-purple-50 text-purple-700 border border-purple-300 shadow-md' 
+                            : 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-600 border border-gray-300'
+                      }`}>
+                        {isCompleted ? 'Completed' : isCurrent ? 'In Progress' : 'Pending'}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* Progress Percentage */}
+          <div className="flex justify-center mt-8 pt-4 border-t border-gray-100">
+            <div className="bg-purple-50 px-4 py-2 rounded-full">
+              <span className="text-sm font-semibold text-purple-700">{progress}% Complete</span>
+            </div>
+          </div>
           </div>
           </div>
 
@@ -761,60 +1005,87 @@ export default function DiagnosticAssessment() {
               animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.3 }}
-                className="bg-white rounded-2xl shadow-lg p-8"
               >
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-sm font-medium">
-                      {currentQuestion.section || currentQuestion.category}
+                <div className="mb-8">
+                  {/* Question Identifier */}
+                  <div className="flex flex-col items-center mb-6">
+                    <div className="w-16 h-16 bg-purple-600 rounded-lg flex items-center justify-center mb-2">
+                      <span className="text-white text-2xl font-bold">
+                        {currentQuestionNumber.toString().padStart(2, '0')}
                     </span>
-                    <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium">
-                      {currentQuestion.difficulty}
-                    </span>
-                    <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
-                      {currentQuestion.type}
+                    </div>
+                    <span className="text-gray-600 text-sm font-medium">
+                      Level - {currentQuestion.difficulty}
                     </span>
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                  
+                  {/* Question Display */}
+                  <div className="text-center mb-8">
+                    <h2 className="text-2xl font-bold text-gray-800 leading-relaxed">
                     {currentQuestion.question}
                   </h2>
+                  </div>
                 </div>
 
                 {/* MCQ Options */}
                 {currentQuestion.type === 'MCQ' && currentQuestion.options && (
-                  <div className="space-y-3 mb-6">
-                {currentQuestion.options.map((option, index) => (
+                  <div className="mb-8">
+                    <div className="space-y-4">
+                      {currentQuestion.options.map((option, index) => {
+                        const letter = String.fromCharCode(65 + index); // A, B, C, D...
+                        const isSelected = selectedOption === option;
+                        
+                        return (
                       <label
                     key={index}
-                        className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                          selectedOption === option
-                            ? 'border-purple-500 bg-purple-50'
-                            : 'border-gray-200 hover:border-purple-300'
+                            className={`block cursor-pointer transition-all duration-200 ${
+                              isSelected ? 'transform scale-105' : 'hover:scale-102'
                         }`}
                       >
                         <input
                           type="radio"
                           name="mcq-option"
                           value={option}
-                          checked={selectedOption === option}
+                              checked={isSelected}
                           onChange={(e) => setSelectedOption(e.target.value)}
-                          className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
-                        />
-                        <span className="ml-3 text-black">{option}</span>
+                              className="sr-only"
+                            />
+                            <div className={`bg-white rounded-xl p-6 border-2 transition-all duration-200 ${
+                              isSelected 
+                                ? 'border-purple-500 shadow-lg shadow-purple-100' 
+                                : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
+                            }`}>
+                              <div className="flex items-start gap-4">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                  isSelected 
+                                    ? 'bg-purple-500 text-white' 
+                                    : 'bg-gray-100 text-gray-600'
+                                }`}>
+                                  {letter}
+                                </div>
+                                <span className="text-gray-800 font-medium text-lg leading-relaxed flex-1">
+                                  {option}
+                                </span>
+                              </div>
+                            </div>
                       </label>
-                    ))}
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
                 {/* Open Question */}
                 {currentQuestion.type === 'OPEN' && (
-                  <div className="mb-6">
+                  <div className="mb-8">
+                    <div className="bg-gray-100 rounded-lg p-6 border border-gray-200">
                     <textarea
                       value={answer}
                       onChange={(e) => setAnswer(e.target.value)}
                       placeholder="Type your answer here..."
-                      className="w-full h-32 p-4 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-black"
+                        className="w-full h-32 p-4 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-gray-800 bg-white"
                     />
+                    </div>
                   </div>
                 )}
 
@@ -830,7 +1101,7 @@ export default function DiagnosticAssessment() {
                 )}
 
                 {/* Navigation Buttons */}
-                <div className="flex justify-between">
+                <div className="flex items-center justify-between gap-4">
                   {/* Previous Button */}
                   <button
                     onClick={goToPreviousQuestion}
@@ -846,6 +1117,22 @@ export default function DiagnosticAssessment() {
                       <>
                         ← Previous Question
                       </>
+                    )}
+                  </button>
+
+                  {/* Skip Button */}
+                  <button
+                    onClick={skipQuestion}
+                    disabled={isSubmitting}
+                    className="bg-yellow-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Skipping...
+                      </>
+                    ) : (
+                      'Skip →'
                     )}
                   </button>
 
@@ -869,7 +1156,7 @@ export default function DiagnosticAssessment() {
                 </div>
                     </motion.div>
             ) : (
-              <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+              <div className="text-center">
                 <p className="text-gray-600">No question available. Please try refreshing the page.</p>
             <button
                   onClick={() => loadQuestion()} 

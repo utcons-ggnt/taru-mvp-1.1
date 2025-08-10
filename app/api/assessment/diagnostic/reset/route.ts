@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Assessment from '@/models/Assessment';
+import AssessmentResponse from '@/models/AssessmentResponse';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -45,7 +46,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Reset diagnostic assessment data
+    // Get user's uniqueId for deleting assessment responses
+    const userUniqueId = user.uniqueId;
+    
+    // Delete all assessment responses for this user
+    if (userUniqueId) {
+      const deleteResult = await AssessmentResponse.deleteMany({ uniqueId: userUniqueId });
+      console.log(`Deleted ${deleteResult.deletedCount} assessment responses for user: ${userUniqueId}`);
+    } else {
+      console.log('No uniqueId found for user, skipping response deletion');
+    }
+    
+    // Reset diagnostic assessment data in Assessment model
     await Assessment.findOneAndUpdate(
       { userId: decoded.userId },
       {
@@ -60,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Diagnostic assessment reset successfully'
+      message: 'Diagnostic assessment and all responses reset successfully'
     });
 
   } catch (error) {

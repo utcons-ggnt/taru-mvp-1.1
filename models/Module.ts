@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 export interface IModule {
   _id: string;
   uniqueID: string;
+  transID?: string; // Transcription ID for N8N integration
   title: string;
   description: string;
   subject: string;
@@ -10,6 +11,7 @@ export interface IModule {
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   duration: number; // in minutes
   videoUrl: string; // Magnet Brains video URL
+  transcribe?: string; // Video transcription text
   
   // Hybrid Learning Components
   learningType: 'video' | 'interactive' | 'project' | 'quiz' | 'peer' | 'hybrid';
@@ -93,6 +95,7 @@ export interface IModule {
 
 const moduleSchema = new mongoose.Schema<IModule>({
   uniqueID: { type: String, required: true, unique: true },
+  transID: { type: String }, // Optional transcription ID
   title: { type: String, required: true },
   description: { type: String, required: true },
   subject: { type: String, required: true },
@@ -104,6 +107,7 @@ const moduleSchema = new mongoose.Schema<IModule>({
   },
   duration: { type: Number, required: true },
   videoUrl: { type: String, required: true },
+  transcribe: { type: String }, // Optional transcription field
   
   // Hybrid Learning Components
   learningType: { 

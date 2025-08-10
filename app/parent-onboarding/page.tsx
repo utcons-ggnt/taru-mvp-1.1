@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import SimpleGoogleTranslate from '../components/SimpleGoogleTranslate';
+import { RegistrationDataManager } from '@/lib/utils';
 
 interface ParentOnboardingData {
   // Personal Information
@@ -84,7 +85,7 @@ export default function ParentOnboarding() {
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const router = useRouter();
 
-  // Fetch available students for linking
+  // Fetch available students for linking and pre-fill form data
   useEffect(() => {
     const fetchStudents = async () => {
       setIsLoadingStudents(true);
@@ -101,7 +102,40 @@ export default function ParentOnboarding() {
       }
     };
 
+    const fetchUserAndRegistrationData = async () => {
+      try {
+        // Get user data from API
+        const userResponse = await fetch('/api/auth/me');
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          const user = userData.user;
+          
+          // Get registration data using utility function
+          const registrationData = RegistrationDataManager.getRegistrationData();
+          
+          // Pre-fill form with existing data and registration data
+          setFormData(prev => ({
+            ...prev,
+            fullName: user.name || registrationData?.fullName || '',
+            email: user.email || registrationData?.email || '',
+            preferredLanguage: user.profile?.language || registrationData?.language || '',
+            // Try to link student if student ID was provided during registration
+            linkedStudentId: registrationData?.classGrade || '', // classGrade contains student ID for parents
+            studentUniqueId: registrationData?.classGrade || '',
+          }));
+          
+          console.log('🔍 Pre-filled parent form data:', {
+            userData: user,
+            registrationData: registrationData
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
     fetchStudents();
+    fetchUserAndRegistrationData();
   }, []);
 
   const validateStep = (step: number): boolean => {
@@ -192,6 +226,10 @@ export default function ParentOnboarding() {
 
       if (response.ok) {
         setIsSuccess(true);
+        
+        // Clear registration data after successful onboarding
+        RegistrationDataManager.clearRegistrationData();
+        
         setTimeout(() => {
           router.push('/dashboard/parent');
         }, 3000);

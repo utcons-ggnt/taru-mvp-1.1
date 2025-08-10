@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import SimpleGoogleTranslate from '../components/SimpleGoogleTranslate';
+import { RegistrationDataManager } from '@/lib/utils';
 
 export default function OrganizationOnboarding() {
   const router = useRouter();
@@ -25,6 +26,48 @@ export default function OrganizationOnboarding() {
     description: '',
     employeeCount: '1-10'
   });
+
+  // Pre-fill form with registration data on component mount
+  useEffect(() => {
+    const fetchUserAndRegistrationData = async () => {
+      try {
+        // Get user data from API
+        const userResponse = await fetch('/api/auth/me');
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          const user = userData.user;
+          
+          // Get registration data using utility function
+          const registrationData = RegistrationDataManager.getRegistrationData();
+          
+          // Pre-fill form with existing data and registration data
+          setFormData(prev => ({
+            ...prev,
+            organizationName: user.name || registrationData?.fullName || '',
+            organizationType: user.profile?.organizationType || 'school',
+            industry: user.profile?.industry || 'Education',
+            // Use location from registration if available
+            city: registrationData?.location || '',
+            // Set default values for required fields
+            address: '123 Education Street',
+            state: 'Demo State',
+            phoneNumber: user.profile?.contactPhone || '7777777777',
+            website: 'https://demoschool.edu',
+            description: 'A leading educational institution dedicated to student success',
+          }));
+          
+          console.log('🔍 Pre-filled organization form data:', {
+            userData: user,
+            registrationData: registrationData
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    fetchUserAndRegistrationData();
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -52,6 +95,9 @@ export default function OrganizationOnboarding() {
       if (!response.ok) {
         throw new Error(data.error || 'Onboarding failed');
       }
+
+      // Clear registration data after successful onboarding
+      RegistrationDataManager.clearRegistrationData();
 
       // Redirect to admin dashboard
       router.push('/dashboard/admin');

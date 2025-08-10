@@ -272,16 +272,16 @@ export default function Home() {
                          />
                        </div>
                        
-                       {/* Top Right - Robot Star */}
-                       <div className="absolute top-[100px] right-[180px]">
-                         <Image 
-                           src="/robostar_landing.png" 
-                           alt="Robot Star" 
-                           width={180} 
-                           height={180} 
-                           className="w-[180px] h-[180px] object-contain transform rotate-[8.37deg]"
-                         />
-                       </div>
+                                               {/* Top Right - Robot Star */}
+                        <div className="absolute top-[100px] right-[180px]">
+                          <Image 
+                            src="/robot_star_landing.png" 
+                            alt="Robot Star" 
+                            width={180} 
+                            height={180} 
+                            className="w-[180px] h-[180px] object-contain transform rotate-[8.37deg]"
+                          />
+                        </div>
                        
                        {/* Center - Robot Class */}
                        <div className="absolute top-[100px] left-1/2 transform -translate-x-1/2 bottom-[100px]">

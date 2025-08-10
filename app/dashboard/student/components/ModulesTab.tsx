@@ -29,6 +29,7 @@ interface UserProfile {
 interface Module {
   id: string;
   uniqueID: string;
+  transID?: string; // Add transID field
   title: string;
   description: string;
   subject: string;
@@ -280,7 +281,7 @@ export default function ModulesTab() {
       // Build URL parameters for GET request (matching new N8N workflow format)
       const params = new URLSearchParams({
         Query: message, // Use 'Query' to match the new N8N format
-        uniqueid: selectedModule?.uniqueID || 'TRANSCRIBE_003', // Use selected module's uniqueID as transcribe ID
+        uniqueid: selectedModule?.transID || selectedModule?.uniqueID || 'TRANSCRIBE_003', // Use transID first, fallback to uniqueID
         submittedAt: new Date().toISOString(),
         // Additional context for learning modules
         subject: selectedModule?.subject || 'General',
@@ -296,7 +297,7 @@ export default function ModulesTab() {
       const webhookUrl = `${N8N_WEBHOOK_URL}?${params.toString()}`;
       console.log('🔍 Sending message to N8N Transcribe Workflow:', {
         Query: message,
-        uniqueid: selectedModule?.uniqueID || 'TRANSCRIBE_003',
+        uniqueid: selectedModule?.transID || selectedModule?.uniqueID || 'TRANSCRIBE_003',
         submittedAt: new Date().toISOString(),
         subject: selectedModule?.subject || 'General',
         module: selectedModule?.title || 'Learning Module'
@@ -499,7 +500,7 @@ export default function ModulesTab() {
       // Build URL parameters for N8N webhook
       const params = new URLSearchParams({
         type: 'mcq',
-        uniqueid: selectedModule.uniqueID,
+        uniqueid: selectedModule.transID || selectedModule.uniqueID,
         subject: selectedModule.subject,
         module: selectedModule.title,
         grade: selectedModule.grade,
@@ -512,7 +513,7 @@ export default function ModulesTab() {
       const webhookUrl = `${N8N_WEBHOOK_URL}?${params.toString()}`;
       console.log('🔍 Sending MCQ request to N8N webhook:', {
         type: 'mcq',
-        uniqueid: selectedModule.uniqueID,
+        uniqueid: selectedModule.transID || selectedModule.uniqueID,
         subject: selectedModule.subject,
         module: selectedModule.title
       });
@@ -566,8 +567,8 @@ export default function ModulesTab() {
           return;
         }
         
-        // Parse N8N response format with better error handling
-        let mcqQuestions: MCQQuestion[] = [];
+        // Parse N8N response format - matching diagnostic assessment approach
+        let mcqQuestions: any[] = [];
         
         console.log('🔍 Attempting to parse N8N response:', typeof data, data);
         
@@ -577,7 +578,7 @@ export default function ModulesTab() {
           console.log('🔍 First item in array:', firstItem);
           
           if (firstItem && typeof firstItem === 'object') {
-            // Try to find the output field
+            // Try to find the output field - match diagnostic assessment approach
             const outputField = firstItem.output || firstItem.response || firstItem.data || firstItem.content;
             
             if (outputField && typeof outputField === 'string') {
@@ -586,12 +587,15 @@ export default function ModulesTab() {
                 const parsedOutput = JSON.parse(outputField);
                 console.log('🔍 Successfully parsed output field:', parsedOutput);
                 
+                // Match diagnostic assessment parsing logic
                 if (parsedOutput && Array.isArray(parsedOutput)) {
                   mcqQuestions = parsedOutput;
                 } else if (parsedOutput && parsedOutput.questions && Array.isArray(parsedOutput.questions)) {
                   mcqQuestions = parsedOutput.questions;
                 } else if (parsedOutput && parsedOutput.content && Array.isArray(parsedOutput.content)) {
                   mcqQuestions = parsedOutput.content;
+                } else if (parsedOutput && parsedOutput.data && Array.isArray(parsedOutput.data)) {
+                  mcqQuestions = parsedOutput.data;
                 }
               } catch (parseError) {
                 console.error('🔍 Failed to parse N8N output as JSON:', parseError);
@@ -606,6 +610,9 @@ export default function ModulesTab() {
             } else if (firstItem.content && Array.isArray(firstItem.content)) {
               // Direct content array
               mcqQuestions = firstItem.content;
+            } else if (firstItem.data && Array.isArray(firstItem.data)) {
+              // Direct data array
+              mcqQuestions = firstItem.data;
             }
           }
         } 
@@ -623,6 +630,8 @@ export default function ModulesTab() {
             mcqQuestions = data.data;
           } else if (data.response && Array.isArray(data.response)) {
             mcqQuestions = data.response;
+          } else if (data.output && Array.isArray(data.output)) {
+            mcqQuestions = data.output;
           }
         }
         // Handle string format (try to parse as JSON)
@@ -633,6 +642,10 @@ export default function ModulesTab() {
               mcqQuestions = parsedData;
             } else if (parsedData && parsedData.questions && Array.isArray(parsedData.questions)) {
               mcqQuestions = parsedData.questions;
+            } else if (parsedData && parsedData.content && Array.isArray(parsedData.content)) {
+              mcqQuestions = parsedData.content;
+            } else if (parsedData && parsedData.data && Array.isArray(parsedData.data)) {
+              mcqQuestions = parsedData.data;
             }
           } catch (parseError) {
             console.error('🔍 Failed to parse string data as JSON:', parseError);
@@ -640,10 +653,29 @@ export default function ModulesTab() {
         }
         
         if (mcqQuestions.length > 0) {
-          setMcqQuestions(mcqQuestions);
-          console.log('✅ MCQ questions generated from N8N:', mcqQuestions);
+          // Transform and validate MCQ questions to match expected format
+          const transformedQuestions: MCQQuestion[] = mcqQuestions.map((q: any, index) => ({
+            Q: q.Q || (index + 1).toString(),
+            level: q.level || selectedModule?.difficulty || 'medium',
+            question: q.question || q.Question || q.text || '',
+            options: Array.isArray(q.options) ? q.options : 
+                     Array.isArray(q.Options) ? q.Options : 
+                     Array.isArray(q.choices) ? q.choices : 
+                     Array.isArray(q.Choices) ? q.Choices : [],
+            answer: q.answer || q.Answer || q.correct || q.Correct || ''
+          })).filter(q => q.question && q.options.length > 0 && q.answer);
+          
+          if (transformedQuestions.length > 0) {
+            setMcqQuestions(transformedQuestions);
+            console.log('✅ MCQ questions generated from N8N:', transformedQuestions);
+          } else {
+            console.log('⚠️ No valid MCQ questions after transformation, using fallback');
+            const fallbackQuestions = generateFallbackMCQQuestions(selectedModule);
+            setMcqQuestions(fallbackQuestions);
+          }
         } else {
           console.log('⚠️ No MCQ questions received from N8N, generating fallback questions');
+          console.log('🔍 Debug: Raw N8N response data:', JSON.stringify(data, null, 2));
           // Generate fallback questions based on module content
           const fallbackQuestions = generateFallbackMCQQuestions(selectedModule);
           setMcqQuestions(fallbackQuestions);
@@ -747,7 +779,7 @@ export default function ModulesTab() {
       // Build URL parameters for N8N webhook
       const params = new URLSearchParams({
         type: 'flash',
-        uniqueid: selectedModule.uniqueID,
+        uniqueid: selectedModule.transID || selectedModule.uniqueID,
         subject: selectedModule.subject,
         module: selectedModule.title,
         grade: selectedModule.grade,
@@ -760,7 +792,7 @@ export default function ModulesTab() {
       const webhookUrl = `${N8N_WEBHOOK_URL}?${params.toString()}`;
       console.log('🔍 Sending flashcard request to N8N webhook:', {
         type: 'flash',
-        uniqueid: selectedModule.uniqueID,
+        uniqueid: selectedModule.transID || selectedModule.uniqueID,
         subject: selectedModule.subject,
         module: selectedModule.title
       });
@@ -1503,6 +1535,21 @@ export default function ModulesTab() {
                       </div>
                     ) : mcqQuestions.length > 0 ? (
                       <div className="space-y-4">
+                        {/* Debug Info - Remove in production */}
+                        {process.env.NODE_ENV === 'development' && (
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                            <p className="text-sm text-yellow-800">
+                              <strong>Debug:</strong> {mcqQuestions.length} questions loaded
+                            </p>
+                            <details className="mt-2">
+                              <summary className="text-xs text-yellow-600 cursor-pointer">Show raw data</summary>
+                              <pre className="text-xs text-yellow-700 mt-2 overflow-x-auto">
+                                {JSON.stringify(mcqQuestions, null, 2)}
+                              </pre>
+                            </details>
+                          </div>
+                        )}
+                        
                         {!mcqSubmitted ? (
                           <>
                             <div className="flex items-center justify-between mb-4">

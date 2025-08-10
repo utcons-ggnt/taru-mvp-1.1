@@ -297,7 +297,7 @@ export default function Login() {
 
             {/* Register Link */}
             <motion.div 
-              className="absolute top-[809px] left-[308px] text-center w-[205px] h-[16px]"
+              className="absolute top-[700px] left-[308px] text-center w-[205px] h-[16px]"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 1.3, duration: 0.4 }}

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import SimpleGoogleTranslate from '../components/SimpleGoogleTranslate';
+import { RegistrationDataManager } from '@/lib/utils';
 
 
 
@@ -93,6 +94,7 @@ export default function StudentOnboarding() {
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [autoFilledFields, setAutoFilledFields] = useState<{[key: string]: boolean}>({});
   const router = useRouter();
 
 
@@ -136,7 +138,7 @@ export default function StudentOnboarding() {
     }
   };
 
-  // Fetch existing user data on component mount
+  // Fetch existing user data and registration data on component mount
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -145,14 +147,40 @@ export default function StudentOnboarding() {
           const userData = await response.json();
           const user = userData.user;
           
-          // Pre-fill form with existing data
-          setFormData(prev => ({
-            ...prev,
-            fullName: user.name || '',
-            classGrade: user.profile?.grade || '',
+          // Get registration data using utility function
+          const registrationData = RegistrationDataManager.getRegistrationData();
+          
+          // Pre-fill form with existing data and registration data
+          const newFormData = {
+            ...formData,
+            fullName: user.name || registrationData?.fullName || '',
+            classGrade: user.profile?.grade || registrationData?.classGrade || '',
+            languagePreference: user.profile?.language || registrationData?.language || '',
+            location: user.profile?.location || registrationData?.location || '',
+            guardianName: user.profile?.guardianName || registrationData?.guardianName || '',
+            guardianEmail: registrationData?.email || '',
             // Age will be calculated from date of birth
             // Keep other fields empty for user to fill
-          }));
+          };
+          
+          setFormData(newFormData);
+          
+          // Track which fields were auto-filled
+          const autoFilled: {[key: string]: boolean} = {};
+          if (registrationData?.fullName) autoFilled.fullName = true;
+          if (registrationData?.classGrade) autoFilled.classGrade = true;
+          if (registrationData?.language) autoFilled.languagePreference = true;
+          if (registrationData?.location) autoFilled.location = true;
+          if (registrationData?.guardianName) autoFilled.guardianName = true;
+          if (registrationData?.email) autoFilled.guardianEmail = true;
+          
+          setAutoFilledFields(autoFilled);
+          
+          console.log('🔍 Pre-filled form data:', {
+            userData: user,
+            registrationData: registrationData,
+            autoFilledFields: autoFilled
+          });
         } else {
           router.push('/login');
         }
@@ -322,6 +350,9 @@ export default function StudentOnboarding() {
         setUniqueId(result.uniqueId || generatedUniqueId);
         setIsSuccess(true);
         
+        // Clear registration data after successful onboarding
+        RegistrationDataManager.clearRegistrationData();
+        
         // Auto-redirect to diagnostic assessment after 3 seconds
         setTimeout(() => {
           router.push('/diagnostic-assessment');
@@ -458,14 +489,23 @@ export default function StudentOnboarding() {
   const renderStep1 = () => (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Full Name (Pre-filled)
+        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+          Full Name
+          {autoFilledFields.fullName && (
+            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+              Auto-filled from registration
+            </span>
+          )}
         </label>
         <input
           type="text"
           value={formData.fullName}
           disabled
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
+          className={`w-full px-4 py-2 border rounded-lg ${
+            autoFilledFields.fullName 
+              ? 'border-green-300 bg-green-50 text-green-700' 
+              : 'border-gray-300 bg-gray-50 text-gray-500'
+          }`}
         />
       </div>
       
@@ -525,14 +565,23 @@ export default function StudentOnboarding() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Class/Grade (Pre-filled)
+        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+          Class/Grade
+          {autoFilledFields.classGrade && (
+            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+              Auto-filled from registration
+            </span>
+          )}
         </label>
         <input
           type="text"
           value={formData.classGrade}
           disabled
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
+          className={`w-full px-4 py-2 border rounded-lg ${
+            autoFilledFields.classGrade 
+              ? 'border-green-300 bg-green-50 text-green-700' 
+              : 'border-gray-300 bg-gray-50 text-gray-500'
+          }`}
         />
       </div>
 

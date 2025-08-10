@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import SimpleGoogleTranslate from '../components/SimpleGoogleTranslate'
+import { RegistrationDataManager } from '@/lib/utils'
 
 export default function Register() {
   const router = useRouter()
@@ -88,6 +89,21 @@ export default function Register() {
         return
       }
     }
+
+    // Store registration data for auto-filling in onboarding
+    const registrationData = {
+      role: selectedRole,
+      fullName: formData.fullName,
+      email: formData.email,
+      guardianName: formData.guardianName,
+      classGrade: formData.classGrade,
+      language: formData.language,
+      location: formData.location,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Store in localStorage for auto-filling
+    RegistrationDataManager.storeRegistrationData(registrationData);
 
     // Prepare profile data based on role
     let profileData: Record<string, string> = {}
