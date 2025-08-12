@@ -472,55 +472,59 @@ body {
   }
 }
 
-/* Button responsive styles */
+/* Button styles */
 .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem 1.5rem;
-  font-weight: 600;
-  border-radius: 0.5rem;
-  transition: all 0.3s ease;
-  font-size: var(--text-sm);
-  min-height: 44px; /* Touch-friendly minimum */
-}
-
-@media (min-width: 768px) {
-  .btn {
-    padding: 1rem 2rem;
-    font-size: var(--text-base);
-  }
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
 }
 
 .btn-primary {
-  background-color: var(--primary);
-  color: white;
+  @apply bg-purple-600 text-white hover:bg-purple-700 shadow-sm;
 }
 
-.btn-primary:hover {
-  background-color: #6d28d9;
-  transform: translateY(-1px);
+.btn-secondary {
+  @apply bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300;
 }
 
-/* Card responsive styles */
+/* Card styles */
 .card {
-  background-color: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  border: 1px solid #f1f5f9;
-  padding: 1rem;
-  transition: all 0.3s ease;
+  @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6;
 }
 
-@media (min-width: 768px) {
-  .card {
-    padding: 1.5rem;
+.card-modern {
+  @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200;
+}
+
+/* Glass effect */
+.glass-dark {
+  @apply bg-white bg-opacity-10 backdrop-blur-sm border border-white border-opacity-20;
+}
+
+/* Notification dropdown */
+.notification-dropdown {
+  @apply absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50;
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Pulse animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
   }
 }
 
-.card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
+/* Pulse animation utility */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* Grid responsive utilities */

@@ -13,6 +13,7 @@ import StatsCards from './components/StatsCards';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import SimpleGoogleTranslate from '../../components/SimpleGoogleTranslate';
+import OverviewTab from './components/OverviewTab';
 
 // Add custom hook for responsive behavior
 function useWindowSize() {
@@ -149,10 +150,6 @@ export default function StudentDashboard() {
   const logoutTriggered = useRef(false);
   const { width: windowWidth } = useWindowSize();
   const isMobile = windowWidth < 1024;
-  
-
-
-
 
   useEffect(() => {
     // Fetch user data from the server
@@ -438,10 +435,26 @@ export default function StudentDashboard() {
 
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
-      case 'success': return '✅';
-      case 'warning': return '⚠️';
-      case 'error': return '❌';
-      default: return 'ℹ️';
+      case 'success': return (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      );
+      case 'warning': return (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+      );
+      case 'error': return (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      );
+      default: return (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
     }
   };
 
@@ -604,7 +617,9 @@ export default function StudentDashboard() {
           {/* Search Bar - Hidden on mobile, shown on tablet+ */}
           <div className="hidden sm:flex flex-1 items-center max-w-md">
             <div className="relative w-full">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               <input
                 type="text"
                 placeholder="Search courses, modules, or topics..."
@@ -618,20 +633,8 @@ export default function StudentDashboard() {
             <span className="text-lg font-bold text-gray-800">Dashboard</span>
           </div>
           
-          {/* Language Selector and User */}
+          {/* User Actions */}
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* AI Buddy Icon Button with Caption */}
-            <div className="hidden sm:flex items-center mr-1">
-              <button
-                onClick={() => setIsChatOpen(true)}
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-purple-100 border border-purple-200 shadow hover:bg-purple-200 transition-all duration-200"
-                aria-label="Open AI Buddy Chat"
-                type="button"
-              >
-                <span className="text-2xl">🤖</span>
-              </button>
-              <span className="ml-2 text-sm font-medium text-purple-700 select-none">AI Buddy</span>
-            </div>
             {/* Google Translate Button */}
             <SimpleGoogleTranslate 
               className="text-gray-700"
@@ -645,7 +648,9 @@ export default function StudentDashboard() {
                 onClick={handleNotificationClick}
                 className="relative text-gray-900 hover:text-purple-600 transition-colors p-2 rounded-full hover:bg-gray-50 touch-manipulation"
               >
-                <span className="text-xl sm:text-2xl">🔔</span>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
                 {/* Notification count */}
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
@@ -683,7 +688,7 @@ export default function StudentDashboard() {
                         >
                           <div className="flex items-start gap-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${getNotificationColor(notification.type)}`}>
-                              <span className="text-sm">{getNotificationIcon(notification.type)}</span>
+                              {getNotificationIcon(notification.type)}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-1">
@@ -706,7 +711,9 @@ export default function StudentDashboard() {
                       ))
                     ) : (
                       <div className="px-4 py-8 text-center text-gray-500">
-                        <span className="text-4xl mb-2 block">🔔</span>
+                        <svg className="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
                         <p className="text-sm">No notifications yet</p>
                       </div>
                     )}
@@ -750,8 +757,8 @@ export default function StudentDashboard() {
             <div className="space-y-6">
               {activeTab === 'overview' && (
                 <>
-                  {/* Welcome Section and Stats only for Overview */}
-                  <div className="flex flex-col space-y-4 lg:space-y-0 lg:flex-row lg:items-center lg:justify-between">
+                  {/* Welcome Section */}
+                  <div className="mb-6">
                     <div className="flex items-center gap-4">
                       <div>
                         <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
@@ -760,137 +767,18 @@ export default function StudentDashboard() {
                         <p className="text-gray-700 text-sm sm:text-base">
                           {user.profile?.grade ? `Grade ${user.profile.grade}` : ''} 
                           {user.profile?.school ? ` • ${user.profile.school}` : ''}
-                          {!user.profile?.grade && !user.profile?.school ? 'Ready for another fun quest? 🚀' : ''}
+                          {!user.profile?.grade && !user.profile?.school ? 'Ready for another fun quest!' : ''}
                         </p>
                       </div>
                     </div>
-                    {/* Stats Cards */}
-                    <div className="w-full lg:w-auto">
-                      <StatsCards stats={statsCardsData} />
-                    </div>
                   </div>
 
-                  {/* Courses You're Taking Section */}
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Courses You&apos;re Taking</h3>
-                    {courses.length > 0 ? (
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b border-gray-200">
-                              <th className="text-left py-3 px-4 font-medium text-gray-700">Course</th>
-                              <th className="text-left py-3 px-4 font-medium text-gray-700">Progress</th>
-                              <th className="text-left py-3 px-4 font-medium text-gray-700">Duration</th>
-                              <th className="text-left py-3 px-4 font-medium text-gray-700">XP Points</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {courses.map((course, index) => (
-                              <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                <td className="py-3 px-4">
-                                  <div className="flex items-center gap-3">
-                                    <div 
-                                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-medium"
-                                      style={{ backgroundColor: course.color }}
-                                    >
-                                      {course.icon}
-                                    </div>
-                                    <span className="font-medium text-gray-900">{course.title}</span>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-4">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-20 bg-gray-200 rounded-full h-2">
-                                      <div 
-                                        className="h-2 rounded-full transition-all duration-300"
-                                        style={{ 
-                                          width: `${course.progress}%`, 
-                                          backgroundColor: course.color 
-                                        }}
-                                      ></div>
-                                    </div>
-                                    <span className="text-sm text-gray-600">{course.lessonsCompleted}</span>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-600">{course.duration}</td>
-                                <td className="py-3 px-4 text-sm font-medium text-purple-600">{course.xp}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                          <span className="text-2xl">📚</span>
-                        </div>
-                        <h4 className="text-lg font-medium text-gray-900 mb-2">No courses in progress</h4>
-                        <p className="text-gray-600 mb-4">Start your learning journey by exploring available modules</p>
-                        <button 
-                          onClick={() => setActiveTab('modules')}
-                          className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-                        >
-                          Browse Modules
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Continue Learning Section */}
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Continue Learning</h3>
-                    {continueLearningCourses.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {continueLearningCourses.map((course, index) => (
-                          <div 
-                            key={index} 
-                            className="bg-gray-50 rounded-xl p-4 border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer"
-                          >
-                            <div className="flex items-center justify-between mb-3">
-                              <div 
-                                className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg"
-                                style={{ backgroundColor: course.color }}
-                              >
-                                {course.icon}
-                              </div>
-                              {course.isLocked && (
-                                <span className="text-gray-400 text-lg">🔒</span>
-                              )}
-                            </div>
-                            <h4 className="font-semibold text-gray-900 mb-2">{course.title}</h4>
-                            <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
-                              <span>{course.duration}</span>
-                              <span className="font-medium text-purple-600">{course.xp} XP</span>
-                            </div>
-                            <button 
-                              className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
-                                course.isLocked 
-                                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-                                  : 'bg-purple-600 text-white hover:bg-purple-700'
-                              }`}
-                              disabled={course.isLocked}
-                            >
-                              {course.isLocked ? 'Locked' : 'Enroll Now'}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                          <span className="text-2xl">🎯</span>
-                        </div>
-                        <h4 className="text-lg font-medium text-gray-900 mb-2">No recommended modules</h4>
-                        <p className="text-gray-600 mb-4">Complete your diagnostic test to get personalized recommendations</p>
-                        <button 
-                          onClick={() => setActiveTab('diagnostic')}
-                          className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-                        >
-                          Take Diagnostic Test
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <OverviewTab 
+                    courses={courses}
+                    tests={tests}
+                    onTabChange={setActiveTab}
+                    dashboardData={dashboardData}
+                  />
                 </>
               )}
               {activeTab === 'modules' && <ModulesTab />}
@@ -936,27 +824,24 @@ export default function StudentDashboard() {
             )}
             {/* Panel Content */}
             <div className="flex-1 flex flex-col transition-all duration-300 p-4">
-              {/* Close button for mobile */}
-              {isMobile && (
+              {/* Title and Close button for mobile */}
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Upcoming Tests</h3>
+                <h3 className="text-lg font-semibold text-gray-900 transition-opacity duration-200"
+                    style={{ opacity: isMobile ? 1 : (isRightPanelHovered ? 1 : 0) }}>
+                  Upcoming Tests
+                </h3>
+                {isMobile && (
                   <button 
                     onClick={() => setIsRightPanelOpen(false)}
-                    className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200"
+                    className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
-                </div>
-              )}
-              {/* Desktop title */}
-              {!isMobile && (
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 transition-opacity duration-200"
-                    style={{ opacity: isRightPanelHovered ? 1 : 0 }}>
-                  Upcoming Tests
-                </h3>
-              )}
+                )}
+              </div>
+              
               <div className="space-y-3">
                 {tests.length === 0 && (
                   <div className={`text-center text-gray-400 text-sm py-8 transition-opacity duration-200 ${isMobile ? '' : 'opacity-0 pointer-events-none'}`} 
@@ -1037,6 +922,19 @@ export default function StudentDashboard() {
         </button>
       )}
 
+      {/* Floating AI Chat Button */}
+      <button
+        onClick={() => setIsChatOpen(true)}
+        className="fixed bottom-24 right-24 z-50 w-14 h-14 bg-purple-600 rounded-full shadow-lg hover:bg-purple-700 transition-all duration-200 flex items-center justify-center"
+        aria-label="Open AI Chat"
+        style={{
+          boxShadow: '0 4px 12px rgba(124,58,237,0.3)'
+        }}
+      >
+        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h6" />
+        </svg>
+      </button>
       
     </div>
   );
