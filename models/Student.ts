@@ -127,6 +127,176 @@ const studentSchema = new mongoose.Schema({
       type: Date
     }
   },
+  
+  // Interest Assessment Data
+  interestAssessmentCompleted: {
+    type: Boolean,
+    default: false
+  },
+  interestAssessmentCompletedAt: {
+    type: Date
+  },
+  
+  // Step 1: Broad Interest Cluster Selection
+  broadInterestClusters: [{
+    type: String,
+    enum: [
+      'Technology & Computers',
+      'Science & Experiments',
+      'Art & Design',
+      'Language & Communication',
+      'Business & Money',
+      'Performing Arts (Music/Dance/Acting)',
+      'Cooking & Nutrition',
+      'Sports & Fitness',
+      'Farming, Gardening & Nature',
+      'Social Work & Helping People',
+      'Mechanics / DIY / Repairs',
+      'Fashion & Tailoring',
+      'Animal Care',
+      'Spirituality / Mindfulness'
+    ]
+  }],
+  
+  // Step 2: Cluster-specific Deep Dive
+  clusterDeepDive: {
+    technologyComputers: {
+      techInterests: String,
+      codingExperience: String,
+      buildingGoals: String
+    },
+    scienceExperiments: {
+      scienceTopics: String,
+      projectExperience: String,
+      inventionIdeas: String
+    },
+    artDesign: {
+      artTypes: String,
+      creativeTime: String,
+      artisticExpression: String
+    },
+    languageCommunication: {
+      writingSpeaking: String,
+      confidentLanguages: String,
+      skillImprovement: String
+    },
+    businessMoney: {
+      sellingExperience: String,
+      businessIdeas: String,
+      problemSolving: String
+    },
+    performingArts: {
+      preferredArts: String,
+      performanceExperience: String,
+      performanceGoals: String
+    },
+    cookingNutrition: {
+      favoriteDishes: String,
+      nutritionKnowledge: String,
+      culinaryAspirations: String
+    },
+    sportsFitness: {
+      favoriteActivities: String,
+      competitionParticipation: String,
+      fitnessGoals: String
+    },
+    farmingGardening: {
+      farmingExperience: String,
+      naturePreferences: String,
+      environmentalGoals: String
+    },
+    socialWork: {
+      volunteerExperience: String,
+      socialProblems: String,
+      careerAspirations: String
+    },
+    mechanicsDIY: {
+      repairExperience: String,
+      machineInterests: String,
+      learningGoals: String
+    },
+    fashionTailoring: {
+      designInterests: String,
+      wearableCreations: String,
+      careerGoals: String
+    },
+    animalCare: {
+      animalAffinity: String,
+      careExperience: String,
+      careerAspirations: String
+    },
+    spiritualityMindfulness: {
+      quietTimeActivities: String,
+      stressManagement: String,
+      learningGoals: String
+    }
+  },
+  
+  // Step 3: Cross-Cluster Personality Insights
+  personalityInsights: {
+    learningStyle: [{
+      type: String,
+      enum: [
+        'I learn by doing or practicing',
+        'I learn by watching or reading',
+        'I learn by discussing or teaching',
+        'I prefer learning alone',
+        'I enjoy group learning'
+      ]
+    }],
+    challengeApproach: {
+      type: String,
+      enum: [
+        'I enjoy trying it myself',
+        'I break it into steps',
+        'I seek help when stuck',
+        'I avoid difficult tasks',
+        'It depends on the topic'
+      ]
+    },
+    coreValues: [{
+      type: String,
+      enum: [
+        'Creativity',
+        'Curiosity',
+        'Empathy',
+        'Discipline',
+        'Leadership',
+        'Spirituality',
+        'Respect',
+        'Innovation',
+        'Teamwork'
+      ]
+    }]
+  },
+  
+  // Step 4: Future Dream / Career Direction
+  careerDirection: {
+    dreamCareer: String,
+    excitingCareerTypes: [{
+      type: String,
+      enum: [
+        'Scientist or Researcher',
+        'Engineer or Technologist',
+        'Teacher or Educator',
+        'Doctor or Health Worker',
+        'Artist or Designer',
+        'Entrepreneur or Business Owner',
+        'Athlete or Fitness Coach',
+        'Actor, Dancer, or Performer',
+        'Chef or Nutrition Expert',
+        'Fashion Designer or Tailor',
+        'Mechanic or Technician',
+        'Farmer or Nature Expert',
+        'Animal Care Specialist',
+        'Social Worker or Leader',
+        'Spiritual Guide or Wellness Coach',
+        'I\'m still exploring'
+      ]
+    }],
+    careerAttraction: String
+  },
+  
   createdAt: {
     type: Date,
     default: Date.now

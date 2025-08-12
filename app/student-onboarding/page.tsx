@@ -353,9 +353,9 @@ export default function StudentOnboarding() {
         // Clear registration data after successful onboarding
         RegistrationDataManager.clearRegistrationData();
         
-        // Auto-redirect to diagnostic assessment after 3 seconds
+        // Auto-redirect to interest assessment after 3 seconds
         setTimeout(() => {
-          router.push('/diagnostic-assessment');
+          router.push('/interest-assessment');
         }, 3000);
       } else {
         const errorData = await response.json();
@@ -462,16 +462,16 @@ export default function StudentOnboarding() {
             {/* Redirect Message */}
             <div className="text-center mb-4">
               <p className="text-gray-600 text-sm">
-                Redirecting to diagnostic assessment in 3 seconds...
+                Redirecting to interest assessment in 3 seconds...
               </p>
             </div>
 
             <div className="space-y-3">
               <button
-                onClick={() => router.push('/diagnostic-assessment')}
+                onClick={() => router.push('/interest-assessment')}
                 className="w-full bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors"
               >
-                Take Diagnostic Assessment Now
+                Take Interest Assessment Now
               </button>
               <button
                 onClick={() => router.push('/dashboard/student')}

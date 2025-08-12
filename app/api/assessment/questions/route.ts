@@ -31,6 +31,7 @@ interface N8nQuestion {
   type: string;
   difficulty: string;
   section?: string;
+  options?: string[];
 }
 
 interface ParsedOutput {
@@ -44,17 +45,33 @@ type N8nOutput = N8nOutputItem[] | ParsedOutput | string[];
 function convertN8nQuestion(n8nQuestion: N8nQuestion): AssessmentQuestion {
   const questionType = n8nQuestion.type;
   let type: 'MCQ' | 'OPEN' = 'OPEN';
+  
+  // Use the actual options from N8N if available, otherwise fallback to generated ones
   let options: string[] | undefined = undefined;
+  
+  // Check if N8N question has options property
+  if ('options' in n8nQuestion && Array.isArray((n8nQuestion as any).options)) {
+    options = (n8nQuestion as any).options;
+    console.log('🔍 Using N8N options:', options);
+  }
 
   // Map n8n question types to our format based on the actual N8N output
-  if (questionType === 'Multiple Choice') {
+  if (questionType === 'Multiple Choice' || questionType === 'Single Choice') {
     type = 'MCQ';
-    // For Multiple Choice questions, generate contextually appropriate options
-    options = ['Strongly Agree', 'Agree', 'Disagree', 'Strongly Disagree'];
+    // Only generate fallback options if N8N didn't provide any
+    if (!options) {
+      if (questionType === 'Multiple Choice') {
+        options = ['Strongly Agree', 'Agree', 'Disagree', 'Strongly Disagree'];
+      } else {
+        options = ['Option A', 'Option B', 'Option C', 'Option D'];
+      }
+    }
   } else if (questionType === 'Pattern Choice') {
     type = 'MCQ';
-    // For Pattern Choice questions, generate pattern-related options
-    options = ['Organ', 'System', 'Organism', 'Population'];
+    // Only generate fallback options if N8N didn't provide any
+    if (!options) {
+      options = ['Organ', 'System', 'Organism', 'Population'];
+    }
   } else {
     // All other types (Open Text, etc.) are treated as OPEN questions
     type = 'OPEN';
@@ -68,7 +85,7 @@ function convertN8nQuestion(n8nQuestion: N8nQuestion): AssessmentQuestion {
     difficulty = 'hard';
   }
 
-  return {
+  const result = {
     id: n8nQuestion.id.toString(), // Use the id field from N8N output
     question: n8nQuestion.question,
     type: type,
@@ -76,6 +93,16 @@ function convertN8nQuestion(n8nQuestion: N8nQuestion): AssessmentQuestion {
     category: n8nQuestion.section || 'General',
     difficulty: difficulty
   };
+  
+  console.log('🔍 Converted question:', {
+    id: result.id,
+    type: result.type,
+    hasOptions: !!result.options,
+    optionsCount: result.options?.length || 0,
+    originalType: questionType
+  });
+  
+  return result;
 }
 
 // Function to parse N8N output format and extract questions

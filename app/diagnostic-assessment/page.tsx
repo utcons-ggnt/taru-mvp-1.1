@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface AssessmentQuestion {
   id: string;
   question: string;
-  type: 'MCQ' | 'OPEN';
+  type: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
   options?: string[];
   category?: string;
   section?: string;
@@ -55,7 +55,7 @@ export default function DiagnosticAssessment() {
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [progress, setProgress] = useState(0);
   const [answer, setAnswer] = useState('');
-  const [selectedOption, setSelectedOption] = useState('');
+  const [selectedOption, setSelectedOption] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -65,6 +65,7 @@ export default function DiagnosticAssessment() {
   const [collectedAnswers, setCollectedAnswers] = useState<CollectedAnswer[]>([]);
   const [allAnswers, setAllAnswers] = useState<{ [key: string]: string }>({});
   const [isResetting, setIsResetting] = useState(false);
+  const [isFromInterestAssessment, setIsFromInterestAssessment] = useState(false);
   const router = useRouter();
 
   // Fetch user profile data
@@ -145,6 +146,21 @@ export default function DiagnosticAssessment() {
 
       if (data.completed) {
         console.log('🔍 Assessment already completed');
+        
+        // Check if this is a premature completion (user hasn't actually taken the assessment)
+        const hasActualAnswers = data.result && data.result.totalQuestions && data.result.totalQuestions > 0;
+        
+        if (!hasActualAnswers) {
+          console.log('🔍 Detected premature completion - no actual questions answered');
+          // User is coming from interest assessment, mark this
+          setIsFromInterestAssessment(true);
+          setIsCompleted(false);
+          setResult(null);
+          // Try to generate new questions
+          await generateN8NQuestions();
+          return;
+        }
+        
         setIsCompleted(true);
         setResult(data.result || {
           type: 'Assessment Completed',
@@ -170,26 +186,54 @@ export default function DiagnosticAssessment() {
         totalQuestions: data.totalQuestions,
         progress: data.progress
       });
+      
+      // Debug: Show the actual API response type
+      console.log('🔍 API response question type:', data.question.type);
 
-      setCurrentQuestion(data.question);
+      // Map question types to standardized format
+      let mappedType: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
+      if (data.question.type === 'MCQ' || data.question.type === 'Single Choice') {
+        mappedType = 'SINGLE_CHOICE';
+      } else if (data.question.type === 'OPEN' || data.question.type === 'Multiple Choice') {
+        mappedType = 'MULTIPLE_CHOICE';
+      } else {
+        // Default to single choice if unknown type
+        mappedType = 'SINGLE_CHOICE';
+      }
+      
+      const mappedQuestion = {
+        ...data.question,
+        type: mappedType
+      };
+      
+      console.log('🔍 Mapped question type from', data.question.type, 'to', mappedQuestion.type);
+      
+      setCurrentQuestion(mappedQuestion);
       setCurrentQuestionNumber(data.currentQuestion);
       setTotalQuestions(data.totalQuestions);
       setProgress(data.progress);
       
-      // Load previous answer from collected answers (ignore skipped)
-      const previousAnswer = collectedAnswers.find(answer => answer.Q === data.question.id);
-      if (previousAnswer && previousAnswer.studentAnswer !== 'Skipped') {
-        if (data.question.type === 'MCQ') {
-          setSelectedOption(previousAnswer.studentAnswer);
-          setAnswer('');
+              // Load previous answer from collected answers (ignore skipped)
+        const previousAnswer = collectedAnswers.find(answer => answer.Q === data.question.id);
+        if (previousAnswer && previousAnswer.studentAnswer !== 'Skipped') {
+          if (mappedQuestion.type === 'SINGLE_CHOICE') {
+            setSelectedOption([previousAnswer.studentAnswer]);
+            setAnswer('');
+          } else if (mappedQuestion.type === 'MULTIPLE_CHOICE') {
+            // For multiple choice, split by comma if stored as comma-separated string
+            const options = previousAnswer.studentAnswer.includes(',') 
+              ? previousAnswer.studentAnswer.split(',').map(s => s.trim())
+              : [previousAnswer.studentAnswer];
+            setSelectedOption(options);
+            setAnswer('');
+          } else {
+            setAnswer(previousAnswer.studentAnswer);
+            setSelectedOption([]);
+          }
         } else {
-          setAnswer(previousAnswer.studentAnswer);
-          setSelectedOption('');
+          setAnswer('');
+          setSelectedOption([]);
         }
-      } else {
-        setAnswer('');
-        setSelectedOption('');
-      }
     } catch (err) {
       console.error('Error loading question:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to load question';
@@ -230,7 +274,8 @@ export default function DiagnosticAssessment() {
           section: response.category,
           question: response.question,
           studentAnswer: response.answer,
-          type: response.questionType === 'MCQ' ? 'Multiple Choice' : 'Open Text'
+          type: response.questionType === 'SINGLE_CHOICE' ? 'Single Choice' : 
+                response.questionType === 'MULTIPLE_CHOICE' ? 'Multiple Choice' : 'Unknown'
         }));
         
         setCollectedAnswers(answers);
@@ -278,7 +323,15 @@ export default function DiagnosticAssessment() {
 
       // Save current answer if any
       if (currentQuestion) {
-        const currentAnswer = currentQuestion.type === 'MCQ' ? selectedOption : answer;
+        let currentAnswer: string;
+        if (currentQuestion.type === 'SINGLE_CHOICE') {
+          currentAnswer = selectedOption.length > 0 ? selectedOption[0] : '';
+        } else if (currentQuestion.type === 'MULTIPLE_CHOICE') {
+          currentAnswer = selectedOption.join(', ');
+        } else {
+          currentAnswer = answer;
+        }
+        
         if (currentAnswer.trim()) {
           setAllAnswers(prev => ({
             ...prev,
@@ -297,7 +350,25 @@ export default function DiagnosticAssessment() {
       const data = await response.json();
 
       if (data.question) {
-        setCurrentQuestion(data.question);
+        // Map question types to standardized format
+        let mappedType: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
+        if (data.question.type === 'MCQ' || data.question.type === 'Single Choice') {
+          mappedType = 'SINGLE_CHOICE';
+        } else if (data.question.type === 'OPEN' || data.question.type === 'Multiple Choice') {
+          mappedType = 'MULTIPLE_CHOICE';
+        } else {
+          // Default to single choice if unknown type
+          mappedType = 'SINGLE_CHOICE';
+        }
+        
+        const mappedQuestion = {
+          ...data.question,
+          type: mappedType
+        };
+        
+        console.log('🔍 Previous question - mapped type from', data.question.type, 'to', mappedType);
+        
+        setCurrentQuestion(mappedQuestion);
         setCurrentQuestionNumber(data.currentQuestion);
         setTotalQuestions(data.totalQuestions);
         setProgress(data.progress);
@@ -305,16 +376,23 @@ export default function DiagnosticAssessment() {
         // Load previous answer if exists
         const previousAnswer = allAnswers[data.question.id];
         if (previousAnswer) {
-          if (data.question.type === 'MCQ') {
-            setSelectedOption(previousAnswer);
+          if (mappedQuestion.type === 'SINGLE_CHOICE') {
+            setSelectedOption([previousAnswer]);
+            setAnswer('');
+          } else if (mappedQuestion.type === 'MULTIPLE_CHOICE') {
+            // For multiple choice, split by comma if stored as comma-separated string
+            const options = previousAnswer.includes(',') 
+              ? previousAnswer.split(',').map(s => s.trim())
+              : [previousAnswer];
+            setSelectedOption(options);
             setAnswer('');
           } else {
             setAnswer(previousAnswer);
-            setSelectedOption('');
+            setSelectedOption([]);
           }
         } else {
           setAnswer('');
-          setSelectedOption('');
+          setSelectedOption([]);
         }
       }
     } catch (err) {
@@ -329,7 +407,15 @@ export default function DiagnosticAssessment() {
   const submitAnswer = async () => {
     if (!currentQuestion) return;
 
-    const answerToSubmit = currentQuestion.type === 'MCQ' ? selectedOption : answer;
+    let answerToSubmit: string;
+    if (currentQuestion.type === 'SINGLE_CHOICE') {
+      answerToSubmit = selectedOption.length > 0 ? selectedOption[0] : '';
+    } else if (currentQuestion.type === 'MULTIPLE_CHOICE') {
+      answerToSubmit = selectedOption.join(', ');
+    } else {
+      answerToSubmit = answer;
+    }
+    
     if (!answerToSubmit.trim()) {
       setError('Please provide an answer');
       return;
@@ -345,7 +431,8 @@ export default function DiagnosticAssessment() {
         section: currentQuestion.section || currentQuestion.category || 'General',
         question: currentQuestion.question,
         studentAnswer: answerToSubmit,
-        type: currentQuestion.type === 'MCQ' ? 'Multiple Choice' : 'Open Text'
+        type: currentQuestion.type === 'SINGLE_CHOICE' ? 'Single Choice' : 
+              currentQuestion.type === 'MULTIPLE_CHOICE' ? 'Multiple Choice' : 'Unknown'
       };
 
       // Add to collected answers
@@ -397,8 +484,27 @@ export default function DiagnosticAssessment() {
           });
 
           if (resultResponse.ok) {
-            const resultData = await resultResponse.json();
-            console.log('🔍 N8N results received:', resultData);
+            let resultData;
+            try {
+              const responseText = await resultResponse.text();
+              console.log('🔍 Raw result response text:', responseText);
+              
+              if (!responseText || responseText.trim() === '') {
+                console.log('⚠️ Empty response from result API, using fallback');
+                setIsCompleted(true);
+                setResult(data.result);
+                return;
+              }
+              
+              resultData = JSON.parse(responseText);
+              console.log('🔍 N8N results received:', resultData);
+            } catch (parseError) {
+              console.error('🔍 Failed to parse result response as JSON:', parseError);
+              // Still show completion with default result
+              setIsCompleted(true);
+              setResult(data.result);
+              return;
+            }
             
             // Update the result with N8N data - Enhanced mapping for actual N8N structure
             const n8nData = resultData.output?.[0] || resultData.result || resultData;
@@ -454,7 +560,8 @@ export default function DiagnosticAssessment() {
         section: currentQuestion.section || currentQuestion.category || 'General',
         question: currentQuestion.question,
         studentAnswer: 'Skipped',
-        type: currentQuestion.type === 'MCQ' ? 'Multiple Choice' : 'Open Text'
+        type: currentQuestion.type === 'SINGLE_CHOICE' ? 'Single Choice' : 
+              currentQuestion.type === 'MULTIPLE_CHOICE' ? 'Multiple Choice' : 'Unknown'
       };
 
       setCollectedAnswers(prev => [...prev, skippedAnswer]);
@@ -490,7 +597,28 @@ export default function DiagnosticAssessment() {
           });
 
           if (resultResponse.ok) {
-            const resultData = await resultResponse.json();
+            let resultData;
+            try {
+              const responseText = await resultResponse.text();
+              console.log('🔍 Raw result response text:', responseText);
+              
+              if (!responseText || responseText.trim() === '') {
+                console.log('⚠️ Empty response from result API, using fallback');
+                setIsCompleted(true);
+                setResult(data.result);
+                return;
+              }
+              
+              resultData = JSON.parse(responseText);
+              console.log('🔍 N8N results received:', resultData);
+            } catch (parseError) {
+              console.error('🔍 Failed to parse result response as JSON:', parseError);
+              // Fallback to default result if N8N fails
+              setIsCompleted(true);
+              setResult(data.result);
+              return;
+            }
+            
             const n8nData = resultData.output?.[0] || resultData.result || resultData;
 
             const updatedResult = {
@@ -575,7 +703,7 @@ export default function DiagnosticAssessment() {
         setTotalQuestions(0);
         setProgress(0);
         setAnswer('');
-        setSelectedOption('');
+        setSelectedOption([]);
         setIsLoading(true);
         setIsSubmitting(false);
         setIsCompleted(false);
@@ -630,6 +758,101 @@ export default function DiagnosticAssessment() {
     initializeAssessment();
   }, [router]);
 
+  // Auto-reset assessment if user comes from interest assessment and sees completion screen
+  useEffect(() => {
+    if (isCompleted && result && result.type === 'Assessment Completed' && result.description.includes('already completed')) {
+      console.log('🔍 Detected premature completion from interest assessment, showing manual reset option...');
+      // Don't auto-reset, let user choose to start the assessment
+      // The yellow notice box will guide them
+    }
+  }, [isCompleted, result]);
+
+  // Welcome screen for users coming from interest assessment
+  if (isFromInterestAssessment && !isCompleted) {
+    return (
+      <motion.main 
+        className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex flex-col"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        {/* Header */}
+        <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Image src="/jio-logo.png" alt="Jio Logo" width={40} height={40} className="rounded-full" />
+            <span className="font-semibold text-gray-800">JioWorld Learning</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-gray-600">
+              {userProfile ? `${userProfile.fullName} ${userProfile.uniqueId ? `#${userProfile.uniqueId}` : ''}` : 'Loading...'}
+            </span>
+            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+              {userProfile ? userProfile.fullName.charAt(0).toUpperCase() : 'U'}
+            </div>
+          </div>
+        </header>
+
+        {/* Welcome Content */}
+        <div className="flex-1 flex items-center justify-center px-6 py-8">
+          <motion.div 
+            className="bg-white rounded-2xl p-8 text-center max-w-4xl mx-auto shadow-lg"
+            initial={{ scale: 0.9, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+          >
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+            >
+              <div className="text-6xl mb-6">🎯</div>
+              <h1 className="text-4xl font-bold text-purple-600 mb-4">
+                Welcome to Your Diagnostic Assessment!
+              </h1>
+              
+              <p className="text-xl text-gray-700 mb-8 leading-relaxed">
+                Great job completing your interest assessment! Now it&apos;s time to take your personalized diagnostic assessment. 
+                This will help us understand your current knowledge and skills in your areas of interest.
+              </p>
+
+              <div className="bg-purple-50 rounded-xl p-6 mb-8 text-left">
+                <h3 className="text-lg font-semibold text-purple-700 mb-3">What to expect:</h3>
+                <ul className="space-y-2 text-gray-700">
+                  <li className="flex items-center gap-2">
+                    <span className="text-purple-500">✓</span>
+                    Personalized questions based on your interests
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-purple-500">✓</span>
+                    Single choice and multiple choice questions
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-purple-500">✓</span>
+                    AI-generated content tailored to your learning style
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-purple-500">✓</span>
+                    Detailed results and recommendations
+                  </li>
+                </ul>
+              </div>
+
+              <button
+                onClick={() => {
+                  setIsFromInterestAssessment(false);
+                  loadQuestion();
+                }}
+                className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl"
+              >
+                Start Diagnostic Assessment
+              </button>
+            </motion.div>
+          </motion.div>
+        </div>
+      </motion.main>
+    );
+  }
+
   // Completion screen
   if (isCompleted && result) {
     return (
@@ -674,6 +897,31 @@ export default function DiagnosticAssessment() {
             ))}
           </div>
         </div>
+
+        {/* Special notice for users coming from interest assessment */}
+        {result && result.type === 'Assessment Completed' && result.description.includes('already completed') && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mx-6 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="text-yellow-600 text-xl">⚠️</div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+                  Welcome from Interest Assessment!
+                </h3>
+                <p className="text-yellow-700 mb-3">
+                  It looks like you&apos;ve completed the interest assessment and are now ready for the diagnostic assessment. 
+                  Click the button below to start your diagnostic assessment with N8N-generated questions.
+                </p>
+                <button
+                  onClick={resetAssessment}
+                  disabled={isResetting}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isResetting ? 'Starting...' : 'Start Diagnostic Assessment'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Result Section */}
         <div className="flex-1 flex items-center justify-center px-6 py-8">
@@ -997,6 +1245,15 @@ export default function DiagnosticAssessment() {
       {/* Question Content */}
       <div className="flex-1 px-6 py-8">
         <div className="max-w-4xl mx-auto">
+          {/* Debug: Show current question state */}
+          {currentQuestion && (
+            <div className="mb-4 p-4 bg-gray-100 rounded-lg text-sm">
+              <strong>Debug:</strong> Question Type: {currentQuestion.type}, 
+              Has Options: {currentQuestion.options ? 'Yes' : 'No'}, 
+              Options Count: {currentQuestion.options?.length || 0}
+            </div>
+          )}
+          
           <AnimatePresence mode="wait">
             {currentQuestion ? (
             <motion.div 
@@ -1027,27 +1284,27 @@ export default function DiagnosticAssessment() {
                   </div>
                 </div>
 
-                {/* MCQ Options */}
-                {currentQuestion.type === 'MCQ' && currentQuestion.options && (
+                                {/* Single Choice Options */}
+                {currentQuestion.type === 'SINGLE_CHOICE' && currentQuestion.options && (
                   <div className="mb-8">
                     <div className="space-y-4">
                       {currentQuestion.options.map((option, index) => {
                         const letter = String.fromCharCode(65 + index); // A, B, C, D...
-                        const isSelected = selectedOption === option;
+                        const isSelected = selectedOption.includes(option);
                         
                         return (
-                      <label
-                    key={index}
+                          <label
+                            key={index}
                             className={`block cursor-pointer transition-all duration-200 ${
                               isSelected ? 'transform scale-105' : 'hover:scale-102'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="mcq-option"
-                          value={option}
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="single-choice-option"
+                              value={option}
                               checked={isSelected}
-                          onChange={(e) => setSelectedOption(e.target.value)}
+                              onChange={(e) => setSelectedOption([e.target.value])}
                               className="sr-only"
                             />
                             <div className={`bg-white rounded-xl p-6 border-2 transition-all duration-200 ${
@@ -1068,23 +1325,63 @@ export default function DiagnosticAssessment() {
                                 </span>
                               </div>
                             </div>
-                      </label>
+                          </label>
                         );
                       })}
                     </div>
                   </div>
                 )}
 
-                {/* Open Question */}
-                {currentQuestion.type === 'OPEN' && (
+                {/* Multiple Choice Options */}
+                {currentQuestion.type === 'MULTIPLE_CHOICE' && currentQuestion.options && (
                   <div className="mb-8">
-                    <div className="bg-gray-100 rounded-lg p-6 border border-gray-200">
-                    <textarea
-                      value={answer}
-                      onChange={(e) => setAnswer(e.target.value)}
-                      placeholder="Type your answer here..."
-                        className="w-full h-32 p-4 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-gray-800 bg-white"
-                    />
+                    <div className="space-y-4">
+                      {currentQuestion.options.map((option, index) => {
+                        const letter = String.fromCharCode(65 + index); // A, B, C, D...
+                        const isSelected = selectedOption.includes(option);
+                        
+                        return (
+                          <label
+                            key={index}
+                            className={`block cursor-pointer transition-all duration-200 ${
+                              isSelected ? 'transform scale-105' : 'hover:scale-102'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              name="multiple-choice-option"
+                              value={option}
+                              checked={isSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedOption([...selectedOption, option]);
+                                } else {
+                                  setSelectedOption(selectedOption.filter(item => item !== option));
+                                }
+                              }}
+                              className="sr-only"
+                            />
+                            <div className={`bg-white rounded-xl p-6 border-2 transition-all duration-200 ${
+                              isSelected 
+                                ? 'border-purple-500 shadow-lg shadow-purple-100' 
+                                : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
+                            }`}>
+                              <div className="flex items-start gap-4">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                  isSelected 
+                                    ? 'bg-purple-500 text-white' 
+                                    : 'bg-gray-100 text-gray-600'
+                                }`}>
+                                  {letter}
+                                </div>
+                                <span className="text-gray-800 font-medium text-lg leading-relaxed flex-1">
+                                  {option}
+                                </span>
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1139,7 +1436,10 @@ export default function DiagnosticAssessment() {
                   {/* Next/Complete Button */}
                   <button
                     onClick={submitAnswer}
-                    disabled={isSubmitting || (!selectedOption && !answer.trim())}
+                    disabled={isSubmitting || (
+                      (currentQuestion.type === 'SINGLE_CHOICE' && selectedOption.length === 0) ||
+                      (currentQuestion.type === 'MULTIPLE_CHOICE' && selectedOption.length === 0)
+                    )}
                     className="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                   >
                     {isSubmitting ? (

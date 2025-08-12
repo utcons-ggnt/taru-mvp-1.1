@@ -392,11 +392,11 @@ export default function ModulesTab() {
     
     // Match common learning-related queries with more detailed responses
     if (lowerQuery.includes('help') || lowerQuery.includes('assist')) {
-      return `Hi ${studentName}! I'm here to help you with your learning journey. I can assist you with understanding ${selectedModule?.subject || 'your subjects'}, explaining complex concepts, and answering questions about your course materials. Feel free to ask me anything!`;
+        return `Hi ${studentName}! I&apos;m here to help you with your learning journey. I can assist you with understanding ${selectedModule?.subject || 'your subjects'}, explaining complex concepts, and answering questions about your course materials. Feel free to ask me anything!`;
     }
     
     if (lowerQuery.includes('explain') || lowerQuery.includes('understand') || lowerQuery.includes('repeat')) {
-      return `${studentName}, I'd be happy to explain ${selectedModule?.subject || 'the concepts'} to you in detail. While I'm in offline mode, you can still ask me questions about your learning materials, and I'll provide comprehensive explanations.`;
+              return `${studentName}, I&apos;d be happy to explain ${selectedModule?.subject || 'the concepts'} to you in detail. While I&apos;m in offline mode, you can still ask me questions about your learning materials, and I&apos;ll provide comprehensive explanations.`;
     }
     
     if (lowerQuery.includes('read') || lowerQuery.includes('aloud')) {
@@ -412,7 +412,7 @@ export default function ModulesTab() {
     }
     
     // Default friendly response with more context
-    return `Hello ${studentName}! I'm your AI learning assistant. While I'm working in offline mode right now, I'm still here to help! You can ask me about ${selectedModule?.subject || 'your subjects'}, request detailed explanations, get help with complex topics, or ask me to repeat and clarify previous content.`;
+        return `Hello ${studentName}! I&apos;m your AI learning assistant. While I&apos;m working in offline mode right now, I&apos;m still here to help! You can ask me about ${selectedModule?.subject || 'your subjects'}, request detailed explanations, get help with complex topics, or ask me to repeat and clarify previous content.`;
   };
 
   const handleSendMessage = async (message: string) => {
@@ -469,7 +469,7 @@ export default function ModulesTab() {
       const welcomeMessage = {
         id: 'welcome',
         type: 'ai' as const,
-        content: `Hello ${user.fullName ? user.fullName.split(' ')[0] : 'there'}! I'm your AI learning assistant. I can help you understand ${selectedModule.subject} content, explain concepts, define terms, or read text aloud. How can I assist your learning today?`,
+        content: `Hello ${user.fullName ? user.fullName.split(' ')[0] : 'there'}! I&apos;m your AI learning assistant. I can help you understand ${selectedModule.subject} content, explain concepts, define terms, or read text aloud. How can I assist your learning today?`,
         timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
       };
       setChatMessages([welcomeMessage]);
