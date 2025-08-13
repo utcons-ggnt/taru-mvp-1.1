@@ -110,7 +110,7 @@ export default function OverviewTab({ courses, tests: _tests, onTabChange, dashb
               x: ["-100%", "100%"]
             }}
             transition={{
-              duration: 1000,
+              duration: 500,
               repeat: Infinity,
               ease: "linear"
             }}
