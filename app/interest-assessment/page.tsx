@@ -967,7 +967,7 @@ export default function InterestAssessment() {
       {/* Header */}
       <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Image src="/jio-logo.png" alt="Jio Logo" width={40} height={40} className="rounded-full" />
+          <Image src="/icons/logo.svg" alt="Logo" width={40} height={40} className="rounded-full" />
           <span className="font-semibold text-gray-700">JioWorld Learning</span>
         </div>
         <div className="flex items-center gap-3">

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../student/components/Sidebar';
 import Image from 'next/image';
 import { Dialog } from '@headlessui/react';
+import { motion } from 'framer-motion';
+import SimpleGoogleTranslate from '../../components/SimpleGoogleTranslate';
 
 // Add custom hook for responsive behavior
 function useWindowSize() {
@@ -97,15 +99,9 @@ export default function TeacherDashboard() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [language, setLanguage] = useState('English (USA)');
-  // const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isRightPanelHovered, setIsRightPanelHovered] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
-  const [selectedModules, setSelectedModules] = useState<string[]>([]);
-  const [assignmentInstructions, setAssignmentInstructions] = useState('');
-  const [assignmentDueDate, setAssignmentDueDate] = useState('');
-  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const router = useRouter();
   const logoutTriggered = useRef(false);
   const { width: windowWidth } = useWindowSize();
@@ -113,12 +109,12 @@ export default function TeacherDashboard() {
 
   // Teacher-specific navigation items
   const navItems = [
-    { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'students', label: 'Manage Students', icon: '👥' },
-    { id: 'assignments', label: 'Assign Tests', icon: '📝' },
-    { id: 'analytics', label: 'Performance Analytics', icon: '📈' },
-    { id: 'reports', label: 'Reports', icon: '📋' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' },
+    { id: 'overview', label: 'Overview', icon: '/icons/overview.png' },
+    { id: 'students', label: 'My Students', icon: '/icons/profile.png' },
+    { id: 'modules', label: 'Learning Modules', icon: '/icons/modules.png' },
+    { id: 'assignments', label: 'Assignments', icon: '/icons/report.png' },
+    { id: 'analytics', label: 'Analytics', icon: '/icons/rewards.png' },
+    { id: 'settings', label: 'Settings', icon: '/icons/settings.png' },
   ];
 
   useEffect(() => {
@@ -131,28 +127,8 @@ export default function TeacherDashboard() {
     localStorage.setItem('lang', lang)
   }
 
-  const handleLogout = useCallback(async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  }, [router]);
-
-  // Fix React Hook dependency
   useEffect(() => {
-    if (activeTab === 'logout' && !logoutTriggered.current) {
-      logoutTriggered.current = true;
-      handleLogout();
-    }
-    if (activeTab !== 'logout') {
-      logoutTriggered.current = false;
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUserAndDashboard = async () => {
       try {
         const response = await fetch('/api/auth/me');
         if (response.ok) {
@@ -162,11 +138,35 @@ export default function TeacherDashboard() {
             return;
           }
           setUser(userData.user);
+          
           // Show onboarding if profile is incomplete
           if (!userData.user.profile?.subjectSpecialization || !userData.user.profile?.experienceYears) {
             setShowOnboarding(true);
             setSubjectSpecialization(userData.user.profile?.subjectSpecialization || '');
             setExperienceYears(userData.user.profile?.experienceYears || '');
+          } else {
+            // Fetch dashboard statistics
+            try {
+              const statsResponse = await fetch('/api/teacher/dashboard-stats');
+              if (statsResponse.ok) {
+                const statsData = await statsResponse.json();
+                setDashboardStats(statsData);
+                setStats(statsData);
+              }
+            } catch (error) {
+              console.error('Error fetching dashboard stats:', error);
+            }
+            
+            // Fetch students
+            try {
+              const studentsResponse = await fetch('/api/teacher/students');
+              if (studentsResponse.ok) {
+                const studentsData = await studentsResponse.json();
+                setStudents(studentsData.students || []);
+              }
+            } catch (error) {
+              console.error('Error fetching students:', error);
+            }
           }
         } else {
           router.push('/login');
@@ -178,71 +178,9 @@ export default function TeacherDashboard() {
         setIsLoading(false);
       }
     };
-    fetchUser();
+
+    fetchUserAndDashboard();
   }, [router]);
-
-  // Fetch students data and dashboard stats
-  useEffect(() => {
-    const fetchStudentsAndStats = async () => {
-      try {
-        const [studentsResponse, statsResponse] = await Promise.all([
-          fetch('/api/teacher/students'),
-          fetch('/api/teacher/dashboard-stats')
-        ]);
-        
-        if (studentsResponse.ok) {
-          const data = await studentsResponse.json();
-          setStudents(data.students || []);
-          
-          // Calculate stats
-          const totalStudents = data.students?.length || 0;
-          const activeStudents = data.students?.filter((s: StudentData) => s.totalModulesCompleted > 0).length || 0;
-          const totalProgress = data.students?.reduce((sum: number, s: StudentData) => sum + s.totalModulesCompleted, 0) || 0;
-          const averageProgress = totalStudents > 0 ? Math.round(totalProgress / totalStudents) : 0;
-          const totalScores = data.students?.reduce((sum: number, s: StudentData) => sum + s.diagnosticScore, 0) || 0;
-          const averageScore = totalStudents > 0 ? Math.round(totalScores / totalStudents) : 0;
-          
-          setStats({
-            totalStudents,
-            activeStudents,
-            averageProgress,
-            totalAssignments: 0, // TODO: Implement assignments tracking
-            averageScore
-          });
-        }
-        
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json();
-          setDashboardStats(statsData);
-        }
-      } catch (error) {
-        console.error('Error fetching students and stats:', error);
-      }
-    };
-
-    if (user && !showOnboarding) {
-      fetchStudentsAndStats();
-    }
-  }, [user, showOnboarding]);
-
-  // Fetch modules for assignment
-  useEffect(() => {
-    const fetchModules = async () => {
-      try {
-        const response = await fetch('/api/teacher/assign-test');
-        if (response.ok) {
-          const data = await response.json();
-          setModules(data.modules || []);
-        }
-      } catch (error) {
-        console.error('Error fetching modules:', error);
-      }
-    };
-
-    if (user && !showOnboarding) {
-      fetchModules();
-    }
-  }, [user, showOnboarding]);
 
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -265,99 +203,41 @@ export default function TeacherDashboard() {
     }
   };
 
-  const handleAssignTest = async () => {
-    if (selectedStudents.length === 0 || selectedModules.length === 0) {
-      alert('Please select both students and modules for assignment');
-      return;
-    }
-
+  const handleLogout = async () => {
     try {
-      const response = await fetch('/api/teacher/assign-test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentIds: selectedStudents,
-          moduleIds: selectedModules,
-          dueDate: assignmentDueDate || null,
-          instructions: assignmentInstructions
-        })
-      });
-
-      if (response.ok) {
-        alert('Test assigned successfully!');
-        setShowAssignmentModal(false);
-        setSelectedStudents([]);
-        setSelectedModules([]);
-        setAssignmentInstructions('');
-        setAssignmentDueDate('');
-      } else {
-        const error = await response.json();
-        alert(`Error: ${error.error}`);
-      }
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
     } catch (error) {
-      console.error('Error assigning test:', error);
-      alert('Failed to assign test');
+      console.error('Logout error:', error);
     }
   };
 
-  const getPerformanceColor = (score: number) => {
-    if (score >= 80) return 'text-green-600 bg-green-50';
-    if (score >= 60) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
-  };
-
-  const getProgressColor = (modules: number) => {
-    if (modules >= 5) return 'text-green-600';
-    if (modules >= 2) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+  // Fix React Hook dependency
+  useEffect(() => {
+    if (activeTab === 'logout' && !logoutTriggered.current) {
+      logoutTriggered.current = true;
+      handleLogout();
+    }
+    if (activeTab !== 'logout') {
+      logoutTriggered.current = false;
+    }
+  }, [activeTab]);
 
   if (isLoading) {
     return (
-      <main className="min-h-screen flex flex-col lg:flex-row overflow-hidden bg-gradient-to-br from-purple-700 via-purple-600 to-purple-800">
-        {/* 🟪 Left Section - Content */}
-        <section className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 text-white flex flex-col justify-between relative min-h-screen lg:min-h-0">
-          <div>
-            <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="absolute top-4 left-4 w-12 h-12 sm:w-16 sm:h-16 lg:w-18 lg:h-18 object-contain" />
-          </div>
-          
-          <div className="mt-16 sm:mt-20 lg:mt-32 px-2 sm:px-4">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
-              Loading your <br />
-              <span className="text-amber-400 font-extrabold">teacher dashboard...</span>
-            </h2>
-          </div>
-          
-          <div className="w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-64 lg:h-64 mx-auto mt-4 sm:mt-6 lg:mt-2">
-            <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-full h-full object-contain" />
-          </div>
-        </section>
-
-        {/* ⬜ Right Section - White Card */}
-        <section className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center relative min-h-screen lg:min-h-screen">
-          <div className="max-w-2xl mx-auto w-full px-4 sm:px-0 h-full flex flex-col">
-            {/* Loading Container - White Card */}
-            <div 
-              className="bg-white rounded-4xl shadow-2xl p-4 sm:p-6 lg:p-8 border border-white/20 w-full backdrop-blur-sm flex-1 flex flex-col justify-center items-center relative"
-              style={{
-                backgroundImage: `
-                  linear-gradient(rgba(128, 128, 128, 0.05) 1px, transparent 1px),
-                  linear-gradient(90deg, rgba(128, 128, 128, 0.05) 1px, transparent 1px)
-                `,
-                backgroundSize: '50px 50px',
-                backgroundPosition: '0 0, 0 0'
-              }}
-            >
-              <div className="w-full max-w-md text-center">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
-                  Preparing your teaching portal...
-                </h2>
-                <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                <p className="text-gray-600 text-sm sm:text-base">Loading your classroom management dashboard</p>
-              </div>
-            </div>
-          </div>
-        </section>
+      <main className="min-h-screen flex items-center justify-center bg-[#6D18CE]">
+        <motion.div
+          className="flex flex-col items-center justify-center text-white"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <motion.div
+            className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"
+            style={{ borderTopColor: '#FFFFFF' }}
+          />
+          <p className="mt-4 text-lg font-semibold">Loading your teacher dashboard...</p>
+        </motion.div>
       </main>
     );
   }
@@ -368,152 +248,6 @@ export default function TeacherDashboard() {
 
   return (
     <div className="dashboard-container">
-      {/* Onboarding Modal */}
-      <Dialog open={showOnboarding} onClose={() => {}} className="fixed z-50 inset-0 overflow-y-auto">
-        <div className="flex items-center justify-center min-h-screen px-4">
-          <Dialog.Panel className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
-            <Dialog.Title className="text-lg font-bold mb-4">Complete Your Profile</Dialog.Title>
-            <form onSubmit={handleProfileSave} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Subject Specialization</label>
-                <select
-                  value={subjectSpecialization}
-                  onChange={e => setSubjectSpecialization(e.target.value)}
-                  required
-                  className="w-full border rounded px-3 py-2"
-                >
-                  <option value="">Select Subject</option>
-                  <option value="Mathematics">Mathematics</option>
-                  <option value="Science">Science</option>
-                  <option value="English">English</option>
-                  <option value="History">History</option>
-                  <option value="Geography">Geography</option>
-                  <option value="Computer Science">Computer Science</option>
-                  <option value="Arts">Arts</option>
-                  <option value="Physical Education">Physical Education</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Years of Experience</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="50"
-                  value={experienceYears}
-                  onChange={e => setExperienceYears(e.target.value)}
-                  required
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-purple-600 text-white py-2 rounded font-semibold hover:bg-purple-700 transition-colors"
-                disabled={saving}
-              >
-                {saving ? 'Saving...' : 'Save & Continue'}
-              </button>
-            </form>
-          </Dialog.Panel>
-        </div>
-      </Dialog>
-
-      {/* Assignment Modal */}
-      <Dialog open={showAssignmentModal} onClose={() => setShowAssignmentModal(false)} className="fixed z-50 inset-0 overflow-y-auto">
-        <div className="flex items-center justify-center min-h-screen px-4">
-          <Dialog.Panel className="bg-white rounded-lg shadow-xl p-8 max-w-4xl w-full max-h-screen overflow-y-auto">
-            <Dialog.Title className="text-lg font-bold mb-4">Assign Test to Students</Dialog.Title>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Students Selection */}
-              <div>
-                <h3 className="font-medium mb-3">Select Students</h3>
-                <div className="max-h-60 overflow-y-auto border rounded p-3 space-y-2">
-                  {students.map(student => (
-                    <label key={student.id} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedStudents.includes(student.userId)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedStudents([...selectedStudents, student.userId]);
-                          } else {
-                            setSelectedStudents(selectedStudents.filter(id => id !== student.userId));
-                          }
-                        }}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">{student.fullName} ({student.classGrade})</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Modules Selection */}
-              <div>
-                <h3 className="font-medium mb-3">Select Modules</h3>
-                <div className="max-h-60 overflow-y-auto border rounded p-3 space-y-2">
-                  {modules.map(module => (
-                    <label key={module.id} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedModules.includes(module.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedModules([...selectedModules, module.id]);
-                          } else {
-                            setSelectedModules(selectedModules.filter(id => id !== module.id));
-                          }
-                        }}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">{module.title} ({module.subject})</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Assignment Details */}
-            <div className="mt-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Due Date (Optional)</label>
-                <input
-                  type="datetime-local"
-                  value={assignmentDueDate}
-                  onChange={e => setAssignmentDueDate(e.target.value)}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Instructions (Optional)</label>
-                <textarea
-                  value={assignmentInstructions}
-                  onChange={e => setAssignmentInstructions(e.target.value)}
-                  rows={3}
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="Add any specific instructions for the students..."
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => setShowAssignmentModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAssignTest}
-                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-              >
-                Assign Test
-              </button>
-            </div>
-          </Dialog.Panel>
-        </div>
-      </Dialog>
-
       {/* Responsive Sidebar */}
       <Sidebar 
         activeTab={activeTab} 
@@ -524,295 +258,238 @@ export default function TeacherDashboard() {
         role="teacher"
       />
       
-      {/* Main Dashboard Content */}
-      <div className="dashboard-main">
+      {/* Main Content Area */}
+      <div className="dashboard-main bg-gray-50">
         {/* Top Bar */}
-        <header className="dashboard-top-bar">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="lg:hidden p-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all duration-200"
-            >
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        <div className="flex items-center justify-between w-full px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-gray-200 relative">
+          {/* Search Bar - Hidden on mobile, shown on tablet+ */}
+          <div className="hidden sm:flex flex-1 items-center max-w-md">
+            <div className="relative w-full">
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-600 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-            </button>
-            <h1 className="text-2xl font-bold text-white">Teacher Dashboard</h1>
+              <input
+                type="text"
+                placeholder="Search"
+                className="w-full pl-10 pr-4 py-3 rounded-full border-0 bg-gray-100 text-gray-400 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm"
+              />
+            </div>
           </div>
           
-          <div className="flex items-center gap-4">
-            {/* Language Selector */}
-            <select
-              value={language}
-              onChange={(e) => handleLanguageChange(e.target.value)}
-              className="px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
-            >
-              <option value="English (USA)">🇺🇸 English (USA)</option>
-              <option value="Hindi">🇮🇳 Hindi</option>
-              <option value="Gujarati">🇮🇳 Gujarati</option>
-            </select>
-            
-            {/* User Menu */}
-            <div className="relative">
-              <button className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/20 transition-all duration-200">
-                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                  {user.name?.charAt(0).toUpperCase()}
-                </div>
-                <span className="hidden sm:block">{user.name}</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-            </div>
+          {/* Mobile: Logo and User Info */}
+          <div className="flex sm:hidden items-center flex-1 justify-center ml-12">
+            <span className="text-lg font-bold text-gray-800">Teacher Dashboard</span>
           </div>
-        </header>
-
-        {/* Main Content Area */}
-        <main className="dashboard-content">
-          {/* Overview Tab */}
-          {activeTab === 'overview' && (
+          
+          {/* User Actions */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Language Selector */}
+            <div className="hidden sm:block">
+              <SimpleGoogleTranslate />
+            </div>
+            
+            {/* User Profile Section */}
+            <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-200 flex items-center gap-3">
+              {/* Circular Avatar */}
+              <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+          </div>
+              
+              {/* User Info */}
+              <div className="flex flex-col">
+                <span className="font-bold text-gray-900 text-sm">
+                  {user.name}
+                </span>
+                <span className="text-xs text-gray-600">
+                  Teacher
+                </span>
+                    </div>
+                    </div>
+                  </div>
+                </div>
+                
+        {/* Main Content with Responsive Layout */}
+        <div className="dashboard-content">
+          {/* Main Panel */}
+          <main className="flex-1 overflow-y-auto">
+            {/* Tab Content */}
             <div className="space-y-6">
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              {activeTab === 'overview' && (
+                <>
+                  {/* Welcome Section */}
+                  <div className="mb-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Total Students</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.totalStudents}</p>
+                      {/* Left side: Avatar and welcome text */}
+                      <div className="flex items-center gap-4">
+                        <div className="relative w-16 h-16 sm:w-20 sm:h-20">
+                          <div className="w-full h-full bg-purple-600 rounded-full flex items-center justify-center">
+                            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                            </svg>
                     </div>
-                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl">👥</span>
-                    </div>
+                  </div>
+                        <div>
+                          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-1">
+                            Welcome back, {user.name}!
+                          </h2>
+                          <p className="text-gray-600 text-lg sm:text-xl font-medium">
+                            Teaching dashboard
+                          </p>
                   </div>
                 </div>
                 
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Active Students</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.activeStudents}</p>
+                      {/* Right side: Stats cards */}
+                      <div className="flex gap-4">
+                        {/* Students Card */}
+                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                          <div className="text-3xl font-bold text-purple-600">
+                            {stats.totalStudents || 0}
                     </div>
-                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl">📈</span>
+                          <div className="text-sm text-gray-900">Total Students</div>
                     </div>
+                        
+                        {/* Active Students Card */}
+                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                          <div className="text-3xl font-bold text-purple-600">
+                            {stats.activeStudents || 0}
                   </div>
+                          <div className="text-sm text-gray-900">Active Students</div>
                 </div>
                 
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Avg Progress</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.averageProgress}%</p>
+                        {/* Average Progress Card */}
+                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                          <div className="text-3xl font-bold text-gray-900">
+                            {stats.averageProgress || 0}%
                     </div>
-                    <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl">📊</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Avg Score</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.averageScore}%</p>
-                    </div>
-                    <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl">🏆</span>
+                          <div className="text-sm text-gray-900">Avg Progress</div>
                     </div>
                   </div>
                 </div>
               </div>
 
+                  {/* Dashboard Stats Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Quick Actions */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <button
-                    onClick={() => setShowAssignmentModal(true)}
-                    className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-xl hover:bg-purple-100 transition-colors"
-                  >
-                    <span className="text-2xl">📝</span>
-                    <div className="text-left">
-                      <p className="font-medium text-gray-900">Assign Test</p>
-                      <p className="text-sm text-gray-600">Create new assignment</p>
-                    </div>
+                      <div className="space-y-3">
+                        <button className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
+                          Add New Student
                   </button>
-                  
-                  <button
-                    onClick={() => setActiveTab('students')}
-                    className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-colors"
-                  >
-                    <span className="text-2xl">👥</span>
-                    <div className="text-left">
-                      <p className="font-medium text-gray-900">Manage Students</p>
-                      <p className="text-sm text-gray-600">View student progress</p>
-                    </div>
+                        <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                          Create Assignment
                   </button>
-                  
-                  <button
-                    onClick={() => setActiveTab('analytics')}
-                    className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 transition-colors"
-                  >
-                    <span className="text-2xl">📈</span>
-                    <div className="text-left">
-                      <p className="font-medium text-gray-900">Analytics</p>
-                      <p className="text-sm text-gray-600">Performance insights</p>
-                    </div>
+                        <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
+                          View Reports
                   </button>
                 </div>
               </div>
 
-              {/* Recent Activity */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-                <div className="space-y-4">
-                  {students.slice(0, 5).map(student => (
-                    <div key={student.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                      <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                        {student.fullName.charAt(0).toUpperCase()}
+                    {/* Class Overview */}
+                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Class Overview</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Total Assignments</span>
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">{stats.totalAssignments || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Average Score</span>
+                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">{stats.averageScore || 0}%</span>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">{student.fullName}</p>
-                        <p className="text-sm text-gray-600">Completed {student.totalModulesCompleted} modules</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Active Modules</span>
+                          <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">{modules.length || 0}</span>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-gray-900">{student.diagnosticScore}%</p>
-                        <p className="text-xs text-gray-500">Diagnostic Score</p>
                       </div>
                     </div>
-                  ))}
+
+                    {/* Recent Activity */}
+                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                      <div className="space-y-3">
+                        <div className="text-sm text-gray-600">
+                          <div className="font-medium">New student joined</div>
+                          <div className="text-xs text-gray-500">2 minutes ago</div>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          <div className="font-medium">Assignment submitted</div>
+                          <div className="text-xs text-gray-500">1 hour ago</div>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          <div className="font-medium">Progress report generated</div>
+                          <div className="text-xs text-gray-500">6 hours ago</div>
                 </div>
               </div>
             </div>
+                  </div>
+                </>
           )}
 
-          {/* Students Tab */}
           {activeTab === 'students' && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">Student Management</h3>
-                  <button
-                    onClick={() => setShowAssignmentModal(true)}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                  >
-                    Assign Test
-                  </button>
-                </div>
-                
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">Student</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">Grade</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">Modules Completed</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">Diagnostic Score</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map(student => (
-                        <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                                {student.fullName.charAt(0).toUpperCase()}
-                              </div>
-                              <div>
-                                <p className="font-medium text-gray-900">{student.fullName}</p>
-                                <p className="text-sm text-gray-600">{student.email}</p>
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">My Students</h2>
+                  <div className="text-center text-gray-500 py-8">
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                    </svg>
+                    <p>Student management interface coming soon...</p>
                               </div>
                             </div>
-                          </td>
-                          <td className="py-3 px-4 text-gray-900">{student.classGrade}</td>
-                          <td className="py-3 px-4">
-                            <span className={`font-medium ${getProgressColor(student.totalModulesCompleted)}`}>
-                              {student.totalModulesCompleted}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPerformanceColor(student.diagnosticScore)}`}>
-                              {student.diagnosticScore}%
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              student.totalModulesCompleted > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {student.totalModulesCompleted > 0 ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              )}
+              
+              {activeTab === 'modules' && (
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Learning Modules</h2>
+                  <div className="text-center text-gray-500 py-8">
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    <p>Module management interface coming soon...</p>
               </div>
             </div>
           )}
 
-          {/* Other tabs can be implemented similarly */}
           {activeTab === 'assignments' && (
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Assign Tests</h3>
-              <p className="text-gray-600">Assignment management interface will be implemented here.</p>
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Assignments</h2>
+                  <div className="text-center text-gray-500 py-8">
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p>Assignment management interface coming soon...</p>
+                  </div>
             </div>
           )}
 
           {activeTab === 'analytics' && (
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Analytics</h3>
-              <p className="text-gray-600">Analytics dashboard will be implemented here.</p>
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Analytics</h2>
+                  <div className="text-center text-gray-500 py-8">
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    <p>Analytics interface coming soon...</p>
             </div>
-          )}
-
-          {activeTab === 'reports' && (
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Reports</h3>
-              <p className="text-gray-600">Report generation interface will be implemented here.</p>
             </div>
           )}
 
           {activeTab === 'settings' && (
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Settings</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
-                  <select
-                    value={language}
-                    onChange={(e) => handleLanguageChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="English (USA)">🇺🇸 English (USA)</option>
-                    <option value="Hindi">🇮🇳 Hindi</option>
-                    <option value="Gujarati">🇮🇳 Gujarati</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Subject Specialization</label>
-                  <input
-                    type="text"
-                    value={subjectSpecialization}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Years of Experience</label>
-                  <input
-                    type="text"
-                    value={experienceYears}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                  />
-                </div>
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Settings</h2>
+                  <div className="text-center text-gray-500 py-8">
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <p>Settings interface coming soon...</p>
               </div>
             </div>
           )}
+            </div>
         </main>
         
         {/* Right Panel */}
@@ -834,55 +511,34 @@ export default function TeacherDashboard() {
               </div>
             </div>
           )}
+            
           {/* Panel Content */}
           <div className="flex-1 flex flex-col transition-all duration-300 p-4">
-            {/* Close button for mobile */}
-            {isMobile && (
+              {/* Title and Close button for mobile */}
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+                <h3 className="text-lg font-semibold text-gray-900 transition-opacity duration-200"
+                    style={{ opacity: isMobile ? 1 : (isRightPanelHovered ? 1 : 0) }}>
+                  Class Alerts
+                </h3>
+            {isMobile && (
                 <button 
                   onClick={() => setIsRightPanelOpen(false)}
-                  className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200"
+                    className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
+                )}
               </div>
-            )}
-            {/* Desktop title */}
-            {!isMobile && (
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 transition-opacity duration-200"
-                  style={{ opacity: isRightPanelHovered ? 1 : 0 }}>
-                Quick Actions
-              </h3>
-            )}
+              
             <div className="space-y-3">
-              <div className={`flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 shadow-sm hover:bg-purple-50 cursor-pointer transition-all duration-200 ${isMobile ? '' : (isRightPanelHovered ? '' : 'opacity-0 pointer-events-none')}`}> 
-                <div className="w-3 h-3 rounded-full flex-shrink-0 bg-blue-500"></div>
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900 text-sm">Assign Test</div>
-                  <div className="text-xs text-gray-500">Create assignment</div>
-                </div>
-                <span className="text-gray-400">→</span>
-              </div>
-              <div className={`flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 shadow-sm hover:bg-purple-50 cursor-pointer transition-all duration-200 ${isMobile ? '' : (isRightPanelHovered ? '' : 'opacity-0 pointer-events-none')}`}> 
-                <div className="w-3 h-3 rounded-full flex-shrink-0 bg-green-500"></div>
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900 text-sm">View Reports</div>
-                  <div className="text-xs text-gray-500">Class analytics</div>
-                </div>
-                <span className="text-gray-400">→</span>
+                <div className={`text-center text-gray-400 text-sm py-8 transition-opacity duration-200 ${isMobile ? '' : 'opacity-0 pointer-events-none'}`} 
+                     style={!isMobile ? { opacity: isRightPanelHovered ? 1 : 0 } : {}}>
+                  No class alerts
               </div>
             </div>
-            <button 
-              className={`btn btn-primary w-full mt-6 transition-opacity duration-200 ${isMobile ? '' : (isRightPanelHovered ? '' : 'opacity-0 pointer-events-none')}`}
-              onClick={() => setActiveTab('assignments')}
-            >
-              Manage assignments
-            </button>
           </div>
-          
         </aside>
         
         {/* Mobile Right Panel Overlay */}
@@ -892,21 +548,77 @@ export default function TeacherDashboard() {
             onClick={() => setIsRightPanelOpen(false)}
           />
         )}
-        
+        </div>
       </div>
 
-      {/* Floating FAB for right panel on mobile/tablet */}
-      {isMobile && !isRightPanelOpen && (
+      {/* Onboarding Modal */}
+      <Dialog
+        open={showOnboarding}
+        onClose={() => {}}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-md rounded-2xl bg-white p-6">
+            <Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">
+              Complete Your Profile
+            </Dialog.Title>
+            
+            <form onSubmit={handleProfileSave} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Subject Specialization
+                </label>
+                <select
+                  value={subjectSpecialization}
+                  onChange={(e) => setSubjectSpecialization(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  required
+                >
+                  <option value="">Select Subject</option>
+                  <option value="Mathematics">Mathematics</option>
+                  <option value="Science">Science</option>
+                  <option value="English">English</option>
+                  <option value="History">History</option>
+                  <option value="Geography">Geography</option>
+                  <option value="Computer Science">Computer Science</option>
+                  <option value="Arts">Arts</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Years of Experience
+                </label>
+                <select
+                  value={experienceYears}
+                  onChange={(e) => setExperienceYears(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  required
+                >
+                  <option value="">Select Experience</option>
+                  <option value="0-2">0-2 years</option>
+                  <option value="3-5">3-5 years</option>
+                  <option value="6-10">6-10 years</option>
+                  <option value="10+">10+ years</option>
+                </select>
+      </div>
+
+              <div className="flex gap-3 pt-4">
         <button
-          className="right-panel-fab"
-          aria-label="Open Quick Actions"
-          onClick={() => setIsRightPanelOpen(true)}
-        >
-          <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Saving...' : 'Save Profile'}
         </button>
-      )}
+              </div>
+            </form>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
     </div>
   );
 } 

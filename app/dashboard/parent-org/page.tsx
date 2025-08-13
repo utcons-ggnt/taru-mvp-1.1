@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Dialog } from '@headlessui/react';
+import { motion } from 'framer-motion';
+import SimpleGoogleTranslate from '../../components/SimpleGoogleTranslate';
 
 interface ParentOrgProfile {
   name: string;
@@ -86,9 +88,20 @@ export default function ParentOrgDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
+      <main className="min-h-screen flex items-center justify-center bg-[#6D18CE]">
+        <motion.div
+          className="flex flex-col items-center justify-center text-white"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <motion.div
+            className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"
+            style={{ borderTopColor: '#FFFFFF' }}
+          />
+          <p className="mt-4 text-lg font-semibold">Loading your organization dashboard...</p>
+        </motion.div>
+      </main>
     );
   }
 
@@ -97,225 +110,235 @@ export default function ParentOrgDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50">
+      {/* Top Bar */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
+          {/* Logo and Title */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold text-gray-900">Organization Dashboard</h1>
+          </div>
+          
+          {/* User Actions */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Language Selector */}
+            <div className="hidden sm:block">
+              <SimpleGoogleTranslate />
+            </div>
+            
+            {/* User Profile Section */}
+            <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-200 flex items-center gap-3">
+              {/* Circular Avatar */}
+              <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              
+              {/* User Info */}
+              <div className="flex flex-col">
+                <span className="font-bold text-gray-900 text-sm">
+                  {user.name}
+                </span>
+                <span className="text-xs text-gray-600">
+                  Organization
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            {/* Left side: Avatar and welcome text */}
+            <div className="flex items-center gap-4">
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20">
+                <div className="w-full h-full bg-purple-600 rounded-full flex items-center justify-center">
+                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-1">
+                  Welcome back, {user.name}!
+                </h2>
+                <p className="text-gray-600 text-lg sm:text-xl font-medium">
+                  Organization management dashboard
+                </p>
+              </div>
+            </div>
+            
+            {/* Right side: Stats cards */}
+            <div className="flex gap-4">
+              {/* Organizations Card */}
+              <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                <div className="text-3xl font-bold text-purple-600">
+                  0
+                </div>
+                <div className="text-sm text-gray-900">Organizations</div>
+              </div>
+              
+              {/* Users Card */}
+              <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                <div className="text-3xl font-bold text-purple-600">
+                  0
+                </div>
+                <div className="text-sm text-gray-900">Total Users</div>
+              </div>
+              
+              {/* Modules Card */}
+              <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                <div className="text-3xl font-bold text-gray-900">
+                  0
+                </div>
+                <div className="text-sm text-gray-900">Modules</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Dashboard Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Quick Actions */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="space-y-3">
+              <button className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
+                Add Organization
+              </button>
+              <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                Manage Users
+              </button>
+              <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
+                View Reports
+              </button>
+            </div>
+          </div>
+
+          {/* Organization Status */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Organization Status</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Active Organizations</span>
+                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">0</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Pending Approvals</span>
+                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">0</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Total Revenue</span>
+                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">$0</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+            <div className="space-y-3">
+              <div className="text-sm text-gray-600">
+                <div className="font-medium">No recent activity</div>
+                <div className="text-xs text-gray-500">Get started by adding organizations</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Organization Management Section */}
+        <div className="mt-8">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Organization Management</h3>
+            <div className="text-center text-gray-500 py-8">
+              <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <p>Organization management interface coming soon...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Onboarding Modal */}
-      <Dialog open={showOnboarding} onClose={() => {}} className="fixed z-50 inset-0 overflow-y-auto">
-        <div className="flex items-center justify-center min-h-screen px-4">
-          <Dialog.Panel className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
-            <Dialog.Title className="text-lg font-bold mb-4">Complete Your Organization Profile</Dialog.Title>
+      <Dialog
+        open={showOnboarding}
+        onClose={() => {}}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-md rounded-2xl bg-white p-6">
+            <Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">
+              Complete Your Profile
+            </Dialog.Title>
+            
             <form onSubmit={handleProfileSave} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Organization Type</label>
-                <select 
-                  value={organizationType} 
-                  onChange={e => setOrganizationType(e.target.value)} 
-                  required 
-                  className="w-full border rounded px-3 py-2"
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Organization Type
+                </label>
+                <select
+                  value={organizationType}
+                  onChange={(e) => setOrganizationType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  required
                 >
-                  <option value="">Select Type</option>
-                  <option value="School">School</option>
-                  <option value="University">University</option>
-                  <option value="Training Institute">Training Institute</option>
-                  <option value="Corporate">Corporate</option>
-                  <option value="NGO">NGO</option>
-                  <option value="Government">Government</option>
-                  <option value="Other">Other</option>
+                  <option value="">Select Organization Type</option>
+                  <option value="school">School</option>
+                  <option value="college">College</option>
+                  <option value="university">University</option>
+                  <option value="training">Training Institute</option>
+                  <option value="corporate">Corporate</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
+              
               <div>
-                <label className="block text-sm font-medium mb-1">Industry</label>
-                <select 
-                  value={industry} 
-                  onChange={e => setIndustry(e.target.value)} 
-                  required 
-                  className="w-full border rounded px-3 py-2"
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Industry
+                </label>
+                <select
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  required
                 >
                   <option value="">Select Industry</option>
-                  <option value="Education">Education</option>
-                  <option value="Technology">Technology</option>
-                  <option value="Healthcare">Healthcare</option>
-                  <option value="Finance">Finance</option>
-                  <option value="Manufacturing">Manufacturing</option>
-                  <option value="Government">Government</option>
-                  <option value="Non-Profit">Non-Profit</option>
-                  <option value="Other">Other</option>
+                  <option value="education">Education</option>
+                  <option value="technology">Technology</option>
+                  <option value="healthcare">Healthcare</option>
+                  <option value="finance">Finance</option>
+                  <option value="manufacturing">Manufacturing</option>
+                  <option value="retail">Retail</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
-              <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded font-semibold" disabled={saving}>
-                {saving ? 'Saving...' : 'Save & Continue'}
-              </button>
+              
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Saving...' : 'Save Profile'}
+                </button>
+              </div>
             </form>
           </Dialog.Panel>
         </div>
       </Dialog>
-
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Organization Dashboard
-              </h1>
-              <p className="text-sm text-gray-700 dark:text-gray-400">
-                Welcome back, {user.name}!
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700 dark:text-gray-400">
-                {user.profile?.organizationType || 'Organization not set'}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Organization Profile */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Organization Information
-            </h2>
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Organization Name</label>
-                <p className="text-gray-900 dark:text-white">{user.name}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Contact Email</label>
-                <p className="text-gray-900 dark:text-white">{user.email}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Type</label>
-                <p className="text-gray-900 dark:text-white">{user.profile?.organizationType || 'Not set'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Industry</label>
-                <p className="text-gray-900 dark:text-white">{user.profile?.industry || 'Not set'}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Quick Actions
-            </h2>
-            <div className="space-y-3">
-              <Link
-                href="/students"
-                className="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-4 rounded-md transition-colors"
-              >
-                Manage Students
-              </Link>
-              <Link
-                href="/teachers"
-                className="block w-full bg-green-600 hover:bg-green-700 text-white text-center py-2 px-4 rounded-md transition-colors"
-              >
-                Manage Teachers
-              </Link>
-              <Link
-                href="/analytics"
-                className="block w-full bg-purple-600 hover:bg-purple-700 text-white text-center py-2 px-4 rounded-md transition-colors"
-              >
-                View Analytics
-              </Link>
-              <Link
-                href="/settings"
-                className="block w-full bg-gray-600 hover:bg-gray-700 text-white text-center py-2 px-4 rounded-md transition-colors"
-              >
-                Organization Settings
-              </Link>
-            </div>
-          </div>
-
-          {/* Statistics */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Organization Statistics
-            </h2>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Total Students</span>
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">0</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Active Teachers</span>
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">0</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Courses Offered</span>
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">0</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Completion Rate</span>
-                <span className="text-lg font-semibold text-green-600">0%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Organization Overview */}
-        <div className="mt-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Organization Overview
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-blue-600 dark:text-blue-400">Enrolled Students</h3>
-                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">0</p>
-              </div>
-              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-green-600 dark:text-green-400">Active Courses</h3>
-                <p className="text-2xl font-bold text-green-900 dark:text-green-100">0</p>
-              </div>
-              <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-purple-600 dark:text-purple-400">Faculty Members</h3>
-                <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">0</p>
-              </div>
-              <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-orange-600 dark:text-orange-400">Assessments</h3>
-                <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">0</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="mt-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Recent Activity
-            </h2>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              <p>No recent activity</p>
-              <p className="text-xs mt-1">Student enrollments, course completions, and staff activities will appear here</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Student Performance */}
-        <div className="mt-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Student Performance Overview
-            </h2>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              <p>No performance data available</p>
-              <p className="text-xs mt-1">Student progress, assessment scores, and learning analytics will appear here</p>
-            </div>
-          </div>
-        </div>
-      </main>
     </div>
   );
 } 

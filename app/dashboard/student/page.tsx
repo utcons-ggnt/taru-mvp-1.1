@@ -351,7 +351,8 @@ export default function StudentDashboard() {
         name: badge.name,
         description: badge.description,
         icon: '/badge-default.png',
-        earnedAt: badge.earnedAt
+        earnedAt: badge.earnedAt,
+        xp: 100 // Default XP value for earned badges
       }))
     : [];
 
@@ -617,13 +618,13 @@ export default function StudentDashboard() {
           {/* Search Bar - Hidden on mobile, shown on tablet+ */}
           <div className="hidden sm:flex flex-1 items-center max-w-md">
             <div className="relative w-full">
-              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-600 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
                 type="text"
-                placeholder="Search courses, modules, or topics..."
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm text-gray-900"
+                placeholder="Search"
+                className="w-full pl-10 pr-4 py-3 rounded-full border-0 bg-gray-100 text-gray-400 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm"
               />
             </div>
           </div>
@@ -635,12 +636,7 @@ export default function StudentDashboard() {
           
           {/* User Actions */}
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Google Translate Button */}
-            <SimpleGoogleTranslate 
-              className="text-gray-700"
-              buttonText="Translate"
-              showIcon={true}
-            />
+           
             
             {/* Notification Bell */}
             <div className="relative">
@@ -648,12 +644,15 @@ export default function StudentDashboard() {
                 onClick={handleNotificationClick}
                 className="relative text-gray-900 hover:text-purple-600 transition-colors p-2 rounded-full hover:bg-gray-50 touch-manipulation"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="30.24" height="30.24" transform="translate(0.899902 1.38086)" fill="#F5F5F5"/>
+                  <path d="M16.0204 3.90039C13.6812 3.90039 11.4378 4.82964 9.7837 6.48371C8.12963 8.13778 7.20039 10.3812 7.20039 12.7204V17.1657C7.20057 17.3611 7.15527 17.554 7.06809 17.7289L4.90467 22.0545C4.79899 22.2658 4.74908 22.5006 4.7597 22.7367C4.77032 22.9727 4.8411 23.2021 4.96533 23.4031C5.08956 23.6041 5.2631 23.77 5.46948 23.885C5.67586 24.0001 5.90823 24.0604 6.14451 24.0604H25.8963C26.1325 24.0604 26.3649 24.0001 26.5713 23.885C26.7777 23.77 26.9512 23.6041 27.0754 23.4031C27.1997 23.2021 27.2705 22.9727 27.2811 22.7367C27.2917 22.5006 27.2418 22.2658 27.1361 22.0545L24.9739 17.7289C24.8863 17.5541 24.8406 17.3612 24.8404 17.1657V12.7204C24.8404 10.3812 23.9111 8.13778 22.2571 6.48371C20.603 4.82964 18.3596 3.90039 16.0204 3.90039ZM16.0204 27.8404C15.2384 27.8408 14.4755 27.5987 13.8368 27.1473C13.1982 26.696 12.7153 26.0577 12.4546 25.3204H19.5862C19.3255 26.0577 18.8426 26.696 18.2039 27.1473C17.5653 27.5987 16.8024 27.8408 16.0204 27.8404Z" fill="#A5A5A5"/>
+                  <circle cx="23.58" cy="6.27336" r="5.78118" fill="#FDBB30"/>
+                  <path d="M21.8094 7.82227V7.15526L23.579 5.42054C23.7482 5.24964 23.8893 5.09782 24.0021 4.96508C24.1149 4.83234 24.1995 4.70375 24.2559 4.57931C24.3124 4.45487 24.3406 4.32213 24.3406 4.1811C24.3406 4.02015 24.3041 3.88244 24.2311 3.76795C24.158 3.6518 24.0577 3.56221 23.9299 3.49916C23.8021 3.43611 23.657 3.40458 23.4944 3.40458C23.3268 3.40458 23.1799 3.43942 23.0538 3.50911C22.9277 3.57714 22.8298 3.6742 22.7601 3.80031C22.6921 3.92641 22.6581 4.07657 22.6581 4.25078H21.7795C21.7795 3.92724 21.8534 3.646 22.0011 3.40707C22.1487 3.16814 22.352 2.98314 22.6108 2.85206C22.8713 2.72098 23.17 2.65544 23.5068 2.65544C23.8486 2.65544 24.1489 2.71932 24.4078 2.84708C24.6666 2.97484 24.8674 3.14989 25.0101 3.37223C25.1544 3.59456 25.2266 3.84842 25.2266 4.13381C25.2266 4.32462 25.1901 4.51211 25.1171 4.69629C25.0441 4.88046 24.9155 5.08454 24.7313 5.30854C24.5488 5.53254 24.2924 5.80382 23.9623 6.12239L23.0837 7.01588V7.05073H25.3037V7.82227H21.8094Z" fill="white"/>
                 </svg>
                 {/* Notification count */}
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -661,50 +660,70 @@ export default function StudentDashboard() {
 
               {/* Notifications Dropdown */}
               {isNotificationOpen && (
-                <div className="notification-dropdown">
-                  {/* Header */}
-                  <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-gray-50">
-                    <h3 className="font-semibold text-gray-900">Notifications</h3>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={markAllNotificationsAsRead}
-                        className="text-xs text-purple-600 hover:text-purple-700 font-medium"
-                      >
-                        Mark all read
-                      </button>
-                    )}
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+                  {/* User Profile Header */}
+                  <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-white">
+                    <div className="flex items-center gap-3">
+                      {/* Purple Notification Bell */}
+                      <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                        <svg width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <rect width="30.24" height="30.24" transform="translate(0.899902 1.38086)" fill="#F5F5F5"/>
+                          <path d="M16.0204 3.90039C13.6812 3.90039 11.4378 4.82964 9.7837 6.48371C8.12963 8.13778 7.20039 10.3812 7.20039 12.7204V17.1657C7.20057 17.3611 7.15527 17.554 7.06809 17.7289L4.90467 22.0545C4.79899 22.2658 4.74908 22.5006 4.7597 22.7367C4.77032 22.9727 4.8411 23.2021 4.96533 23.4031C5.08956 23.6041 5.2631 23.77 5.46948 23.885C5.67586 24.0001 5.90823 24.0604 6.14451 24.0604H25.8963C26.1325 24.0604 26.3649 24.0001 26.5713 23.885C26.7777 23.77 26.9512 23.6041 27.0754 23.4031C27.1997 23.2021 27.2705 22.9727 27.2811 22.7367C27.2917 22.5006 27.2418 22.2658 27.1361 22.0545L24.9739 17.7289C24.8863 17.5541 24.8406 17.3612 24.8404 17.1657V12.7204C24.8404 10.3812 23.9111 8.13778 22.2571 6.48371C20.603 4.82964 18.3596 3.90039 16.0204 3.90039ZM16.0204 27.8404C15.2384 27.8408 14.4755 27.5987 13.8368 27.1473C13.1982 26.696 12.7153 26.0577 12.4546 25.3204H19.5862C19.3255 26.0577 18.8426 26.696 18.2039 27.1473C17.5653 27.5987 16.8024 27.8408 16.0204 27.8404Z" fill="#A5A5A5"/>
+                          <circle cx="23.58" cy="6.27336" r="5.78118" fill="#FDBB30"/>
+                          <path d="M21.8094 7.82227V7.15526L23.579 5.42054C23.7482 5.24964 23.8893 5.09782 24.0021 4.96508C24.1149 4.83234 24.1995 4.70375 24.2559 4.57931C24.3124 4.45487 24.3406 4.32213 24.3406 4.1811C24.3406 4.02015 24.3041 3.88244 24.2311 3.76795C24.158 3.6518 24.0577 3.56221 23.9299 3.49916C23.8021 3.43611 23.657 3.40458 23.4944 3.40458C23.3268 3.40458 23.1799 3.43942 23.0538 3.50911C22.9277 3.57714 22.8298 3.6742 22.7601 3.80031C22.6921 3.92641 22.6581 4.07657 22.6581 4.25078H21.7795C21.7795 3.92724 21.8534 3.646 22.0011 3.40707C22.1487 3.16814 22.352 2.98314 22.6108 2.85206C22.8713 2.72098 23.17 2.65544 23.5068 2.65544C23.8486 2.65544 24.1489 2.71932 24.4078 2.84708C24.6666 2.97484 24.8674 3.14989 25.0101 3.37223C25.1544 3.59456 25.2266 3.84842 25.2266 4.13381C25.2266 4.32462 25.1901 4.51211 25.1171 4.69629C25.0441 4.88046 24.9155 5.08454 24.7313 5.30854C24.5488 5.53254 24.2924 5.80382 23.9623 6.12239L23.0837 7.01588V7.05073H25.3037V7.82227H21.8094Z" fill="white"/>
+                        </svg>
+                      </div>
+                      
+                      {/* User Avatar and Info */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                          <Image src="/studentDashboard/avatar.png" alt="User Avatar" width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-900 text-sm">
+                            {user.name}
+                          </span>
+                          <span className="text-xs text-gray-600">
+                            #{user._id?.toString().slice(-4) || '0000'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Notifications List */}
-                  <div className="max-h-80 overflow-y-auto">
+                  <div className="max-h-80 overflow-y-auto bg-gray-50">
                     {notifications.length > 0 ? (
-                      notifications.map((notification) => (
+                      notifications.map((notification, index) => (
                         <div
                           key={notification.id}
-                          className={`px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors touch-manipulation ${
-                            !notification.read ? 'bg-blue-50/50' : ''
-                          }`}
+                          className="bg-white mx-3 my-2 rounded-lg shadow-sm border border-gray-100 p-3 cursor-pointer hover:shadow-md transition-all duration-200"
                           onClick={() => markNotificationAsRead(notification.id)}
                         >
                           <div className="flex items-start gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${getNotificationColor(notification.type)}`}>
-                              {getNotificationIcon(notification.type)}
-                            </div>
+                            {/* Purple Circle Icon */}
+                            <div className="w-3 h-3 bg-purple-600 rounded-full flex-shrink-0 mt-1"></div>
+                            
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-1">
-                                <h4 className={`text-sm font-medium ${!notification.read ? 'text-gray-900' : 'text-gray-700'}`}>
-                                  {notification.title}
-                                </h4>
-                                {!notification.read && (
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
-                                )}
+                              {/* Notification Header */}
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {notification.title}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {formatNotificationTime(notification.date)}
+                                  </span>
+                                </div>
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
                               </div>
-                              <p className="text-xs text-gray-600 mb-1 line-clamp-2">
-                                {notification.message}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {formatNotificationTime(notification.date)}
-                              </p>
+                              
+                              {/* Notification Content */}
+                              <div className="text-sm text-gray-700">
+                                <span className="font-medium">Hi {user.name}!</span> {notification.message}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -719,12 +738,18 @@ export default function StudentDashboard() {
                     )}
                   </div>
 
-                  {/* Footer */}
+                  {/* Action Buttons */}
                   {notifications.length > 0 && (
-                    <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
-                      <button className="text-xs text-purple-600 hover:text-purple-700 font-medium w-full text-center">
-                        View all notifications
-                      </button>
+                    <div className="px-4 py-3 border-t border-gray-200 bg-white">
+                      <div className="flex items-center justify-between">
+                        <button className="text-sm text-purple-600 hover:text-purple-700 font-medium">
+                          Share
+                        </button>
+                        <div className="w-px h-4 bg-gray-300"></div>
+                        <button className="text-sm text-red-600 hover:text-red-700 font-medium">
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -739,12 +764,22 @@ export default function StudentDashboard() {
               )}
             </div>
             
-            {/* User Avatar */}
-            <div className="flex items-center gap-2">
-              <Image src="/avatar.png" alt="User Avatar" width={32} height={32} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover" />
-              <span className="hidden sm:block font-semibold text-gray-900 text-sm">
-                {user.name} #{user._id?.toString().slice(-4) || '0000'}
-              </span>
+            {/* User Profile Section */}
+            <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-200 flex items-center gap-3">
+              {/* Circular Avatar */}
+              <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                <Image src="/studentDashboard/avatar.png" alt="User Avatar" width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
+              </div>
+              
+              {/* User Info */}
+              <div className="flex flex-col">
+                <span className="font-bold text-gray-900 text-sm">
+                  {user.name}
+                </span>
+                <span className="text-xs text-gray-600">
+                  #{user._id?.toString().slice(-4) || '0000'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -759,16 +794,47 @@ export default function StudentDashboard() {
                 <>
                   {/* Welcome Section */}
                   <div className="mb-6">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                          Welcome back, {user.name}!
-                        </h2>
-                        <p className="text-gray-700 text-sm sm:text-base">
-                          {user.profile?.grade ? `Grade ${user.profile.grade}` : ''} 
-                          {user.profile?.school ? ` • ${user.profile.school}` : ''}
-                          {!user.profile?.grade && !user.profile?.school ? 'Ready for another fun quest!' : ''}
-                        </p>
+                    <div className="flex items-center justify-between">
+                      {/* Left side: Avatar and quest text */}
+                      <div className="flex items-center gap-4">
+                        <div className="relative w-16 h-16 sm:w-20 sm:h-20">
+                          <Image src="/studentDashboard/avatar.png" alt="Student Avatar" fill className="rounded-full object-cover" />
+                        </div>
+                        <div>
+                          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-1">
+                            Welcome back, {user.name}!
+                          </h2>
+                          <p className="text-gray-600 text-lg sm:text-xl font-medium">
+                            Ready for another fun quest?
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Right side: Stats cards */}
+                      <div className="flex gap-4">
+                        {/* XP Points Card */}
+                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                          <div className="text-3xl font-bold text-purple-600">
+                            {dashboardData?.overview?.totalXp || 0}
+                          </div>
+                          <div className="text-sm text-gray-900">XP Points</div>
+                        </div>
+                        
+                        {/* Badges Card */}
+                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                          <div className="text-3xl font-bold text-purple-600">
+                            {dashboardData?.progress?.badgesEarned?.length || 0}
+                          </div>
+                          <div className="text-sm text-gray-900">Badges</div>
+                        </div>
+                        
+                        {/* Modules Card */}
+                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                          <div className="text-3xl font-bold text-gray-900">
+                            {dashboardData?.overview?.totalModules || 0}
+                          </div>
+                          <div className="text-sm text-gray-900">Modules</div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -891,41 +957,10 @@ export default function StudentDashboard() {
         studentData={user}
       />
 
-      {/* Floating FAB for right panel on mobile/tablet */}
-      {isMobile && !isRightPanelOpen && (
-        <button
-          className="right-panel-fab"
-          aria-label="Open Upcoming Tests"
-          onClick={() => setIsRightPanelOpen(true)}
-          onTouchStart={(e) => e.preventDefault()}
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            zIndex: 9999,
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
-            background: '#f3e8ff',
-            border: '2px solid #e2e8f0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(124,58,237,0.25)',
-            animation: 'pulse 2s infinite'
-          }}
-        >
-          <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      )}
-
       {/* Floating AI Chat Button */}
       <button
         onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-24 right-24 z-50 w-14 h-14 bg-purple-600 rounded-full shadow-lg hover:bg-purple-700 transition-all duration-200 flex items-center justify-center"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-purple-600 rounded-full shadow-lg hover:bg-purple-700 transition-all duration-200 flex items-center justify-center"
         aria-label="Open AI Chat"
         style={{
           boxShadow: '0 4px 12px rgba(124,58,237,0.3)'

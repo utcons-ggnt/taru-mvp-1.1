@@ -7,6 +7,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Dialog } from '@headlessui/react';
 import { saveAs } from 'file-saver';
+import { motion } from 'framer-motion';
+import SimpleGoogleTranslate from '../../components/SimpleGoogleTranslate';
 
 // Add custom hook for responsive behavior
 function useWindowSize() {
@@ -60,11 +62,11 @@ export default function AdminDashboard() {
 
   // Admin-specific navigation items
   const navItems = [
-    { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'users', label: 'Manage Users', icon: '👥' },
-    { id: 'content', label: 'Content Management', icon: '📝' },
-    { id: 'organisations', label: 'Organisations', icon: '🏢' },
-    { id: 'system', label: 'System Settings', icon: '⚙️' },
+    { id: 'overview', label: 'Overview', icon: '/icons/overview.png' },
+    { id: 'users', label: 'Manage Users', icon: '/icons/profile.png' },
+    { id: 'content', label: 'Content Management', icon: '/icons/modules.png' },
+    { id: 'organisations', label: 'Organisations', icon: '/icons/rewards.png' },
+    { id: 'system', label: 'System Settings', icon: '/icons/settings.png' },
   ];
 
   useEffect(() => {
@@ -116,19 +118,9 @@ export default function AdminDashboard() {
         setIsLoading(false);
       }
     };
+
     fetchUserAndStats();
   }, [router]);
-
-  // Fix React Hook dependency
-  useEffect(() => {
-    if (activeTab === 'logout' && !logoutTriggered.current) {
-      logoutTriggered.current = true;
-      handleLogout();
-    }
-    if (activeTab !== 'logout') {
-      logoutTriggered.current = false;
-    }
-  }, [activeTab]);
 
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,73 +144,41 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
     }
-  }, [router]);
-
-  const handleDownloadAllProgress = async () => {
-    try {
-      const response = await fetch('/api/admin/export-student-progress');
-      if (!response.ok) throw new Error('Failed to fetch student progress');
-      const csv = await response.text();
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      saveAs(blob, 'all_student_progress.csv');
-    } catch {
-      alert('Failed to download student progress.');
-    }
   };
+
+  // Fix React Hook dependency
+  useEffect(() => {
+    if (activeTab === 'logout' && !logoutTriggered.current) {
+      logoutTriggered.current = true;
+      handleLogout();
+    }
+    if (activeTab !== 'logout') {
+      logoutTriggered.current = false;
+    }
+  }, [activeTab]);
 
   if (isLoading) {
     return (
-      <main className="min-h-screen flex flex-col lg:flex-row overflow-hidden bg-gradient-to-br from-purple-700 via-purple-600 to-purple-800">
-        {/* 🟪 Left Section - Content */}
-        <section className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 text-white flex flex-col justify-between relative min-h-screen lg:min-h-0">
-          <div>
-            <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="absolute top-4 left-4 w-12 h-12 sm:w-16 sm:h-16 lg:w-18 lg:h-18 object-contain" />
-          </div>
-          
-          <div className="mt-16 sm:mt-20 lg:mt-32 px-2 sm:px-4">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
-              Loading your <br />
-              <span className="text-amber-400 font-extrabold">admin dashboard...</span>
-            </h2>
-          </div>
-          
-          <div className="w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-64 lg:h-64 mx-auto mt-4 sm:mt-6 lg:mt-2">
-            <Image src="/landingPage.png" alt="Mascot" width={224} height={256} className="w-full h-full object-contain" />
-          </div>
-        </section>
-
-        {/* ⬜ Right Section - White Card */}
-        <section className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center relative min-h-screen lg:min-h-screen">
-          <div className="max-w-2xl mx-auto w-full px-4 sm:px-0 h-full flex flex-col">
-            {/* Loading Container - White Card */}
-            <div 
-              className="bg-white rounded-4xl shadow-2xl p-4 sm:p-6 lg:p-8 border border-white/20 w-full backdrop-blur-sm flex-1 flex flex-col justify-center items-center relative"
-              style={{
-                backgroundImage: `
-                  linear-gradient(rgba(128, 128, 128, 0.05) 1px, transparent 1px),
-                  linear-gradient(90deg, rgba(128, 128, 128, 0.05) 1px, transparent 1px)
-                `,
-                backgroundSize: '50px 50px',
-                backgroundPosition: '0 0, 0 0'
-              }}
-            >
-              <div className="w-full max-w-md text-center">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
-                  Preparing your admin portal...
-                </h2>
-                <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                <p className="text-gray-600 text-sm sm:text-base">Loading your system management dashboard</p>
-              </div>
-            </div>
-          </div>
-        </section>
+      <main className="min-h-screen flex items-center justify-center bg-[#6D18CE]">
+        <motion.div
+          className="flex flex-col items-center justify-center text-white"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <motion.div
+            className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"
+            style={{ borderTopColor: '#FFFFFF' }}
+          />
+          <p className="mt-4 text-lg font-semibold">Loading your admin dashboard...</p>
+        </motion.div>
       </main>
     );
   }
@@ -229,30 +189,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="dashboard-container">
-      {/* Onboarding Modal */}
-      <Dialog open={showOnboarding} onClose={() => {}} className="fixed z-50 inset-0 overflow-y-auto">
-        <div className="flex items-center justify-center min-h-screen px-4">
-          <Dialog.Panel className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
-            <Dialog.Title className="text-lg font-bold mb-4">Complete Your Profile</Dialog.Title>
-            <form onSubmit={handleProfileSave} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Organization Type</label>
-                <input type="text" value={organizationType} onChange={e => setOrganizationType(e.target.value)} required className="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Contact Email</label>
-                <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} required className="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Contact Phone</label>
-                <input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} className="w-full border rounded px-3 py-2" />
-              </div>
-              <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded font-semibold" disabled={saving}>{saving ? 'Saving...' : 'Save & Continue'}</button>
-            </form>
-          </Dialog.Panel>
-        </div>
-      </Dialog>
-
       {/* Responsive Sidebar */}
       <Sidebar 
         activeTab={activeTab} 
@@ -270,11 +206,13 @@ export default function AdminDashboard() {
           {/* Search Bar - Hidden on mobile, shown on tablet+ */}
           <div className="hidden sm:flex flex-1 items-center max-w-md">
             <div className="relative w-full">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-600 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               <input
                 type="text"
-                placeholder="Search users, content, settings..."
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm text-gray-900"
+                placeholder="Search"
+                className="w-full pl-10 pr-4 py-3 rounded-full border-0 bg-gray-100 text-gray-400 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm"
               />
             </div>
           </div>
@@ -284,34 +222,31 @@ export default function AdminDashboard() {
             <span className="text-lg font-bold text-gray-800">Admin Dashboard</span>
           </div>
           
-          {/* Language Selector and User */}
+          {/* User Actions */}
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Language Selector - Hidden on mobile */}
-            <select
-              value={language}
-              onChange={e => handleLanguageChange(e.target.value)}
-              className="hidden sm:block border border-gray-400 px-3 py-1.5 rounded-md text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300 text-gray-900"
-            >
-              <option value="English (USA)">English (USA)</option>
-              <option value="हिन्दी">हिन्दी</option>
-              <option value="मराठी">मराठी</option>
-            </select>
-            
-            {/* Notification Bell */}
-            <div className="relative">
-              <button 
-                className="relative text-gray-900 hover:text-purple-600 transition-colors p-2 rounded-full hover:bg-gray-50 touch-manipulation"
-              >
-                <span className="text-xl sm:text-2xl">🔔</span>
-                {/* Notification dot */}
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
+            {/* Language Selector */}
+            <div className="hidden sm:block">
+              <SimpleGoogleTranslate />
             </div>
             
-            {/* User Avatar */}
-            <div className="flex items-center gap-2">
-              <Image src="/avatar.png" alt="Admin Avatar" width={32} height={32} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover" />
-              <span className="hidden sm:block font-semibold text-gray-900 text-sm">System Administrator</span>
+            {/* User Profile Section */}
+            <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-200 flex items-center gap-3">
+              {/* Circular Avatar */}
+              <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+            </div>
+            
+              {/* User Info */}
+              <div className="flex flex-col">
+                <span className="font-bold text-gray-900 text-sm">
+                  {user.name}
+                </span>
+                <span className="text-xs text-gray-600">
+                  Admin
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -320,211 +255,165 @@ export default function AdminDashboard() {
         <div className="dashboard-content">
           {/* Main Panel */}
           <main className="flex-1 overflow-y-auto">
-            {/* Welcome Section */}
-            <div className="flex flex-col space-y-4 lg:space-y-0 lg:flex-row lg:items-center lg:justify-between mb-6 sm:mb-8">
-              <div className="flex items-center gap-4">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Welcome back, {user.name}!</h2>
-                  <p className="text-gray-700 text-sm sm:text-base">System Administrator • Full System Access</p>
-                </div>
-              </div>
-              {/* Quick Actions */}
-              <div className="flex gap-4">
-                <button
-                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-4 py-2 rounded transition-colors"
-                  onClick={handleDownloadAllProgress}
-                >
-                  Download All Student Progress (CSV)
-                </button>
-              </div>
-            </div>
-
                   {/* Tab Content */}
             <div className="space-y-6">
               {activeTab === 'overview' && (
                 <>
+                  {/* Welcome Section */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between">
+                      {/* Left side: Avatar and welcome text */}
+                      <div className="flex items-center gap-4">
+                        <div className="relative w-16 h-16 sm:w-20 sm:h-20">
+                          <div className="w-full h-full bg-purple-600 rounded-full flex items-center justify-center">
+                            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                        </div>
+                        </div>
+                        <div>
+                          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-1">
+                            Welcome back, {user.name}!
+                          </h2>
+                          <p className="text-gray-600 text-lg sm:text-xl font-medium">
+                            System administration dashboard
+                          </p>
+                      </div>
+                    </div>
+
+                      {/* Right side: Stats cards */}
+                      <div className="flex gap-4">
+                        {/* Users Card */}
+                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                          <div className="text-3xl font-bold text-purple-600">
+                            {dashboardStats?.totalUsers || 0}
+                      </div>
+                          <div className="text-sm text-gray-900">Total Users</div>
+                    </div>
+
+                        {/* Organizations Card */}
+                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                          <div className="text-3xl font-bold text-purple-600">
+                            {dashboardStats?.totalOrganizations || 0}
+                        </div>
+                          <div className="text-sm text-gray-900">Organizations</div>
+                        </div>
+                        
+                        {/* Modules Card */}
+                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                          <div className="text-3xl font-bold text-gray-900">
+                            {dashboardStats?.totalModules || 0}
+                        </div>
+                          <div className="text-sm text-gray-900">Modules</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dashboard Stats Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Profile Card */}
-                    <div className="bg-white rounded-lg shadow p-6">
-                      <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                        Admin Information
-                      </h2>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Name</label>
-                          <p className="text-gray-900">{user.name}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Email</label>
-                          <p className="text-gray-900">{user.email}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Role</label>
-                          <p className="text-gray-900">System Administrator</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Permissions</label>
-                          <p className="text-gray-900">Full System Access</p>
-                        </div>
-                      </div>
-                    </div>
-
                     {/* Quick Actions */}
-                    <div className="bg-white rounded-lg shadow p-6">
-                      <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                        Quick Actions
-                      </h2>
+                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                       <div className="space-y-3">
-                        <Link
-                          href="/admin/users"
-                          className="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-4 rounded-md transition-colors"
-                        >
-                          Manage Users
-                        </Link>
-                        <Link
-                          href="/admin/content"
-                          className="block w-full bg-green-600 hover:bg-green-700 text-white text-center py-2 px-4 rounded-md transition-colors"
-                        >
-                          Manage Content
-                        </Link>
-                        <Link
-                          href="/admin/organisations"
-                          className="block w-full bg-purple-600 hover:bg-purple-700 text-white text-center py-2 px-4 rounded-md transition-colors"
-                        >
-                          Manage Organisations
-                        </Link>
-                        <Link
-                          href="/admin/system"
-                          className="block w-full bg-orange-600 hover:bg-orange-700 text-white text-center py-2 px-4 rounded-md transition-colors"
-                        >
-                          System Settings
-                        </Link>
+                        <button className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
+                          Add New User
+                        </button>
+                        <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                          Create Module
+                        </button>
+                        <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
+                          System Backup
+                        </button>
                       </div>
-                    </div>
+                      </div>
 
-                    {/* System Statistics */}
-                    <div className="bg-white rounded-lg shadow p-6">
-                      <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                        System Statistics
-                      </h2>
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Total Users</span>
-                          <span className="text-lg font-semibold text-gray-900">
-                            {dashboardStats?.overview ? 
-                              dashboardStats.overview.totalStudents + dashboardStats.overview.totalTeachers + dashboardStats.overview.totalParents : 
-                              '0'
-                            }
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Active Modules</span>
-                          <span className="text-lg font-semibold text-gray-900">
-                            {dashboardStats?.overview?.activeModules || '0'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Completed Assessments</span>
-                          <span className="text-lg font-semibold text-gray-900">
-                            {dashboardStats?.overview?.completedAssessments || '0'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">System Status</span>
-                          <span className="text-lg font-semibold text-green-600">Online</span>
-                        </div>
+                    {/* System Status */}
+                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">System Status</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Database</span>
+                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Online</span>
+                      </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">API Services</span>
+                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Healthy</span>
+                      </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Storage</span>
+                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">75%</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* System Overview */}
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                      System Overview
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <h3 className="text-sm font-medium text-blue-600">Students</h3>
-                        <p className="text-2xl font-bold text-blue-900">
-                          {dashboardStats?.overview?.totalStudents || '0'}
-                        </p>
-                      </div>
-                      <div className="bg-green-50 p-4 rounded-lg">
-                        <h3 className="text-sm font-medium text-green-600">Teachers</h3>
-                        <p className="text-2xl font-bold text-green-900">
-                          {dashboardStats?.overview?.totalTeachers || '0'}
-                        </p>
-                      </div>
-                      <div className="bg-purple-50 p-4 rounded-lg">
-                        <h3 className="text-sm font-medium text-purple-600">Parents</h3>
-                        <p className="text-2xl font-bold text-purple-900">
-                          {dashboardStats?.overview?.totalParents || '0'}
-                        </p>
-                      </div>
-                      <div className="bg-orange-50 p-4 rounded-lg">
-                        <h3 className="text-sm font-medium text-orange-600">Modules</h3>
-                        <p className="text-2xl font-bold text-orange-900">
-                          {dashboardStats?.overview?.totalModules || '0'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* System Health */}
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                      System Health
-                    </h2>
+                    {/* Recent Activity */}
+                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Database Status</span>
-                        <span className="text-sm text-green-600 font-medium">Connected</span>
+                        <div className="text-sm text-gray-600">
+                          <div className="font-medium">New user registered</div>
+                          <div className="text-xs text-gray-500">2 minutes ago</div>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          <div className="font-medium">Module updated</div>
+                          <div className="text-xs text-gray-500">1 hour ago</div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">API Status</span>
-                        <span className="text-sm text-green-600 font-medium">Operational</span>
+                        <div className="text-sm text-gray-600">
+                          <div className="font-medium">System backup completed</div>
+                          <div className="text-xs text-gray-500">6 hours ago</div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Storage Usage</span>
-                        <span className="text-sm text-blue-600 font-medium">0%</span>
                       </div>
                     </div>
                   </div>
                 </>
               )}
+              
               {activeTab === 'users' && (
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">User Management</h3>
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Manage Users</h2>
                   <div className="text-center text-gray-500 py-8">
-                    <div className="text-4xl mb-2">👥</div>
-                    <p>User management features coming soon</p>
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                    </svg>
+                    <p>User management interface coming soon...</p>
                   </div>
                 </div>
               )}
+              
               {activeTab === 'content' && (
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Content Management</h3>
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Content Management</h2>
                   <div className="text-center text-gray-500 py-8">
-                    <div className="text-4xl mb-2">📝</div>
-                    <p>Content management features coming soon</p>
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <p>Content management interface coming soon...</p>
                   </div>
                 </div>
               )}
+              
               {activeTab === 'organisations' && (
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Organisation Management</h3>
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Organizations</h2>
                   <div className="text-center text-gray-500 py-8">
-                    <div className="text-4xl mb-2">🏢</div>
-                    <p>Organisation management features coming soon</p>
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    <p>Organization management interface coming soon...</p>
                   </div>
                 </div>
               )}
+              
               {activeTab === 'system' && (
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">System Settings</h3>
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">System Settings</h2>
                   <div className="text-center text-gray-500 py-8">
-                    <div className="text-4xl mb-2">⚙️</div>
-                    <p>System settings features coming soon</p>
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <p>System settings interface coming soon...</p>
                   </div>
                 </div>
               )}
@@ -550,55 +439,34 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
+            
             {/* Panel Content */}
             <div className="flex-1 flex flex-col transition-all duration-300 p-4">
-              {/* Close button for mobile */}
+              {/* Title and Close button for mobile */}
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 transition-opacity duration-200"
+                    style={{ opacity: isMobile ? 1 : (isRightPanelHovered ? 1 : 0) }}>
+                  System Alerts
+                </h3>
               {isMobile && (
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">System Actions</h3>
                   <button 
                     onClick={() => setIsRightPanelOpen(false)}
-                    className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200"
+                    className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
+                )}
                 </div>
-              )}
-              {/* Desktop title */}
-              {!isMobile && (
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 transition-opacity duration-200"
-                    style={{ opacity: isRightPanelHovered ? 1 : 0 }}>
-                  System Actions
-                </h3>
-              )}
+              
               <div className="space-y-3">
-                <div className={`flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 shadow-sm hover:bg-purple-50 cursor-pointer transition-all duration-200 ${isMobile ? '' : (isRightPanelHovered ? '' : 'opacity-0 pointer-events-none')}`}> 
-                  <div className="w-3 h-3 rounded-full flex-shrink-0 bg-blue-500"></div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 text-sm">Export Data</div>
-                    <div className="text-xs text-gray-500">Download reports</div>
-                  </div>
-                  <span className="text-gray-400">→</span>
-                </div>
-                <div className={`flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 shadow-sm hover:bg-purple-50 cursor-pointer transition-all duration-200 ${isMobile ? '' : (isRightPanelHovered ? '' : 'opacity-0 pointer-events-none')}`}> 
-                  <div className="w-3 h-3 rounded-full flex-shrink-0 bg-green-500"></div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 text-sm">System Health</div>
-                    <div className="text-xs text-gray-500">Monitor status</div>
-                  </div>
-                  <span className="text-gray-400">→</span>
+                <div className={`text-center text-gray-400 text-sm py-8 transition-opacity duration-200 ${isMobile ? '' : 'opacity-0 pointer-events-none'}`} 
+                     style={!isMobile ? { opacity: isRightPanelHovered ? 1 : 0 } : {}}>
+                  No system alerts
                 </div>
               </div>
-              <button 
-                className={`btn btn-primary w-full mt-6 transition-opacity duration-200 ${isMobile ? '' : (isRightPanelHovered ? '' : 'opacity-0 pointer-events-none')}`}
-                onClick={handleDownloadAllProgress}
-              >
-                Export all data
-              </button>
             </div>
-            
           </aside>
           
           {/* Mobile Right Panel Overlay */}
@@ -608,22 +476,83 @@ export default function AdminDashboard() {
               onClick={() => setIsRightPanelOpen(false)}
             />
           )}
-          
         </div>
       </div>
 
-      {/* Floating FAB for right panel on mobile/tablet */}
-      {isMobile && !isRightPanelOpen && (
+      {/* Onboarding Modal */}
+      <Dialog
+        open={showOnboarding}
+        onClose={() => {}}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-md rounded-2xl bg-white p-6">
+            <Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">
+              Complete Your Profile
+            </Dialog.Title>
+            
+            <form onSubmit={handleProfileSave} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Organization Type
+                </label>
+                <select
+                  value={organizationType}
+                  onChange={(e) => setOrganizationType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  required
+                >
+                  <option value="">Select Organization Type</option>
+                  <option value="school">School</option>
+                  <option value="college">College</option>
+                  <option value="university">University</option>
+                  <option value="training">Training Institute</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contact Email
+                </label>
+                <input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="Enter contact email"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contact Phone
+                </label>
+                <input
+                  type="tel"
+                  value={contactPhone}
+                  onChange={(e) => setContactPhone(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="Enter contact phone"
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-4">
         <button
-          className="right-panel-fab"
-          aria-label="Open System Actions"
-          onClick={() => setIsRightPanelOpen(true)}
-        >
-          <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Saving...' : 'Save Profile'}
         </button>
-      )}
+              </div>
+            </form>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
     </div>
   );
 } 

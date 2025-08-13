@@ -1,5 +1,5 @@
 {
-  "name": "taru2",
+  "name": "taru",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,7 +11,8 @@
     "reset-db": "node scripts/reset-database.js",
     "seed-modules": "node scripts/seed-modules.js",
     "seed-users": "node scripts/seed-demo-users.js",
-    "cleanup-reseed": "node scripts/cleanup-and-reseed.js"
+    "cleanup-reseed": "node scripts/cleanup-and-reseed.js",
+    "validate-keys": "node scripts/validate-student-keys.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

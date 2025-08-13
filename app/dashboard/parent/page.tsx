@@ -6,6 +6,8 @@ import Sidebar from '../student/components/Sidebar';
 import Image from 'next/image';
 import { isValidProfilePictureUrl } from '@/lib/utils';
 import ChatModal from '../student/components/ChatModal';
+import { motion } from 'framer-motion';
+import SimpleGoogleTranslate from '../../components/SimpleGoogleTranslate';
 
 // Add custom hook for responsive behavior
 function useWindowSize() {
@@ -115,6 +117,7 @@ export default function ParentDashboard() {
   const [isRightPanelHovered, setIsRightPanelHovered] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [user, setUser] = useState<any>(null);
   const router = useRouter();
   const logoutTriggered = useRef(false);
   const { width: windowWidth } = useWindowSize();
@@ -122,11 +125,11 @@ export default function ParentDashboard() {
 
   // Parent-specific navigation items
   const navItems = [
-    { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'child-progress', label: 'Child Progress', icon: '📈' },
-    { id: 'reports', label: 'Reports', icon: '📋' },
-    { id: 'messages', label: 'Messages', icon: '💬' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' },
+    { id: 'overview', label: 'Overview', icon: '/icons/overview.png' },
+    { id: 'child-progress', label: 'Child Progress', icon: '/icons/report.png' },
+    { id: 'reports', label: 'Reports', icon: '/icons/rewards.png' },
+    { id: 'messages', label: 'Messages', icon: '/icons/bot.png' },
+    { id: 'settings', label: 'Settings', icon: '/icons/settings.png' },
   ];
 
   useEffect(() => {
@@ -172,6 +175,9 @@ export default function ParentDashboard() {
             router.push('/login');
             return;
           }
+          
+          // Store user data in state
+          setUser(userData.user);
         } else {
           console.log('🔍 Failed to fetch user data, redirecting to login');
           router.push('/login');
@@ -365,7 +371,7 @@ export default function ParentDashboard() {
         {/* 🟪 Left Section - Content */}
         <section className="w-full lg:w-1/2 px-4 sm:px-6 py-6 sm:py-8 text-white flex flex-col justify-between relative min-h-screen lg:min-h-0">
           <div>
-            <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="absolute top-4 left-4 w-12 h-12 sm:w-16 sm:h-16 lg:w-18 lg:h-18 object-contain" />
+            <Image src="/icons/logo.svg" alt="Logo" width={60} height={60} className="absolute top-4 left-4 w-12 h-12 sm:w-16 sm:h-16 lg:w-18 lg:h-18 object-contain" />
           </div>
           
           <div className="mt-16 sm:mt-20 lg:mt-32 px-2 sm:px-4">
@@ -428,11 +434,13 @@ export default function ParentDashboard() {
           {/* Search Bar - Hidden on mobile, shown on tablet+ */}
           <div className="hidden sm:flex flex-1 items-center max-w-md">
             <div className="relative w-full">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-600 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               <input
                 type="text"
-                placeholder="Search child progress, reports..."
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm text-gray-900"
+                placeholder="Search"
+                className="w-full pl-10 pr-4 py-3 rounded-full border-0 bg-gray-100 text-gray-400 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-300 text-sm"
               />
             </div>
           </div>
@@ -442,51 +450,31 @@ export default function ParentDashboard() {
             <span className="text-lg font-bold text-gray-800">Parent Dashboard</span>
           </div>
           
-          {/* Language Selector and User */}
+          {/* User Actions */}
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* AI Buddy Icon Button with Caption */}
-            <div className="hidden sm:flex items-center mr-1">
-              <button
-                onClick={() => setIsChatOpen(true)}
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-purple-100 border border-purple-200 shadow hover:bg-purple-200 transition-all duration-200"
-                aria-label="Open AI Buddy Chat"
-                type="button"
-              >
-                <span className="text-2xl">🤖</span>
-              </button>
-              <span className="ml-2 text-sm font-medium text-purple-700 select-none">AI Buddy</span>
-            </div>
-            {/* Language Selector - Hidden on mobile */}
-            <select
-              value={language}
-              onChange={e => handleLanguageChange(e.target.value)}
-              className="hidden sm:block border border-gray-400 px-3 py-1.5 rounded-md text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300 text-gray-900"
-            >
-              <option value="English (USA)">English (USA)</option>
-              <option value="हिन्दी">हिन्दी</option>
-              <option value="मराठी">मराठी</option>
-            </select>
-            
-            {/* Notification Bell */}
-            <div className="relative">
-              <button 
-                onClick={handleNotificationClick}
-                className="relative text-gray-900 hover:text-purple-600 transition-colors p-2 rounded-full hover:bg-gray-50 touch-manipulation"
-              >
-                <span className="text-xl sm:text-2xl">🔔</span>
-                {/* Notification count */}
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
+            {/* Language Selector */}
+            <div className="hidden sm:block">
+              <SimpleGoogleTranslate />
             </div>
             
-            {/* User Avatar */}
-            <div className="flex items-center gap-2">
-              <Image src="/avatar.png" alt="Parent Avatar" width={32} height={32} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover" />
-              <span className="hidden sm:block font-semibold text-gray-900 text-sm">Parent</span>
+            {/* User Profile Section */}
+            <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-200 flex items-center gap-3">
+              {/* Circular Avatar */}
+              <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              
+              {/* User Info */}
+              <div className="flex flex-col">
+                <span className="font-bold text-gray-900 text-sm">
+                  {user?.name || 'Parent'}
+                </span>
+                <span className="text-xs text-gray-600">
+                  Parent
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -499,40 +487,60 @@ export default function ParentDashboard() {
             <div className="space-y-6">
               {activeTab === 'overview' && (
                 <>
-                  {/* Welcome Section and Stats only for Overview */}
-                  <div className="flex flex-col space-y-4 lg:space-y-0 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                          Welcome back, Parent!
-                        </h2>
-                        <p className="text-gray-700 text-sm sm:text-base">
-                          Monitor {child?.name || 'your child'}&apos;s learning journey 🚀
-                        </p>
+                  {/* Welcome Section */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between">
+                      {/* Left side: Avatar and welcome text */}
+                      <div className="flex items-center gap-4">
+                        <div className="relative w-16 h-16 sm:w-20 sm:h-20">
+                          <div className="w-full h-full bg-purple-600 rounded-full flex items-center justify-center">
+                            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div>
+                          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-1">
+                            Welcome back, {user?.name || 'Parent'}!
+                          </h2>
+                          <p className="text-gray-600 text-lg sm:text-xl font-medium">
+                            Monitor {child?.name || 'your child'}&apos;s learning journey
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    {/* Stats Cards */}
-                    <div className="w-full lg:w-auto">
-                      <div className="stats-grid">
-                        {stats.length > 0 ? stats.map((stat) => (
-                          <div key={stat.label} className="card p-3 sm:p-4 flex flex-col items-center text-center min-w-0">
-                            <span className="text-xl sm:text-2xl mb-1">{stat.icon}</span>
-                            <span className="font-bold text-base sm:text-lg text-purple-600">{stat.value}</span>
-                            <span className="text-xs text-gray-500 text-center leading-tight">{stat.label}</span>
+                      
+                      {/* Right side: Stats cards */}
+                      <div className="flex gap-4">
+                        {/* Modules Card */}
+                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                          <div className="text-3xl font-bold text-purple-600">
+                            {stats.find(s => s.label === 'Modules Completed')?.value?.split('/')[1] || 0}
                           </div>
-                        )) : (
-                          <div className="card p-3 sm:p-4 flex flex-col items-center text-center min-w-0">
-                            <span className="text-2xl mb-1">📚</span>
-                            <span className="font-bold text-lg text-gray-400">--</span>
-                            <span className="text-xs text-gray-500 text-center">No data yet</span>
+                          <div className="text-sm text-gray-900">Total Modules</div>
+                        </div>
+                        
+                        {/* Progress Card */}
+                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                          <div className="text-3xl font-bold text-purple-600">
+                            {stats.find(s => s.label === 'Modules Completed')?.value?.split('/')[0] || 0}
                           </div>
-                        )}
+                          <div className="text-sm text-gray-900">Completed</div>
+                        </div>
+                        
+                        {/* XP Card */}
+                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
+                          <div className="text-3xl font-bold text-gray-900">
+                            {stats.find(s => s.label === 'Total XP Earned')?.value?.replace(' XP', '') || 0}
+                          </div>
+                          <div className="text-sm text-gray-900">XP Points</div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Child Profile Card */}
-                  <div className="bg-white rounded-xl shadow-sm p-6">
+                  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Child Profile</h3>
                     <div className="flex items-center gap-6">
                       {child?.avatar && isValidProfilePictureUrl(child.avatar) ? (
                         <Image 
@@ -561,9 +569,10 @@ export default function ParentDashboard() {
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="bg-white rounded-xl shadow-sm p-6">
+                  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Today&apos;s Progress</h3>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold text-gray-900">Today&apos;s progress</span>
+                      <span className="font-semibold text-gray-900">Learning Progress</span>
                       <span className="text-sm text-gray-700">{getCompletionPercentage()}% Complete - {getCompletionPercentage() >= 80 ? 'Excellent work!' : 'Keep going!'} 🚀</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-4">
@@ -575,7 +584,7 @@ export default function ParentDashboard() {
                   </div>
 
                   {/* Recent Activity */}
-                  <div className="bg-white rounded-xl shadow-sm p-6">
+                  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
                     <div className="space-y-2">
                       {getRecentActivities().length > 0 ? getRecentActivities().map((activity, index) => (
@@ -593,7 +602,7 @@ export default function ParentDashboard() {
                   </div>
 
                   {/* Weekly Analytics */}
-                  <div className="bg-white rounded-xl shadow-sm p-6">
+                  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Weekly Analytics</h3>
                     <div className="flex items-end gap-1 h-20">
                       {analytics.map((h, i) => (
@@ -614,7 +623,7 @@ export default function ParentDashboard() {
               {activeTab === 'child-progress' && (
                 <div className="space-y-6">
                   {/* Progress Overview */}
-                  <div className="bg-white rounded-xl shadow-sm p-6">
+                  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Learning Progress Overview</h3>
                     {dashboardData?.studentDashboard ? (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -637,7 +646,7 @@ export default function ParentDashboard() {
                   </div>
 
                   {/* Badges and Achievements */}
-                  <div className="bg-white rounded-xl shadow-sm p-6">
+                  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Achievements & Badges</h3>
                     {dashboardData?.studentDashboard?.progress?.badgesEarned?.length && dashboardData.studentDashboard.progress.badgesEarned.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

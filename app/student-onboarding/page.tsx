@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import SimpleGoogleTranslate from '../components/SimpleGoogleTranslate';
 import { RegistrationDataManager } from '@/lib/utils';
+import { StudentKeyGenerator } from '@/lib/studentKeyGenerator';
 
 
 
@@ -307,10 +308,8 @@ export default function StudentOnboarding() {
 
     setIsSubmitting(true);
     try {
-      // Generate unique student ID
-      const timestamp = Date.now().toString(36);
-      const randomStr = Math.random().toString(36).substring(2, 5).toUpperCase();
-      const generatedUniqueId = `STU${timestamp}${randomStr}`;
+      // Generate unique student ID using centralized generator
+      const generatedUniqueId = StudentKeyGenerator.generate();
       
       // Update form data with generated unique ID
       const formDataWithUniqueId = {
@@ -375,13 +374,13 @@ export default function StudentOnboarding() {
     return (
       <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
         <div className="w-full md:w-1/2 bg-gradient-to-br from-[#8B3DFF] to-[#6D18CE] px-6 py-8 text-white flex flex-col relative">
-          <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="w-15 h-15 object-contain mb-8" />
-          
-          <div className="flex-1 flex flex-col justify-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-12 px-4">
-              Loading <span className="text-white/90">Profile...</span>
-            </h1>
-          </div>
+                  <Image src="/icons/logo.svg" alt="Logo" width={60} height={60} className="w-15 h-15 object-contain mb-8" />
+        
+        <div className="flex-1 flex flex-col justify-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-12 px-4">
+            Loading <span className="text-white/90">Profile...</span>
+          </h1>
+        </div>
         </div>
         <div className="w-full md:w-1/2 bg-white px-4 sm:px-8 py-10 flex flex-col justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
@@ -394,14 +393,14 @@ export default function StudentOnboarding() {
     return (
       <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
         <div className="w-full md:w-1/2 bg-gradient-to-br from-[#8B3DFF] to-[#6D18CE] px-6 py-8 text-white flex flex-col relative">
-          <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="w-15 h-15 object-contain mb-8" />
-          
-          <div className="flex-1 flex flex-col justify-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-12 px-4">
-              Welcome to <span className="text-white/90">JioWorld!</span>
-            </h1>
-            <p className="text-xl px-4 text-white/80">Your onboarding is complete!</p>
-          </div>
+                  <Image src="/icons/logo.svg" alt="Logo" width={60} height={60} className="w-15 h-15 object-contain mb-8" />
+        
+        <div className="flex-1 flex flex-col justify-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-12 px-4">
+            Welcome to <span className="text-white/90">JioWorld!</span>
+          </h1>
+          <p className="text-xl px-4 text-white/80">Your onboarding is complete!</p>
+        </div>
         </div>
         <div className="w-full md:w-1/2 bg-white px-4 sm:px-8 py-10 flex flex-col justify-center">
           <div className="max-w-md mx-auto w-full text-center">
@@ -803,7 +802,7 @@ export default function StudentOnboarding() {
     <main className="min-h-screen flex flex-col md:flex-row overflow-hidden">
       {/* 🟪 Left Section - Students Details */}
       <section className="w-full md:w-1/2 bg-gradient-to-br from-[#8B3DFF] to-[#6D18CE] px-6 py-8 text-white flex flex-col relative">
-        <Image src="/jio-logo.png" alt="Jio Logo" width={60} height={60} className="w-15 h-15 object-contain mb-8" />
+        <Image src="/icons/logo.svg" alt="Logo" width={60} height={60} className="w-15 h-15 object-contain mb-8" />
         
         <div className="flex-1 flex flex-col justify-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-12 px-4">

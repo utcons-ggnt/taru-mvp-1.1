@@ -249,7 +249,7 @@ export default function ParentOnboarding() {
     return (
       <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
         <div className="w-full md:w-1/2 bg-gradient-to-br from-purple-700 to-purple-500 px-6 py-8 text-white flex flex-col justify-between relative">
-          <Image src="/jio-logo.png" alt="Jio Logo" width={56} height={56} className="absolute top-4 left-4 w-14 h-14 object-contain" />
+          <Image src="/icons/logo.svg" alt="Logo" width={56} height={56} className="absolute top-4 left-4 w-14 h-14 object-contain" />
           <div className="mt-20 md:mt-32">
             <h2 className="text-3xl md:text-4xl font-bold leading-snug md:leading-snug px-2 md:px-10">
               🎉 Welcome to JioWorld! <br />
@@ -576,7 +576,7 @@ export default function ParentOnboarding() {
     <main className="min-h-screen flex flex-col md:flex-row overflow-hidden">
       {/* 🟪 Left Section - Deep Purple Gradient */}
       <section className="w-full md:w-1/2 bg-gradient-to-br from-[#7F00FF] to-[#E100FF] px-6 py-8 text-white flex flex-col justify-between relative">
-        <Image src="/jio-logo.png" alt="Jio Logo" width={48} height={48} className="absolute top-4 left-4 w-12 h-12 object-contain" />
+        <Image src="/icons/logo.svg" alt="Logo" width={48} height={48} className="absolute top-4 left-4 w-12 h-12 object-contain" />
         <div className="mt-16">
           <h2 className="text-3xl md:text-4xl font-bold leading-tight">
             Complete your <br />

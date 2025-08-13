@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { StudentKeyGenerator } from '../lib/studentKeyGenerator';
 
 const studentSchema = new mongoose.Schema({
   userId: {
@@ -11,8 +12,8 @@ const studentSchema = new mongoose.Schema({
     required: true,
     unique: true,
     default: function() {
-      // Generate a unique 8-character alphanumeric ID
-      return 'STU' + Math.random().toString(36).substr(2, 5).toUpperCase();
+      // Use centralized student key generator for consistency
+      return StudentKeyGenerator.generate();
     }
   },
   fullName: {

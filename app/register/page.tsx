@@ -219,14 +219,14 @@ export default function Register() {
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.8 }}
         >
-          {/* Jio Logo */}
+          {/* Logo */}
           <motion.div
             className="absolute top-[64px] left-[63px]"
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.6 }}
           >
-            <Image src="/jio-logo.png" alt="Jio Logo" width={68} height={68} className="w-[68px] h-[68px] object-contain" />
+            <Image src="/icons/logo.svg" alt="Logo" width={68} height={68} className="w-[68px] h-[68px] object-contain" />
           </motion.div>
           
           {/* Main Text */}

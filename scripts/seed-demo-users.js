@@ -42,17 +42,17 @@ async function seedDemoUsers() {
     // --- Students ---
     const students = [
       {
-        name: 'Demo Student', email: 'student1@demo.com', grade: '8', uniqueId: 'STUDEMO1',
+        name: 'Demo Student', email: 'student1@demo.com', grade: '8', uniqueId: null,
         fullName: 'Demo Student', age: 14, gender: 'Male', school: 'Demo School',
         guardianEmail: 'parent1@demo.com', badges: ['Starter Badge'], modules: 2, points: 100, streak: 3
       },
       {
-        name: 'Priya Sharma', email: 'student2@demo.com', grade: '7', uniqueId: 'STUPRIYA1',
+        name: 'Priya Sharma', email: 'student2@demo.com', grade: '7', uniqueId: null,
         fullName: 'Priya Sharma', age: 13, gender: 'Female', school: 'Springfield School',
         guardianEmail: 'parent2@demo.com', badges: ['Math Whiz', 'Science Star'], modules: 4, points: 220, streak: 5
       },
       {
-        name: 'Amit Verma', email: 'student3@demo.com', grade: '9', uniqueId: 'STUAMIT1',
+        name: 'Amit Verma', email: 'student3@demo.com', grade: '9', uniqueId: null,
         fullName: 'Amit Verma', age: 15, gender: 'Male', school: 'Green Valley High',
         guardianEmail: 'parent2@demo.com', badges: [], modules: 1, points: 50, streak: 1
       }
@@ -72,6 +72,10 @@ async function seedDemoUsers() {
         }
       });
       studentUsers.push(user);
+      // Generate real unique student ID using centralized generator
+      const { StudentKeyGenerator } = require('../lib/studentKeyGenerator');
+      const realUniqueId = StudentKeyGenerator.generateDeterministic(user._id.toString(), s.fullName);
+      
       await Student.create({
         userId: user._id,
         fullName: s.fullName,
@@ -91,12 +95,12 @@ async function seedDemoUsers() {
           email: s.guardianEmail
         },
         location: 'Demo City',
-        deviceId: 'device_' + s.uniqueId,
+        deviceId: 'device_' + realUniqueId,
         consentForDataUsage: true,
         termsAndConditionsAccepted: true,
         onboardingCompleted: true,
         onboardingCompletedAt: new Date(),
-        uniqueId: s.uniqueId
+        uniqueId: realUniqueId
       });
       // --- Add module progress ---
       const now = new Date();
@@ -200,20 +204,27 @@ async function seedDemoUsers() {
     // --- Parents ---
     const parents = [
       {
-        name: 'Demo Parent', email: 'parent1@demo.com', student: studentUsers[0], uniqueId: students[0].uniqueId
+        name: 'Demo Parent', email: 'parent1@demo.com', student: studentUsers[0], uniqueId: null
       },
       {
-        name: 'Sunita Sharma', email: 'parent2@demo.com', student: studentUsers[1], uniqueId: students[1].uniqueId
+        name: 'Sunita Sharma', email: 'parent2@demo.com', student: studentUsers[1], uniqueId: null
       }
     ];
     for (const p of parents) {
+      // Find the student record to get the real uniqueId
+      const studentRecord = await Student.findOne({ userId: p.student._id });
+      if (!studentRecord) {
+        console.error(`Student record not found for ${p.name}`);
+        continue;
+      }
+      
       await User.create({
         name: p.name,
         email: p.email,
         password,
         role: 'parent',
         profile: {
-          linkedStudentUniqueId: p.uniqueId,
+          linkedStudentUniqueId: studentRecord.uniqueId,
           linkedStudentId: p.student._id,
           location: 'Demo City',
           guardianName: p.name

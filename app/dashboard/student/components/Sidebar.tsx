@@ -277,14 +277,14 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                     whileHover={{ scale: 1.1, rotate: 360 }}
                     transition={{ duration: 0.5 }}
                   >
-                    <Image src="/jio-logo.png" alt="Jio Logo" width={32} height={32} className="w-8 h-8" />
+                    <Image src="/icons/logo.svg" alt="Logo" width={32} height={32} className="w-8 h-8" />
                   </motion.div>
                   <motion.div 
                     className="block"
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <span className="text-lg font-bold text-gray-800">Taru2</span>
+                    <span className="text-lg font-bold text-gray-800">Taru</span>
                   </motion.div>
                 </div>
                 
@@ -472,19 +472,19 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
             >
               <div className="flex items-center">
                 <motion.div 
-                  className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mr-3"
+                  className="w-12 h-12 rounded-full flex items-center justify-center mr-3"
                   whileHover={{ scale: 1.1, rotate: 360 }}
                   transition={{ duration: 0.5 }}
                 >
-                  <Image src="/jio-logo.png" alt="Jio Logo" width={32} height={32} className="w-8 h-8" />
+                  <Image src="/icons/logo.svg" alt="Logo" width={32} height={32} className="w-10 h-10" />
                 </motion.div>
                 <motion.div 
-                  className="hidden md:block"
-                  animate={{ opacity: isHovered ? 1 : 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <span className="text-lg font-bold text-gray-800">Taru2</span>
-                </motion.div>
+                className="hidden md:block"
+                animate={{ opacity: isHovered ? 1 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <span className="text-lg font-bold text-gray-800">Taru</span>
+              </motion.div>
               </div>
             </motion.div>
             
@@ -588,7 +588,11 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                 transition={{ delay: 0.8, duration: 0.4 }}
               >
                 <motion.div 
-                  className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center cursor-pointer"
+                  className={`w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 ${
+                    activeTab === 'chat' 
+                      ? 'bg-purple-600 shadow-lg shadow-purple-600/30' 
+                      : 'bg-gray-100 hover:bg-gray-200'
+                  }`}
                   whileHover={{ 
                     scale: 1.1,
                     rotate: [0, -10, 10, 0],
@@ -597,7 +601,9 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                   whileTap={{ scale: 0.95 }}
                 >
                   <motion.span 
-                    className="text-xl text-white"
+                    className={`text-xl transition-colors duration-200 ${
+                      activeTab === 'chat' ? 'text-white' : 'text-gray-600'
+                    }`}
                     animate={{ 
                       scale: [1, 1.1, 1],
                     }}
@@ -607,7 +613,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                       repeatType: "reverse"
                     }}
                   >
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h6" />
                     </svg>
                   </motion.span>

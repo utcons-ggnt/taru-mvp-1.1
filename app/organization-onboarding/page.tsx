@@ -175,7 +175,7 @@ export default function OrganizationOnboarding() {
         <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-8 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Image src="/jio-logo.png" alt="Jio Logo" width={48} height={48} className="w-12 h-12 object-contain filter brightness-0 invert" />
+              <Image src="/icons/logo.svg" alt="Logo" width={48} height={48} className="w-12 h-12 object-contain" />
               <div>
                 <h1 className="text-2xl font-bold">Organization Onboarding</h1>
                 <p className="text-purple-100">Complete your organization profile</p>

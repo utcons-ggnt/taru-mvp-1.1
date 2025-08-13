@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Taru2 - Educational Platform",
+  title: "Taru - Educational Platform",
   description: "A comprehensive educational platform for students, parents, teachers, and administrators",
 };
 

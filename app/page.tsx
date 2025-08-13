@@ -180,14 +180,14 @@ export default function Home() {
                      <rect width="320" height="320" fill="url(#grid-right-top-white)" />
                    </svg>
                  </div>
-              {/* Jio Logo in Card */}
+              {/* Logo in Card */}
               <motion.div
-                className="absolute top-6 left-6 bg-blue-600 rounded-full p-3"
+                className="absolute top-6 left-6 rounded-full p-3"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
               >
-                <Image src="/jio-logo.png" alt="Jio Logo" width={32} height={32} className="w-8 h-8 object-contain filter brightness-0 invert" />
+                <Image src="/icons/logo.svg" alt="Logo" width={50} height={50} className="w-30 h-30 mt-1 object-contain" />
               </motion.div>
 
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                {/* Content Container */}

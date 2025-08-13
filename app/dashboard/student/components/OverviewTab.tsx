@@ -85,91 +85,42 @@ export default function OverviewTab({ courses, tests: _tests, onTabChange, dashb
       animate="visible"
       variants={containerVariants}
     >
-      {/* Top Stats Cards - XP Points, Badges, Modules */}
-      <motion.div 
-        className="grid grid-cols-1 md:grid-cols-3 gap-6"
-        variants={sectionVariants}
-      >
-        {/* XP Points Card */}
-        <motion.div 
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center"
-          variants={cardVariants}
-        >
-          <div className="text-3xl font-bold text-gray-900 mb-2">
-            {dashboardData?.overview?.totalXp || 0}
-          </div>
-          <div className="text-lg text-gray-700">XP Points</div>
-        </motion.div>
-
-        {/* Badges Card */}
-        <motion.div 
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center"
-          variants={cardVariants}
-        >
-          <div className="text-3xl font-bold text-gray-900 mb-2">
-            {dashboardData?.progress?.badgesEarned?.length || 0}
-          </div>
-          <div className="text-lg text-gray-700">Badges</div>
-        </motion.div>
-
-        {/* Modules Card */}
-        <motion.div 
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center"
-          variants={cardVariants}
-        >
-          <div className="text-3xl font-bold text-gray-900 mb-2">
-            {dashboardData?.overview?.totalModules || 0}
-          </div>
-          <div className="text-lg text-gray-700">Modules</div>
-        </motion.div>
-      </motion.div>
-
       {/* Today's Progress Section */}
       <motion.div 
         className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
         variants={sectionVariants}
       >
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's progress</h3>
-        <div className="text-center mb-6">
-          {courses.length > 0 ? (
-            <p className="text-2xl font-bold text-gray-900">
-              | {Math.round(courses.reduce((acc, course) => acc + course.progress, 0) / courses.length)}% Complete - Keep going!
-            </p>
-          ) : (
-            <p className="text-2xl font-bold text-gray-900">
-              | 0% Complete - Start your learning journey!
-            </p>
-          )}
+        {/* Header with divider */}
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-semibold text-gray-900">Today's progress</h3>
+          <div className="flex items-center gap-3">
+            <div className="w-px h-6 bg-gray-300"></div>
+            <span className="text-gray-600 text-lg">
+              {courses.length > 0 ? Math.round(courses.reduce((acc, course) => acc + course.progress, 0) / courses.length) : 0}% Complete - Keep going! 🚀
+            </span>
+          </div>
         </div>
         
-        {/* Progress Train */}
-        <div className="flex justify-center items-center space-x-2">
-          {/* Passenger Cars - Show based on actual progress */}
-          {courses.length > 0 ? (
-            courses.slice(0, 5).map((course, index) => (
-              <div key={index} className="w-16 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
-                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                  <span className="text-blue-500 text-xs font-bold">{course.title.charAt(0).toUpperCase()}</span>
-                </div>
-              </div>
-            ))
-          ) : (
-            // Show empty state when no courses
-            Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="w-16 h-12 bg-gray-300 rounded-lg flex items-center justify-center">
-                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                  <span className="text-gray-400 text-xs font-bold">-</span>
-                </div>
-              </div>
-            ))
-          )}
-          
-          {/* Locomotive */}
-          <div className="w-20 h-14 bg-red-500 rounded-lg flex items-center justify-center">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-              <span className="text-red-500 text-xs font-bold">T</span>
-            </div>
-          </div>
+                {/* Progress Train */}
+        <div className="flex justify-center items-center w-full overflow-hidden relative">
+          {/* Moving Train */}
+          <motion.div 
+            className="relative w-full"
+            animate={{
+              x: ["-100%", "100%"]
+            }}
+            transition={{
+              duration: 1000,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          >
+            <img 
+              src="/studentDashboard/train.png" 
+              alt="Progress Train" 
+              className="w-full h-auto"
+            />
+          </motion.div>
         </div>
       </motion.div>
 

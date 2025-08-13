@@ -127,7 +127,7 @@ async function cleanupAndReseed() {
         name: 'Demo Student', 
         email: 'student1@demo.com', 
         grade: '8', 
-        uniqueId: 'STUDEMO1',
+        uniqueId: null,
         fullName: 'Demo Student', 
         age: 14, 
         gender: 'Male', 
@@ -142,7 +142,7 @@ async function cleanupAndReseed() {
         name: 'Priya Sharma', 
         email: 'student2@demo.com', 
         grade: '7', 
-        uniqueId: 'STUPRIYA1',
+        uniqueId: null,
         fullName: 'Priya Sharma', 
         age: 13, 
         gender: 'Female', 
@@ -157,7 +157,7 @@ async function cleanupAndReseed() {
         name: 'Amit Verma', 
         email: 'student3@demo.com', 
         grade: '9', 
-        uniqueId: 'STUAMIT1',
+        uniqueId: null,
         fullName: 'Amit Verma', 
         age: 15, 
         gender: 'Male', 
@@ -187,7 +187,11 @@ async function cleanupAndReseed() {
       });
       studentUsers.push(user);
       
-      const student = await Student.create({
+      const student =       // Generate real unique student ID using centralized generator
+      const { StudentKeyGenerator } = require('../lib/studentKeyGenerator');
+      const realUniqueId = StudentKeyGenerator.generateDeterministic(user._id.toString(), s.fullName);
+      
+      await Student.create({
         userId: user._id,
         fullName: s.fullName,
         dateOfBirth: new Date('2010-01-01'),
@@ -206,12 +210,12 @@ async function cleanupAndReseed() {
           email: s.guardianEmail
         },
         location: 'Demo City',
-        deviceId: 'device_' + s.uniqueId,
+        deviceId: 'device_' + realUniqueId,
         consentForDataUsage: true,
         termsAndConditionsAccepted: true,
         onboardingCompleted: true,
         onboardingCompletedAt: new Date(),
-        uniqueId: s.uniqueId
+        uniqueId: realUniqueId
       });
       studentRecords.push(student);
 
@@ -268,7 +272,7 @@ async function cleanupAndReseed() {
           pinCode: '123456'
         },
         linkedStudentId: studentUsers[0]._id.toString(),
-        studentUniqueId: studentRecords[0].uniqueId,
+        studentUniqueId: studentRecords[0].uniqueId, // This will now be the real generated uniqueId
         consentToAccessChildData: true,
         agreeToTerms: true,
         onboardingCompleted: true,
