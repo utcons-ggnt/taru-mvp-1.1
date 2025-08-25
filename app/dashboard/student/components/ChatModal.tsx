@@ -38,11 +38,78 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
   const [showN8nOutput, setShowN8nOutput] = useState(false);
   const [studentUniqueId, setStudentUniqueId] = useState<string>('');
   const [sessionId, setSessionId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Function to extract HTML from markdown code blocks
+  const extractHTMLFromMarkdown = (content: string): string => {
+    // Check if content contains HTML code block
+    const htmlBlockRegex = /```html\s*([\s\S]*?)```/;
+    const match = content.match(htmlBlockRegex);
+    
+    if (match && match[1]) {
+      // Extract just the HTML content from the code block
+      return match[1].trim();
+    }
+    
+    return content;
+  };
+
+  // Function to safely render HTML content
+  const renderHTMLContent = (htmlContent: string): React.ReactElement => {
+    // First extract HTML from markdown if present
+    const extractedHTML = extractHTMLFromMarkdown(htmlContent);
+    
+    // Check if content contains HTML tags
+    const hasHTML = /<[^>]*>/g.test(extractedHTML);
+    
+    if (hasHTML) {
+      // If it's HTML, render it safely
+      return (
+        <div 
+          className="html-content"
+          dangerouslySetInnerHTML={{ __html: extractedHTML }}
+        />
+      );
+    } else {
+      // If it's plain text, render as text
+      return <p className="text-xs sm:text-sm leading-relaxed">{extractedHTML}</p>;
+    }
+  };
+
+  // Function to extract and format response content
+  const extractResponseContent = (message: Message): React.ReactElement => {
+    if (message.metadata?.n8nOutput) {
+      const n8nOutput = message.metadata.n8nOutput as any;
+      
+      // Check if we have extracted response data
+      if (n8nOutput.aiResponse && typeof n8nOutput.aiResponse === 'string') {
+        const htmlContent = n8nOutput.aiResponse.trim();
+        if (htmlContent) {
+          return renderHTMLContent(htmlContent);
+        }
+      }
+      
+      // Check for responseText as alternative
+      if (n8nOutput.responseText && typeof n8nOutput.responseText === 'string') {
+        const htmlContent = n8nOutput.responseText.trim();
+        if (htmlContent) {
+          return renderHTMLContent(htmlContent);
+        }
+      }
+      
+      // Fallback to regular content
+      if (message.content) {
+        return renderHTMLContent(message.content);
+      }
+    }
+    
+    // Default fallback - ensure content is always a string
+    const content = message.content || '';
+    return renderHTMLContent(content);
+  };
 
   const fetchStudentUniqueId = useCallback(async () => {
     try {
@@ -252,288 +319,398 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div 
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center sm:justify-end z-50 p-0 sm:p-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        onClick={onClose}
-      >
+    <>
+      {/* Add styles for HTML content */}
+      <style jsx>{`
+        .html-content {
+          font-family: inherit;
+          line-height: inherit;
+          color: inherit;
+        }
+        .html-content h1 {
+          font-size: 1.25rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          color: inherit;
+          line-height: 1.3;
+        }
+        .html-content h2 {
+           font-size: 1.125rem;
+           font-weight: 600;
+           margin-bottom: 0.5rem;
+           color: inherit;
+           line-height: 1.3;
+         }
+         .html-content h3 {
+           font-size: 1rem;
+           font-weight: 600;
+           margin-bottom: 0.5rem;
+           margin-top: 0.75rem;
+           color: inherit;
+           line-height: 1.3;
+         }
+        .html-content p {
+          margin-bottom: 0.5rem;
+          line-height: 1.5;
+          color: inherit;
+        }
+        .html-content hr {
+          margin: 0.75rem 0;
+          border: none;
+          height: 1px;
+          background: linear-gradient(to right, transparent, currentColor, transparent);
+          opacity: 0.3;
+        }
+        .html-content em {
+          font-style: italic;
+        }
+        .html-content strong {
+          font-weight: 600;
+        }
+        .html-content ul, .html-content ol {
+          margin: 0.5rem 0;
+          padding-left: 1.5rem;
+        }
+        .html-content li {
+          margin-bottom: 0.25rem;
+          line-height: 1.4;
+        }
+        .html-content blockquote {
+          margin: 0.5rem 0;
+          padding-left: 1rem;
+          border-left: 3px solid currentColor;
+          opacity: 0.8;
+        }
+        .html-content code {
+          background-color: rgba(0, 0, 0, 0.1);
+          padding: 0.125rem 0.25rem;
+          border-radius: 0.25rem;
+          font-family: 'Courier New', monospace;
+          font-size: 0.875em;
+        }
+        .html-content pre {
+          background-color: rgba(0, 0, 0, 0.1);
+          padding: 0.75rem;
+          border-radius: 0.5rem;
+          overflow-x: auto;
+          margin: 0.5rem 0;
+        }
+        .html-content pre code {
+          background: none;
+          padding: 0;
+        }
+        .html-content table {
+          border-collapse: collapse;
+          width: 100%;
+          margin: 0.5rem 0;
+        }
+        .html-content th, .html-content td {
+          border: 1px solid currentColor;
+          padding: 0.25rem 0.5rem;
+          text-align: left;
+        }
+        .html-content th {
+          background-color: rgba(0, 0, 0, 0.1);
+          font-weight: 600;
+        }
+        .html-content img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 0.5rem;
+          margin: 0.5rem 0;
+        }
+        .html-content a {
+          color: inherit;
+          text-decoration: underline;
+          text-decoration-color: currentColor;
+          text-decoration-thickness: 1px;
+        }
+        .html-content a:hover {
+           opacity: 0.8;
+         }
+         .html-content head,
+         .html-content title {
+           display: none;
+         }
+         .html-content body {
+           margin: 0;
+           padding: 0;
+         }
+      `}</style>
+      
+      <AnimatePresence>
         <motion.div 
-          className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:w-auto sm:max-w-md h-full sm:h-[600px] max-h-screen flex flex-col"
-          variants={modalVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          onClick={(e) => e.stopPropagation()}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center sm:justify-end z-50 p-0 sm:p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          onClick={onClose}
         >
-          {/* Header */}
           <motion.div 
-            className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-t-2xl sm:rounded-t-xl"
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
+            className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:w-auto sm:max-w-md h-full sm:h-[600px] max-h-screen flex flex-col"
+            variants={modalVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-              <motion.div 
-                className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center flex-shrink-0"
-                whileHover={{ 
-                  scale: 1.1,
-                  rotate: 360,
-                  transition: { duration: 0.6 }
-                }}
-              >
-                <Bot className="w-4 h-4 sm:w-5 sm:h-5" />
-              </motion.div>
-              <div className="min-w-0 flex-1">
-                <motion.h3 
-                  className="font-semibold text-sm sm:text-base truncate"
-                  initial={{ x: -10, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.3, duration: 0.3 }}
-                >
-                  AI Learning Assistant
-                </motion.h3>
-                <motion.p 
-                  className="text-xs text-white/80 truncate"
-                  initial={{ x: -10, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.4, duration: 0.3 }}
-                >
-                  {isLoading ? 'Processing...' : 'Ready to help you learn!'}
-                </motion.p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              <motion.button
-                onClick={() => setShowN8nOutput(!showN8nOutput)}
-                className="hidden sm:block text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors backdrop-blur-sm touch-manipulation"
-                title="Toggle AI-BUDDY output display"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.3 }}
-              >
-                {showN8nOutput ? 'Hide AI' : 'Show AI'}
-              </motion.button>
-              <motion.button
-                onClick={() => setShowDebug(!showDebug)}
-                className="hidden sm:block text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors backdrop-blur-sm touch-manipulation"
-                title="Toggle debug mode"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6, duration: 0.3 }}
-              >
-                {showDebug ? 'Hide Debug' : 'Show Debug'}
-              </motion.button>
-              <motion.button 
-                onClick={onClose} 
-                className="text-white hover:text-white/80 transition-colors p-1 touch-manipulation"
-                whileHover={{ 
-                  scale: 1.1,
-                  rotate: 90,
-                  transition: { duration: 0.2 }
-                }}
-                whileTap={{ scale: 0.9 }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7, duration: 0.3 }}
-              >
-                <X className="w-5 h-5 sm:w-6 sm:h-6" />
-              </motion.button>
-            </div>
-          </motion.div>
-
-          {/* Messages */}
-          <motion.div 
-            className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-gradient-to-b from-gray-50 to-gray-100"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.4 }}
-          >
-            <AnimatePresence>
-              {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
-              {messages.map((message, _index) => (
-                <motion.div
-                  key={message.id}
-                  className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
-                  variants={messageVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="hidden"
-                  layout
-                >
-                  <motion.div
-                    className={`max-w-[85%] sm:max-w-[80%] p-2.5 sm:p-3 rounded-2xl ${
-                      message.isUser
-                        ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-br-md shadow-md'
-                        : 'bg-white text-gray-900 rounded-bl-md shadow-sm border border-gray-100'
-                    }`}
-                    whileHover={{ 
-                      scale: 1.02,
-                      transition: { duration: 0.2 }
-                    }}
-                  >
-                    <p className="text-xs sm:text-sm leading-relaxed">{message.content}</p>
-                    <motion.p 
-                      className={`text-xs mt-1 ${
-                        message.isUser ? 'text-white/70' : 'text-gray-500'
-                      }`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.2, duration: 0.3 }}
-                    >
-                      {message.timestamp.toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </motion.p>
-                  </motion.div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {/* Loading indicator */}
-            <AnimatePresence>
-              {isLoading && (
-                <motion.div
-                  className="flex justify-start"
-                  variants={loadingVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                >
-                  <motion.div 
-                    className="bg-white p-3 rounded-2xl rounded-bl-md shadow-sm border border-gray-100"
-                    animate={{ 
-                      scale: [1, 1.02, 1],
-                    }}
-                    transition={{ 
-                      duration: 1.5,
-                      repeat: Infinity,
-                      repeatType: "reverse"
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <motion.div
-                        className="w-2 h-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full"
-                        animate={{ 
-                          scale: [1, 1.5, 1],
-                          opacity: [0.5, 1, 0.5]
-                        }}
-                        transition={{ 
-                          duration: 0.8,
-                          repeat: Infinity,
-                          delay: 0
-                        }}
-                      />
-                      <motion.div
-                        className="w-2 h-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full"
-                        animate={{ 
-                          scale: [1, 1.5, 1],
-                          opacity: [0.5, 1, 0.5]
-                        }}
-                        transition={{ 
-                          duration: 0.8,
-                          repeat: Infinity,
-                          delay: 0.2
-                        }}
-                      />
-                      <motion.div
-                        className="w-2 h-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full"
-                        animate={{ 
-                          scale: [1, 1.5, 1],
-                          opacity: [0.5, 1, 0.5]
-                        }}
-                        transition={{ 
-                          duration: 0.8,
-                          repeat: Infinity,
-                          delay: 0.4
-                        }}
-                      />
-                    </div>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <div ref={messagesEndRef} />
-          </motion.div>
-
-          {/* Input */}
-          <motion.div 
-            className="p-3 sm:p-4 border-t border-gray-200 bg-white"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.4 }}
-          >
-            <div className="flex gap-2">
-              <motion.textarea
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Ask me anything about your learning..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-gray-900 text-sm sm:text-base touch-manipulation"
-                rows={1}
-                disabled={isLoading}
-                whileFocus={{ 
-                  scale: 1.02,
-                  transition: { duration: 0.2 }
-                }}
-              />
-              <motion.button
-                onClick={handleSendMessage}
-                disabled={!inputMessage.trim() || isLoading}
-                className="px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm touch-manipulation min-w-[44px]"
-                whileHover={{ 
-                  scale: 1.05,
-                  boxShadow: "0 5px 15px -5px rgba(147, 51, 234, 0.4)"
-                }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <motion.span
-                  animate={isLoading ? { rotate: 360 } : {}}
-                  transition={isLoading ? { 
-                    duration: 1, 
-                    repeat: Infinity, 
-                    ease: "linear" 
-                  } : {}}
-                  className="text-base sm:text-lg"
-                >
-                  {isLoading ? '⏳' : '📤'}
-                </motion.span>
-              </motion.button>
-            </div>
-            
-            {/* Quick suggestions */}
+            {/* Header */}
             <motion.div 
-              className="flex gap-1.5 sm:gap-2 mt-2 sm:mt-3 flex-wrap"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.4 }}
+              className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-t-2xl sm:rounded-t-xl"
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
             >
-              {['Explain this topic', 'Help with homework', 'Study tips', 'Quiz me'].map((suggestion, index) => (
+              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                <motion.div 
+                  className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center flex-shrink-0"
+                  whileHover={{ 
+                    scale: 1.1,
+                    rotate: 360,
+                    transition: { duration: 0.6 }
+                  }}
+                >
+                  <Bot className="w-4 h-4 sm:w-5 sm:h-5" />
+                </motion.div>
+                <div className="min-w-0 flex-1">
+                  <motion.h3 
+                    className="font-semibold text-sm sm:text-base truncate"
+                    initial={{ x: -10, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.3 }}
+                  >
+                    AI Learning Assistant
+                  </motion.h3>
+                  <motion.p 
+                    className="text-xs text-white/80 truncate"
+                    initial={{ x: -10, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.4, duration: 0.3 }}
+                  >
+                    {isLoading ? 'Processing...' : 'Ready to help you learn!'}
+                  </motion.p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                 <motion.button
-                  key={suggestion}
-                  onClick={() => setInputMessage(suggestion)}
-                  className="px-2.5 sm:px-3 py-1 text-xs bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700 rounded-full hover:from-purple-100 hover:to-blue-100 transition-colors border border-purple-200 touch-manipulation"
+                  onClick={() => setShowN8nOutput(!showN8nOutput)}
+                  className="hidden sm:block text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors backdrop-blur-sm touch-manipulation"
+                  title="Toggle AI-BUDDY output display"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.7 + index * 0.1, duration: 0.3 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5, duration: 0.3 }}
                 >
-                  {suggestion}
+                  {showN8nOutput ? 'Hide AI' : 'Show AI'}
                 </motion.button>
-              ))}
+                
+                <motion.button 
+                  onClick={onClose} 
+                  className="text-white hover:text-white/80 transition-colors p-1 touch-manipulation"
+                  whileHover={{ 
+                    scale: 1.1,
+                    rotate: 90,
+                    transition: { duration: 0.2 }
+                  }}
+                  whileTap={{ scale: 0.9 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7, duration: 0.3 }}
+                >
+                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                </motion.button>
+              </div>
+            </motion.div>
+
+            {/* Messages */}
+            <motion.div 
+              className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-gradient-to-b from-gray-50 to-gray-100"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+            >
+              <AnimatePresence>
+                {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
+                {messages.map((message, _index) => (
+                  <motion.div
+                    key={message.id}
+                    className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
+                    variants={messageVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    layout
+                  >
+                    <motion.div
+                      className={`max-w-[85%] sm:max-w-[80%] p-2.5 sm:p-3 rounded-2xl ${
+                        message.isUser
+                          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-br-md shadow-md'
+                          : 'bg-white text-gray-900 rounded-bl-md shadow-sm border border-gray-100'
+                      }`}
+                      whileHover={{ 
+                        scale: 1.02,
+                        transition: { duration: 0.2 }
+                      }}
+                    >
+                      {extractResponseContent(message)}
+                      
+                      <motion.p 
+                        className={`text-xs mt-1 ${
+                          message.isUser ? 'text-white/70' : 'text-gray-500'
+                        }`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.2, duration: 0.3 }}
+                      >
+                        {message.timestamp.toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </motion.p>
+                    </motion.div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {/* Loading indicator */}
+              <AnimatePresence>
+                {isLoading && (
+                  <motion.div
+                    className="flex justify-start"
+                    variants={loadingVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                  >
+                    <motion.div 
+                      className="bg-white p-3 rounded-2xl rounded-bl-md shadow-sm border border-gray-100"
+                      animate={{ 
+                        scale: [1, 1.02, 1],
+                      }}
+                      transition={{ 
+                        duration: 1.5,
+                        repeat: Infinity,
+                        repeatType: "reverse"
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <motion.div
+                          className="w-2 h-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full"
+                          animate={{ 
+                            scale: [1, 1.5, 1],
+                            opacity: [0.5, 1, 0.5]
+                          }}
+                          transition={{ 
+                            duration: 0.8,
+                            repeat: Infinity,
+                            delay: 0
+                          }}
+                        />
+                        <motion.div
+                          className="w-2 h-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full"
+                          animate={{ 
+                            scale: [1, 1.5, 1],
+                            opacity: [0.5, 1, 0.5]
+                          }}
+                          transition={{ 
+                            duration: 0.8,
+                            repeat: Infinity,
+                            delay: 0.2
+                          }}
+                        />
+                        <motion.div
+                          className="w-2 h-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full"
+                          animate={{ 
+                            scale: [1, 1.5, 1],
+                            opacity: [0.5, 1, 0.5]
+                          }}
+                          transition={{ 
+                            duration: 0.8,
+                            repeat: Infinity,
+                            delay: 0.4
+                          }}
+                        />
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <div ref={messagesEndRef} />
+            </motion.div>
+
+            {/* Input */}
+            <motion.div 
+              className="p-3 sm:p-4 border-t border-gray-200 bg-white"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
+            >
+              <div className="flex gap-2">
+                <motion.textarea
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask me anything about your learning..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-gray-900 text-sm sm:text-base touch-manipulation"
+                  rows={1}
+                  disabled={isLoading}
+                  whileFocus={{ 
+                    scale: 1.02,
+                    transition: { duration: 0.2 }
+                  }}
+                />
+                <motion.button
+                  onClick={handleSendMessage}
+                  disabled={!inputMessage.trim() || isLoading}
+                  className="px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm touch-manipulation min-w-[44px]"
+                  whileHover={{ 
+                    scale: 1.05,
+                    boxShadow: "0 5px 15px -5px rgba(147, 51, 234, 0.4)"
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <motion.span
+                    animate={isLoading ? { rotate: 360 } : {}}
+                    transition={isLoading ? { 
+                      duration: 1, 
+                      repeat: Infinity, 
+                      ease: "linear" 
+                    } : {}}
+                    className="text-base sm:text-lg"
+                  >
+                    {isLoading ? '⏳' : '📤'}
+                  </motion.span>
+                </motion.button>
+              </div>
+              
+              {/* Quick suggestions */}
+              <motion.div 
+                className="flex gap-1.5 sm:gap-2 mt-2 sm:mt-3 flex-wrap"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.4 }}
+              >
+                {['Explain this topic', 'Help with homework', 'Study tips', 'Quiz me'].map((suggestion, index) => (
+                  <motion.button
+                    key={suggestion}
+                    onClick={() => setInputMessage(suggestion)}
+                    className="px-2.5 sm:px-3 py-1 text-xs bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700 rounded-full hover:from-purple-100 hover:to-blue-100 transition-colors border border-purple-200 touch-manipulation"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.7 + index * 0.1, duration: 0.3 }}
+                  >
+                    {suggestion}
+                  </motion.button>
+                ))}
+              </motion.div>
             </motion.div>
           </motion.div>
         </motion.div>
-      </motion.div>
-    </AnimatePresence>
+      </AnimatePresence>
+    </>
   );
 }
