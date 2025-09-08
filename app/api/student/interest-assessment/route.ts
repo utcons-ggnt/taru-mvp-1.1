@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import Student from '@/models/Student';
+import AssessmentResponse from '@/models/AssessmentResponse';
 import connectDB from '@/lib/mongodb';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -15,6 +16,9 @@ interface DecodedToken {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 Interest Assessment API called at:', new Date().toISOString());
+    console.log('🔍 Request headers:', Object.fromEntries(request.headers.entries()));
+    
     // Get token from HTTP-only cookie
     const token = request.cookies.get('auth-token')?.value;
     if (!token) {
@@ -92,6 +96,122 @@ export async function POST(request: NextRequest) {
 
     if (!updatedStudent) {
       return NextResponse.json({ error: 'Failed to update student' }, { status: 500 });
+    }
+
+    // Check if webhook has already been triggered for this student
+    const existingAssessmentResponse = await AssessmentResponse.findOne({
+      uniqueId: updatedStudent.uniqueId,
+      assessmentType: 'diagnostic',
+      webhookTriggered: true
+    });
+
+    if (existingAssessmentResponse) {
+      console.log('🔍 Webhook already triggered for student:', updatedStudent.uniqueId, 'skipping');
+      return NextResponse.json({
+        success: true,
+        message: 'Interest assessment completed successfully (webhook already triggered)',
+        student: {
+          id: updatedStudent._id,
+          uniqueId: updatedStudent.uniqueId,
+          interestAssessmentCompleted: updatedStudent.interestAssessmentCompleted
+        }
+      });
+    }
+
+    // Trigger n8n webhook for assessment questions generation after interest assessment
+    console.log('🔍 About to trigger webhook for student:', updatedStudent.uniqueId);
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    const skipN8NWebhook = process.env.SKIP_N8N_WEBHOOK === 'true';
+    
+    if (skipN8NWebhook) {
+      console.log('🔍 Skipping n8n webhook (SKIP_N8N_WEBHOOK=true)');
+      console.log('🔍 Assessment will use fallback questions from API');
+      
+      // Create a basic assessment response entry for development
+      try {
+        let assessmentResponse = await AssessmentResponse.findOne({
+          uniqueId: updatedStudent.uniqueId,
+          assessmentType: 'diagnostic'
+        });
+
+        if (!assessmentResponse) {
+          assessmentResponse = new AssessmentResponse({
+            uniqueId: updatedStudent.uniqueId,
+            assessmentType: 'diagnostic',
+            responses: [],
+            webhookTriggered: false,
+            webhookTriggeredAt: new Date(),
+            generatedQuestions: [] // Will use fallback questions
+          });
+          await assessmentResponse.save();
+          console.log('🔍 Created assessment response entry for development mode');
+        }
+      } catch (devError) {
+        console.error('🔍 Error creating development assessment response:', devError);
+      }
+    } else {
+      // Production n8n webhook logic
+      try {
+        const webhookPayload = [
+          {
+            "UniqueID": updatedStudent.uniqueId,
+            "submittedAt": new Date().toISOString()
+          }
+        ];
+
+        console.log('🔍 Triggering n8n webhook with GET parameters:', {
+          UniqueID: updatedStudent.uniqueId,
+          submittedAt: new Date().toISOString()
+        });
+
+        // Build query parameters for GET request
+        const params = new URLSearchParams({
+          UniqueID: updatedStudent.uniqueId,
+          submittedAt: new Date().toISOString()
+        });
+
+        const webhookResponse = await fetch(`https://nclbtaru.app.n8n.cloud/webhook/assessment-questions?${params}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (webhookResponse.ok) {
+          const responseData = await webhookResponse.json();
+          console.log('🔍 n8n webhook triggered successfully, response:', responseData);
+          
+          // Store the generated questions in assessment response
+          if (responseData && responseData[0] && responseData[0].output) {
+            let assessmentResponse = await AssessmentResponse.findOne({
+              uniqueId: updatedStudent.uniqueId,
+              assessmentType: 'diagnostic'
+            });
+
+            if (!assessmentResponse) {
+              assessmentResponse = new AssessmentResponse({
+                uniqueId: updatedStudent.uniqueId,
+                assessmentType: 'diagnostic',
+                responses: []
+              });
+            }
+
+            assessmentResponse.generatedQuestions = responseData[0].output;
+            assessmentResponse.webhookTriggered = true;
+            assessmentResponse.webhookTriggeredAt = new Date();
+            await assessmentResponse.save();
+
+            console.log('🔍 Generated questions stored for student:', updatedStudent.uniqueId);
+          }
+        } else {
+          console.error('🔍 Failed to trigger n8n webhook:', webhookResponse.status, webhookResponse.statusText);
+          console.log('🔍 Falling back to default assessment questions');
+        }
+      } catch (webhookError) {
+        console.error('🔍 Error triggering n8n webhook:', webhookError);
+        console.log('🔍 Falling back to default assessment questions');
+        // Don't fail the interest assessment if webhook fails
+      }
     }
 
     return NextResponse.json({

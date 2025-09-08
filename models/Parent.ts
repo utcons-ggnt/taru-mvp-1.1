@@ -116,4 +116,4 @@ parentSchema.pre('save', function(next) {
   next();
 });
 
-export default mongoose.models.Parent || mongoose.model('Parent', parentSchema); 
+export default (mongoose.models && mongoose.models.Parent) || mongoose.model('Parent', parentSchema); 

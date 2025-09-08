@@ -113,6 +113,34 @@ const assessmentResponseSchema = new mongoose.Schema({
   analysisCompletedAt: {
     type: Date
   },
+  
+  // N8N Results Cache
+  n8nResults: {
+    questions: {
+      data: Array, // Store the n8n generated questions
+      generatedAt: Date,
+      n8nResultId: String,
+      status: {
+        type: String,
+        enum: ['pending', 'completed', 'failed'],
+        default: 'pending'
+      }
+    },
+    analysis: {
+      data: {
+        type: mongoose.Schema.Types.Mixed
+      },
+      generatedAt: Date,
+      n8nResultId: String,
+      status: {
+        type: String,
+        enum: ['pending', 'completed', 'failed'],
+        default: 'pending'
+      }
+    },
+    lastGeneratedAt: Date
+  },
+  
   createdAt: {
     type: Date,
     default: Date.now
@@ -129,4 +157,4 @@ assessmentResponseSchema.pre('save', function(next) {
   next();
 });
 
-export default mongoose.models.AssessmentResponse || mongoose.model('AssessmentResponse', assessmentResponseSchema);
+export default (mongoose.models && mongoose.models.AssessmentResponse) || mongoose.model('AssessmentResponse', assessmentResponseSchema);

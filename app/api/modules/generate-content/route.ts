@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
+import Module from '@/models/Module';
+import { N8NCacheService } from '@/lib/N8NCacheService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const N8N_MODULE_ASSESSMENT_WEBHOOK_URL = process.env.N8N_MODULE_ASSESSMENT_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook/MCQ/Flash/questions';
-const N8N_FALLBACK_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook/AI-BUDDY-MAIN';
 
 interface DecodedToken {
   userId: string;
@@ -87,6 +88,41 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Check if we should force regenerate
+    const forceRegenerate = request.headers.get('x-force-regenerate') === 'true';
+    
+    // Check for cached content first
+    if (!forceRegenerate) {
+      const module = await Module.findOne({ uniqueID: uniqueId });
+      if (module) {
+        const contentType = type.toLowerCase() === 'mcq' ? 'mcq' : 'flashcard';
+        const cachedContent = await N8NCacheService.getCachedModuleContent(
+          module._id.toString(),
+          contentType,
+          24 // 24 hours cache
+        );
+        
+        if (cachedContent && cachedContent.length > 0) {
+          console.log(`🎯 Using cached ${contentType} content for module ${uniqueId}`);
+          return NextResponse.json({
+            success: true,
+            type,
+            content: cachedContent,
+            count: cachedContent.length,
+            cached: true,
+            metadata: {
+              method,
+              type: type,
+              uniqueId: uniqueId,
+              studentId: decoded.userId,
+              timestamp: new Date().toISOString(),
+              cacheHit: true
+            }
+          });
+        }
+      }
+    }
+
     const payload = {
       type,
       uniqueId,
@@ -96,168 +132,155 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
 
     console.log('Payload being sent to N8N:', JSON.stringify(payload, null, 2));
 
-    // Enhanced error handling with timeout and fallback
+    // Enhanced error handling
     let rawResponse;
     let webhookResponse: Response | undefined;
-    let usedFallback = false;
     
-    // Try primary webhook first, then fallback if needed
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        console.log(`🔄 Attempt ${attempt}: Trying webhook:`, webhookUrl);
-        
-        // Add timeout to prevent hanging requests (increased to 30 seconds for n8n workflows)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-        
-        // Convert payload to URL parameters for GET request
-        const urlParams = new URLSearchParams({
-          uniqueID: 'TRANSCRIBE_003', // Use fixed uniqueID like original implementation
-          submittedAt: new Date().toISOString()
-        });
-        
+    try {
+      console.log('🔄 Trying webhook:', webhookUrl);
+      
+      // Convert payload to URL parameters for GET request
+      const urlParams = new URLSearchParams({
+        uniqueID: uniqueId, // Use actual unique ID from request
+        submittedAt: new Date().toISOString()
+      });
+      
+      const getUrl = `${webhookUrl}?${urlParams.toString()}`;
+      console.log('🔗 Full webhook URL:', getUrl);
+      console.log('🔗 URL parameters:', urlParams.toString());
+      
+      webhookResponse = await fetch(getUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      console.log('📡 Webhook response status:', webhookResponse.status);
+      console.log('📡 Webhook response status text:', webhookResponse.statusText);
+      console.log('📡 Webhook response headers:', Object.fromEntries(webhookResponse.headers.entries()));
 
-        
-        const getUrl = `${webhookUrl}?${urlParams.toString()}`;
-        console.log('🔗 Full webhook URL:', getUrl);
-        console.log('🔗 URL parameters:', urlParams.toString());
-        
-        webhookResponse = await fetch(getUrl, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        console.log('📡 Webhook response status:', webhookResponse.status);
-        console.log('📡 Webhook response status text:', webhookResponse.statusText);
-        console.log('📡 Webhook response headers:', Object.fromEntries(webhookResponse.headers.entries()));
-
+      const responseText = await webhookResponse.text();
+      console.log('📥 N8N Raw response text:', responseText);
+      console.log('📥 Response text length:', responseText.length);
+      
+      if (!responseText || responseText.trim() === '') {
+        console.warn('📥 Empty response from N8N webhook');
+        rawResponse = { error: 'Empty response from N8N webhook' };
+      } else {
         try {
-          const responseText = await webhookResponse.text();
-          console.log('📥 N8N Raw response text:', responseText);
-          console.log('📥 Response text length:', responseText.length);
-          
-          if (!responseText || responseText.trim() === '') {
-            console.warn('📥 Empty response from N8N webhook');
-            if (attempt === 1) {
-              console.log('🔄 Empty response, trying fallback webhook...');
-              webhookUrl = N8N_FALLBACK_WEBHOOK_URL;
-              usedFallback = true;
-              continue; // Try next attempt with fallback
-            } else {
-              rawResponse = { error: 'Empty response from N8N webhook' };
-              break;
-            }
-          } else {
-            try {
-              rawResponse = JSON.parse(responseText);
-              console.log('📥 N8N Parsed Response:', JSON.stringify(rawResponse, null, 2));
-              console.log('📥 Response type:', typeof rawResponse);
-              console.log('📥 Is array:', Array.isArray(rawResponse));
-              if (Array.isArray(rawResponse)) {
-                console.log('📥 Array length:', rawResponse.length);
-                if (rawResponse.length > 0) {
-                  console.log('📥 First item:', JSON.stringify(rawResponse[0], null, 2));
-                }
-              }
-              break; // Success, exit the retry loop
-            } catch (parseError) {
-              console.error('📥 Failed to parse response text as JSON:', parseError);
-              console.error('📥 Response text that failed to parse:', responseText);
-              if (attempt === 1) {
-                console.log('🔄 JSON parse error, trying fallback webhook...');
-                webhookUrl = N8N_FALLBACK_WEBHOOK_URL;
-                usedFallback = true;
-                continue; // Try next attempt with fallback
-              } else {
-                rawResponse = { error: 'Invalid JSON response from N8N', rawText: responseText };
-                break;
-              }
+          rawResponse = JSON.parse(responseText);
+          console.log('📥 N8N Parsed Response:', JSON.stringify(rawResponse, null, 2));
+          console.log('📥 Response type:', typeof rawResponse);
+          console.log('📥 Is array:', Array.isArray(rawResponse));
+          if (Array.isArray(rawResponse)) {
+            console.log('📥 Array length:', rawResponse.length);
+            if (rawResponse.length > 0) {
+              console.log('📥 First item:', JSON.stringify(rawResponse[0], null, 2));
             }
           }
-        } catch (textError) {
-          console.error('📥 Failed to get response text:', textError);
-          if (attempt === 1) {
-            console.log('🔄 Text read error, trying fallback webhook...');
-            webhookUrl = N8N_FALLBACK_WEBHOOK_URL;
-            usedFallback = true;
-            continue; // Try next attempt with fallback
-          } else {
-            rawResponse = { error: 'Failed to read response from N8N' };
-            break;
-          }
-        }
-      } catch (fetchError: unknown) {
-        const error = fetchError as Error & { code?: string };
-        console.error(`🔄 Attempt ${attempt} failed:`, error);
-        console.error('Webhook URL attempted:', webhookUrl);
-        console.error('Error name:', error.name);
-        console.error('Error code:', error.code);
-        
-        if (attempt === 1) {
-          console.log('🔄 Fetch error, trying fallback webhook...');
-          webhookUrl = N8N_FALLBACK_WEBHOOK_URL;
-          usedFallback = true;
-          continue; // Try next attempt with fallback
-        } else {
-          let errorMessage = 'Connection failed';
-          if (error.name === 'AbortError') {
-            errorMessage = 'Webhook timeout (30s) - n8n workflow may be taking too long or inactive';
-          } else if (error.code === 'ENOTFOUND') {
-            errorMessage = 'Webhook URL not found - check n8n webhook URL';
-          } else if (error.code === 'ECONNREFUSED') {
-            errorMessage = 'Connection refused - n8n server may be down';
-          }
-          
-          console.error('Diagnosed issue:', errorMessage);
-          
-          // Return immediate fallback response for network errors
-          const fallbackContent = generateFallbackContent(type);
-          
-          return NextResponse.json({
-            success: true,
-            type,
-            content: fallbackContent,
-            count: fallbackContent.length,
-            fallback: true,
-            n8nOutput: {
-              fullResponse: null,
-              processedResponse: null,
-              type: type,
-              uniqueId: uniqueId,
-              timestamp: new Date().toISOString(),
-              studentContext: {
-                studentId: decoded.userId,
-                type: type
-              }
-            },
-            metadata: {
-              method,
-              webhookStatus: 0,
-              responseTime: Date.now(),
-              type: type,
-              uniqueId: uniqueId,
-              studentId: decoded.userId,
-              webhookUrl: webhookUrl,
-              timestamp: new Date().toISOString(),
-              usedFallback: true,
-              error: `Webhook unreachable: ${errorMessage} - using fallback mode`
-            }
-          });
+        } catch (parseError) {
+          console.error('📥 Failed to parse response text as JSON:', parseError);
+          console.error('📥 Response text that failed to parse:', responseText);
+          rawResponse = { error: 'Invalid JSON response from N8N', rawText: responseText };
         }
       }
+    } catch (fetchError: unknown) {
+      const error = fetchError as Error & { code?: string };
+      console.error('🔄 Webhook request failed:', error);
+      console.error('Webhook URL attempted:', webhookUrl);
+      console.error('Error name:', error.name);
+      console.error('Error code:', error.code);
+      
+      let errorMessage = 'Connection failed';
+      if (error.code === 'ENOTFOUND') {
+        errorMessage = 'Webhook URL not found - check n8n webhook URL';
+      } else if (error.code === 'ECONNREFUSED') {
+        errorMessage = 'Connection refused - n8n server may be down';
+      }
+      
+      console.error('Diagnosed issue:', errorMessage);
+      
+      // Return immediate fallback response for network errors
+      const fallbackContent = generateFallbackContent(type);
+      
+      return NextResponse.json({
+        success: true,
+        type,
+        content: fallbackContent,
+        count: fallbackContent.length,
+        fallback: true,
+        n8nOutput: {
+          fullResponse: null,
+          processedResponse: null,
+          type: type,
+          uniqueId: uniqueId,
+          timestamp: new Date().toISOString(),
+          studentContext: {
+            studentId: decoded.userId,
+            type: type
+          }
+        },
+        metadata: {
+          method,
+          webhookStatus: 0,
+          responseTime: Date.now(),
+          type: type,
+          uniqueId: uniqueId,
+          studentId: decoded.userId,
+          webhookUrl: webhookUrl,
+          timestamp: new Date().toISOString(),
+          error: `Webhook unreachable: ${errorMessage} - using fallback mode`
+        }
+      });
     }
 
     const { content, count, n8nOutput } = extractN8nContentResponse(rawResponse, type);
 
     if (webhookResponse && webhookResponse.ok) {
+      // Save to cache
+      try {
+        const module = await Module.findOne({ uniqueID: uniqueId });
+        if (module) {
+          const contentType = type.toLowerCase() === 'mcq' ? 'mcq' : 'flashcard';
+          
+          // Save to N8N cache
+          const n8nResult = await N8NCacheService.saveResult({
+            uniqueId: uniqueId,
+            resultType: 'module_content',
+            webhookUrl: webhookUrl,
+            requestPayload: payload,
+            responseData: rawResponse,
+            processedData: content,
+            status: 'completed',
+            metadata: {
+              studentId: decoded.userId,
+              moduleId: module._id.toString(),
+              contentType: contentType,
+              version: '1.0'
+            },
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+          });
+
+          // Update module with generated content
+          await N8NCacheService.updateModuleContent(
+            module._id.toString(),
+            contentType,
+            content,
+            n8nResult._id.toString()
+          );
+
+          console.log(`💾 Saved ${contentType} content to cache for module ${uniqueId}`);
+        }
+      } catch (cacheError) {
+        console.error('❌ Error saving to cache:', cacheError);
+        // Continue with response even if cache fails
+      }
+
       return NextResponse.json({
         success: true,
         type,
         content: content,
         count: count,
+        cached: false,
         n8nOutput: {
           fullResponse: rawResponse,
           processedResponse: n8nOutput,
@@ -277,8 +300,7 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
           uniqueId: uniqueId,
           studentId: decoded.userId,
           webhookUrl: webhookUrl,
-          timestamp: new Date().toISOString(),
-          usedFallback: usedFallback
+          timestamp: new Date().toISOString()
         }
       });
     } else {
@@ -313,7 +335,6 @@ async function handleRequest(method: 'GET' | 'POST', request: NextRequest) {
           studentId: decoded.userId,
           webhookUrl: webhookUrl,
           timestamp: new Date().toISOString(),
-          usedFallback: usedFallback,
           error: `Webhook returned ${webhookResponse?.status || 0} - using fallback mode`
         },
         n8nError: {

@@ -3,7 +3,6 @@ import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Student from '@/models/Student';
-import AssessmentResponse from '@/models/AssessmentResponse';
 import StudentProgress from '@/models/StudentProgress';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -213,101 +212,6 @@ export async function POST(request: NextRequest) {
 
       console.log('🔍 Student onboarding completed successfully');
       console.log('🔍 Unique ID generated:', student.uniqueId);
-
-      // Trigger n8n webhook for assessment questions generation
-      const isDevelopment = process.env.NODE_ENV !== 'production';
-      const skipN8NWebhook = process.env.SKIP_N8N_WEBHOOK === 'true';
-      
-      if (skipN8NWebhook) {
-        console.log('🔍 Skipping n8n webhook (SKIP_N8N_WEBHOOK=true)');
-        console.log('🔍 Assessment will use fallback questions from API');
-        
-        // Create a basic assessment response entry for development
-        try {
-          let assessmentResponse = await AssessmentResponse.findOne({
-            uniqueId: student.uniqueId,
-            assessmentType: 'diagnostic'
-          });
-
-          if (!assessmentResponse) {
-            assessmentResponse = new AssessmentResponse({
-              uniqueId: student.uniqueId,
-              assessmentType: 'diagnostic',
-              responses: [],
-              webhookTriggered: false,
-              webhookTriggeredAt: new Date(),
-              generatedQuestions: [] // Will use fallback questions
-            });
-            await assessmentResponse.save();
-            console.log('🔍 Created assessment response entry for development mode');
-          }
-        } catch (devError) {
-          console.error('🔍 Error creating development assessment response:', devError);
-        }
-      } else {
-        // Production n8n webhook logic
-        try {
-          const webhookPayload = [
-            {
-              "UniqueID": student.uniqueId,
-              "submittedAt": new Date().toISOString()
-            }
-          ];
-
-          console.log('🔍 Triggering n8n webhook with GET parameters:', {
-            UniqueID: student.uniqueId,
-            submittedAt: new Date().toISOString()
-          });
-
-          // Build query parameters for GET request
-          const params = new URLSearchParams({
-            UniqueID: student.uniqueId,
-            submittedAt: new Date().toISOString()
-          });
-
-          const webhookResponse = await fetch(`https://nclbtaru.app.n8n.cloud/webhook/assessment-questions?${params}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (webhookResponse.ok) {
-            const responseData = await webhookResponse.json();
-            console.log('🔍 n8n webhook triggered successfully, response:', responseData);
-            
-            // Store the generated questions in assessment response
-            if (responseData && responseData[0] && responseData[0].output) {
-              let assessmentResponse = await AssessmentResponse.findOne({
-                uniqueId: student.uniqueId,
-                assessmentType: 'diagnostic'
-              });
-
-              if (!assessmentResponse) {
-                assessmentResponse = new AssessmentResponse({
-                  uniqueId: student.uniqueId,
-                  assessmentType: 'diagnostic',
-                  responses: []
-                });
-              }
-
-              assessmentResponse.generatedQuestions = responseData[0].output;
-              assessmentResponse.webhookTriggered = true;
-              assessmentResponse.webhookTriggeredAt = new Date();
-              await assessmentResponse.save();
-
-              console.log('🔍 Generated questions stored for student:', student.uniqueId);
-            }
-          } else {
-            console.error('🔍 Failed to trigger n8n webhook:', webhookResponse.status, webhookResponse.statusText);
-            console.log('🔍 Falling back to default assessment questions');
-          }
-        } catch (webhookError) {
-          console.error('🔍 Error triggering n8n webhook:', webhookError);
-          console.log('🔍 Falling back to default assessment questions');
-          // Don't fail the onboarding if webhook fails
-        }
-      }
 
       // Generate new token with assessment requirement (since onboarding is now complete)
       const newToken = jwt.sign(

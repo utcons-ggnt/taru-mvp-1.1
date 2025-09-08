@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { VideoData } from '../types';
-import { N8NService } from '../services/N8NService';
+import { ClientN8NService } from '../services/ClientN8NService';
 import { TranscriptService } from '../services/TranscriptService';
 
 interface VideoPlayerProps {
@@ -42,7 +42,7 @@ export default function VideoPlayer({
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const n8nService = new N8NService();
+  const n8nService = new ClientN8NService();
   const transcriptService = new TranscriptService();
 
   // Default demo video data if no videoData provided

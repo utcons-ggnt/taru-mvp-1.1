@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { ExplanationResult } from '../types';
-import { N8NService } from '../services/N8NService';
+import { ClientN8NService } from '../services/ClientN8NService';
 import { SpeechService } from '../services/SpeechService';
 
 interface AdvancedFeaturePanelProps {
@@ -30,7 +30,7 @@ export default function AdvancedFeaturePanel({
   const [voiceSpeed, setVoiceSpeed] = useState(1.0);
   const [autoPlay, setAutoPlay] = useState(false);
 
-  const n8nService = new N8NService();
+  const n8nService = new ClientN8NService();
   const speechService = new SpeechService();
 
   const handleFullRead = async () => {

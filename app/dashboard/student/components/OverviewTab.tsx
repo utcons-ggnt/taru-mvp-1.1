@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Target, TrendingUp, Award, Zap, Play, ChevronRight, Star, Clock, Users } from 'lucide-react';
+import { BookOpen, Target, TrendingUp, Award, Zap, Play, ChevronRight, Star, Clock, Users, Briefcase } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface Course {
   title: string;
@@ -40,6 +41,7 @@ interface OverviewTabProps {
 }
 
 export default function OverviewTab({ courses, tests: _tests, onTabChange, dashboardData }: OverviewTabProps) {
+  const router = useRouter();
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -191,6 +193,60 @@ export default function OverviewTab({ courses, tests: _tests, onTabChange, dashb
             </button>
           </div>
         )}
+      </motion.div>
+
+      {/* Career Exploration Section */}
+      <motion.div 
+        className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl shadow-sm border border-blue-200 dark:border-blue-700 p-6"
+        variants={sectionVariants}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Briefcase className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Career Exploration</h3>
+              <p className="text-gray-600 dark:text-gray-400">Discover your future career path</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                <Target className="w-4 h-4 text-green-600 dark:text-green-400" />
+              </div>
+              <h4 className="font-semibold text-gray-900 dark:text-white">Personalized Career Options</h4>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Get career recommendations based on your interests and skills
+            </p>
+          </div>
+          
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                <BookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h4 className="font-semibold text-gray-900 dark:text-white">Detailed Learning Paths</h4>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Explore comprehensive learning modules for your chosen career
+            </p>
+          </div>
+        </div>
+        
+        <div className="text-center">
+          <button 
+            onClick={() => router.push('/career-exploration')}
+            className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-lg flex items-center gap-2 mx-auto"
+          >
+            <Briefcase className="w-5 h-5" />
+            Explore Careers
+          </button>
+        </div>
       </motion.div>
     </motion.div>
   );

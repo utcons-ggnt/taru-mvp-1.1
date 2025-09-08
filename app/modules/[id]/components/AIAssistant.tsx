@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Message, ActionType, SpeechProgress } from '../types';
-import { N8NService } from '../services/N8NService';
+import { ClientN8NService } from '../services/ClientN8NService';
 import { SpeechService } from '../services/SpeechService';
 import ChatMessages from './ChatMessages';
 import SpeechProgressIndicator from './SpeechProgressIndicator';
@@ -37,12 +37,12 @@ export default function AIAssistant({
   const [isListening, setIsListening] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const n8nService = useRef<N8NService | null>(null);
+  const n8nService = useRef<ClientN8NService | null>(null);
   const speechService = useRef<SpeechService | null>(null);
 
   useEffect(() => {
     if (apiKey) {
-      n8nService.current = new N8NService();
+      n8nService.current = new ClientN8NService();
       speechService.current = new SpeechService(setSpeechProgress);
     }
   }, [apiKey]);

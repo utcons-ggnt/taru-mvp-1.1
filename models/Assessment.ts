@@ -80,6 +80,18 @@ const assessmentSchema = new mongoose.Schema({
     type: Date
   },
   
+  // Session and Navigation State
+  currentSession: {
+    sessionId: String,
+    currentQuestion: { type: Number, default: 1 },
+    lastActivity: { type: Date, default: Date.now }
+  },
+  navigationHistory: [{
+    page: String,
+    timestamp: { type: Date, default: Date.now },
+    data: mongoose.Schema.Types.Mixed
+  }],
+  
   createdAt: {
     type: Date,
     default: Date.now
@@ -96,4 +108,5 @@ assessmentSchema.pre('save', function(next) {
   next();
 });
 
-export default mongoose.models.Assessment || mongoose.model('Assessment', assessmentSchema); 
+
+export default (mongoose.models && mongoose.models.Assessment) || mongoose.model('Assessment', assessmentSchema); 

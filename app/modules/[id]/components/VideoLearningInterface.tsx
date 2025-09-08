@@ -5,7 +5,7 @@ import { VideoData, FlashCardType, MCQQuestion } from '../types';
 import VideoPlayer from './VideoPlayer';
 import AIAssistant from './AIAssistant';
 import FlashCard from './FlashCard';
-import { N8NService } from '../services/N8NService';
+import { ClientN8NService } from '../services/ClientN8NService';
 import { TranscriptService, TranscriptData } from '../services/TranscriptService';
 
 interface VideoLearningInterfaceProps {
@@ -13,13 +13,15 @@ interface VideoLearningInterfaceProps {
   apiKey?: string;
   moduleId?: string;
   videoData?: VideoData;
+  uniqueId?: string;
 }
 
 export default function VideoLearningInterface({
   className = '',
   apiKey = '',
   moduleId,
-  videoData
+  videoData,
+  uniqueId
 }: VideoLearningInterfaceProps) {
   const [activeTab, setActiveTab] = useState<'chat' | 'mcq' | 'flashcards' | 'transcript'>('chat');
   const [activeVideoData, setActiveVideoData] = useState<VideoData | null>(null);
@@ -36,7 +38,7 @@ export default function VideoLearningInterface({
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [transcriptError, setTranscriptError] = useState<string | null>(null);
 
-  const n8nService = new N8NService();
+  const n8nService = new ClientN8NService();
   const transcriptService = new TranscriptService();
 
   // Demo video data (fallback if no videoData provided)
@@ -93,14 +95,15 @@ export default function VideoLearningInterface({
     }
   };
 
-  const generateLearningContent = async () => {
+  const generateLearningContent = async (forceRegenerate = false) => {
     if (!apiKey) return;
 
     setIsGenerating(true);
     try {
-      // Generate flashcards
+      // Generate flashcards with caching support
       const flashcardData = await n8nService.generateFlashcards(
-        'TRANSCRIBE_003'
+        uniqueId || 'TRANSCRIBE_003',
+        forceRegenerate
       );
       
       const formattedFlashcards: FlashCardType[] = flashcardData.map((item: any, index: number) => ({
@@ -114,9 +117,10 @@ export default function VideoLearningInterface({
       
       setFlashcards(formattedFlashcards);
 
-      // Generate MCQ questions
+      // Generate MCQ questions with caching support
       const mcqData = await n8nService.generateMCQs(
-        'TRANSCRIBE_003'
+        uniqueId || 'TRANSCRIBE_003',
+        forceRegenerate
       );
       
       const formattedMCQs: MCQQuestion[] = mcqData.map((item: any, index: number) => ({

@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
+import ResultSummaryModal from '../components/ResultSummaryModal';
+import { useAssessmentState } from '@/lib/hooks/useAssessmentState';
+import { useNavigationWithState } from '@/lib/hooks/useNavigationWithState';
 
 interface AssessmentQuestion {
   id: string;
@@ -63,18 +66,39 @@ export default function DiagnosticAssessment() {
   const [error, setError] = useState('');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [collectedAnswers, setCollectedAnswers] = useState<CollectedAnswer[]>([]);
-  const [allAnswers, setAllAnswers] = useState<{ [key: string]: string }>({});
   const [isResetting, setIsResetting] = useState(false);
   const [isFromInterestAssessment, setIsFromInterestAssessment] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
   const router = useRouter();
+
+  // Session management hooks
+  const { navigateWithState, loadPageState, savePageState } = useNavigationWithState();
+  const { 
+    state: assessmentState, 
+    addAnswer, 
+    updateProgress, 
+    completeAssessment, 
+    resetAssessment: resetAssessmentState 
+  } = useAssessmentState('diagnostic');
+
+  // Helper function to set assessment as completed and store in localStorage
+  const setAssessmentCompleted = (resultData: AssessmentResult) => {
+    setIsCompleted(true);
+    setResult(resultData);
+    
+    // Store in localStorage as backup
+    try {
+      localStorage.setItem('diagnostic_assessment_completed', 'true');
+      localStorage.setItem('diagnostic_assessment_result', JSON.stringify(resultData));
+    } catch (error) {
+      console.warn('Failed to store assessment result in localStorage:', error);
+    }
+  };
 
   // Fetch user profile data
   const fetchUserProfile = async () => {
     try {
-      console.log('🔍 Fetching user profile...');
-      const response = await fetch('/api/user/profile');
-      
-      console.log('🔍 Profile response status:', response.status);
+        const response = await fetch('/api/user/profile');
       
       if (!response.ok) {
         let errorMessage = 'Failed to fetch user profile';
@@ -92,7 +116,6 @@ export default function DiagnosticAssessment() {
       let data;
       try {
         data = await response.json();
-        console.log('🔍 Profile data received:', data);
       } catch (parseError) {
         console.error('Failed to parse profile response as JSON:', parseError);
         return;
@@ -100,7 +123,6 @@ export default function DiagnosticAssessment() {
 
       if (data.success && data.user) {
         setUserProfile(data.user);
-        console.log('🔍 User profile set successfully');
       } else {
         console.error('Invalid profile response format:', data);
       }
@@ -115,11 +137,7 @@ export default function DiagnosticAssessment() {
       setIsLoading(true);
       setError('');
       
-      console.log('🔍 Loading question...');
       const response = await fetch('/api/assessment/questions');
-      
-      console.log('🔍 Response status:', response.status);
-      console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()));
       
       // Check if response is ok before trying to parse JSON
       if (!response.ok) {
@@ -138,21 +156,32 @@ export default function DiagnosticAssessment() {
       let data;
       try {
         data = await response.json();
-        console.log('🔍 Parsed response data:', data);
       } catch (parseError) {
         console.error('Failed to parse response as JSON:', parseError);
         throw new Error('Invalid response format from server');
       }
 
       if (data.completed) {
-        console.log('🔍 Assessment already completed');
+        console.log('🔍 Assessment marked as completed, checking result data...', data.result);
         
         // Check if this is a premature completion (user hasn't actually taken the assessment)
-        const hasActualAnswers = data.result && data.result.totalQuestions && data.result.totalQuestions > 0;
+        // Look for either totalQuestions > 0 OR n8nResults data OR responses data
+        const hasActualAnswers = data.result && (
+          (data.result.totalQuestions && data.result.totalQuestions > 0) ||
+          (data.result.n8nResults && Object.keys(data.result.n8nResults).length > 0) ||
+          (data.responses && data.responses.length > 0)
+        );
+        
+        console.log('🔍 Has actual answers check:', {
+          totalQuestions: data.result?.totalQuestions,
+          hasN8nResults: !!(data.result?.n8nResults && Object.keys(data.result.n8nResults).length > 0),
+          responsesCount: data.responses?.length || 0,
+          hasActualAnswers
+        });
         
         if (!hasActualAnswers) {
-          console.log('🔍 Detected premature completion - no actual questions answered');
           // User is coming from interest assessment, mark this
+          console.log('🔍 No actual answers found, treating as new assessment');
           setIsFromInterestAssessment(true);
           setIsCompleted(false);
           setResult(null);
@@ -161,14 +190,16 @@ export default function DiagnosticAssessment() {
           return;
         }
         
-        setIsCompleted(true);
-        setResult(data.result || {
+        console.log('🔍 Setting assessment as completed with result:', data.result);
+        const resultData = data.result || {
           type: 'Assessment Completed',
           description: 'You have already completed the diagnostic assessment.',
           score: 0,
           learningStyle: 'Not Available',
           recommendations: []
-        });
+        };
+        setAssessmentCompleted(resultData);
+        
         return;
       }
 
@@ -176,19 +207,7 @@ export default function DiagnosticAssessment() {
         throw new Error('No question data received from server');
       }
 
-      console.log('🔍 Setting question data:', {
-        id: data.question.id,
-        question: data.question.question,
-        type: data.question.type,
-        section: data.question.section,
-        options: data.question.options,
-        currentQuestion: data.currentQuestion,
-        totalQuestions: data.totalQuestions,
-        progress: data.progress
-      });
       
-      // Debug: Show the actual API response type
-      console.log('🔍 API response question type:', data.question.type);
 
       // Map question types to standardized format
       let mappedType: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
@@ -206,7 +225,6 @@ export default function DiagnosticAssessment() {
         type: mappedType
       };
       
-      console.log('🔍 Mapped question type from', data.question.type, 'to', mappedQuestion.type);
       
       setCurrentQuestion(mappedQuestion);
       setCurrentQuestionNumber(data.currentQuestion);
@@ -241,8 +259,7 @@ export default function DiagnosticAssessment() {
       
       // If there's an error, check if it's because assessment is completed
       if (err instanceof Error && err.message.includes('completed')) {
-        setIsCompleted(true);
-        setResult({
+        setAssessmentCompleted({
           type: 'Assessment Completed',
           description: 'You have already completed the diagnostic assessment.',
           score: 0,
@@ -287,10 +304,14 @@ export default function DiagnosticAssessment() {
   };
 
   // Generate N8N questions if not already generated
-  const generateN8NQuestions = async () => {
+  const generateN8NQuestions = async (forceRegenerate = false) => {
     try {
-      console.log('🔍 Generating N8N questions...');
-      const response = await fetch('/api/assessment/generate-questions?type=diagnostic');
+      console.log('🔍 Generating N8N questions...', forceRegenerate ? '(forced)' : '(cached)');
+      const url = forceRegenerate 
+        ? '/api/assessment/generate-questions?type=diagnostic&forceRegenerate=true'
+        : '/api/assessment/generate-questions?type=diagnostic';
+      
+      const response = await fetch(url);
       
       if (!response.ok) {
         console.error('Failed to generate N8N questions');
@@ -298,10 +319,14 @@ export default function DiagnosticAssessment() {
       }
 
       const data = await response.json();
-      console.log('🔍 N8N questions generated:', data);
+      console.log('🔍 N8N questions response:', data);
       
       if (data.success && data.questions && data.questions.length > 0) {
-        console.log('🔍 Successfully generated', data.questions.length, 'N8N questions');
+        if (data.cached) {
+          console.log('🎯 Using cached questions:', data.questions.length, 'questions');
+        } else {
+          console.log('🔄 Generated new questions:', data.questions.length, 'questions');
+        }
         return true;
       } else {
         console.log('🔍 No N8N questions generated, using fallback');
@@ -332,12 +357,6 @@ export default function DiagnosticAssessment() {
           currentAnswer = answer;
         }
         
-        if (currentAnswer.trim()) {
-          setAllAnswers(prev => ({
-            ...prev,
-            [currentQuestion.id]: currentAnswer
-          }));
-        }
       }
 
       // Load previous question
@@ -373,27 +392,9 @@ export default function DiagnosticAssessment() {
         setTotalQuestions(data.totalQuestions);
         setProgress(data.progress);
         
-        // Load previous answer if exists
-        const previousAnswer = allAnswers[data.question.id];
-        if (previousAnswer) {
-          if (mappedQuestion.type === 'SINGLE_CHOICE') {
-            setSelectedOption([previousAnswer]);
-            setAnswer('');
-          } else if (mappedQuestion.type === 'MULTIPLE_CHOICE') {
-            // For multiple choice, split by comma if stored as comma-separated string
-            const options = previousAnswer.includes(',') 
-              ? previousAnswer.split(',').map(s => s.trim())
-              : [previousAnswer];
-            setSelectedOption(options);
-            setAnswer('');
-          } else {
-            setAnswer(previousAnswer);
-            setSelectedOption([]);
-          }
-        } else {
-          setAnswer('');
-          setSelectedOption([]);
-        }
+        // Reset answer state for new question
+        setAnswer('');
+        setSelectedOption([]);
       }
     } catch (err) {
       console.error('Error loading previous question:', err);
@@ -438,11 +439,6 @@ export default function DiagnosticAssessment() {
       // Add to collected answers
       setCollectedAnswers(prev => [...prev, currentAnswer]);
       
-      // Save to all answers for navigation
-      setAllAnswers(prev => ({
-        ...prev,
-        [currentQuestion.id]: answerToSubmit
-      }));
 
       console.log('🔍 Submitting answer:', {
         questionId: currentQuestion.id,
@@ -487,22 +483,30 @@ export default function DiagnosticAssessment() {
             let resultData;
             try {
               const responseText = await resultResponse.text();
-              console.log('🔍 Raw result response text:', responseText);
               
               if (!responseText || responseText.trim() === '') {
-                console.log('⚠️ Empty response from result API, using fallback');
-                setIsCompleted(true);
-                setResult(data.result);
+                setAssessmentCompleted(data.result);
                 return;
               }
               
               resultData = JSON.parse(responseText);
-              console.log('🔍 N8N results received:', resultData);
             } catch (parseError) {
-              console.error('🔍 Failed to parse result response as JSON:', parseError);
+              console.error('Failed to parse result response as JSON:', parseError);
               // Still show completion with default result
               setIsCompleted(true);
               setResult(data.result);
+              return;
+            }
+            
+            // Handle cached vs new results
+            if (resultData.cached) {
+              console.log('🎯 Using cached assessment results');
+              const updatedResult = {
+                ...data.result,
+                ...resultData.result,
+                cached: true
+              };
+              setAssessmentCompleted(updatedResult);
               return;
             }
             
@@ -515,12 +519,12 @@ export default function DiagnosticAssessment() {
               totalQuestions: parseInt(n8nData?.['Total Questions']) || n8nData?.totalQuestions || n8nData?.['total_questions'] || 0,
               score: parseInt(n8nData?.Score) || n8nData?.score || n8nData?.['score'] || 0,
               description: n8nData?.Summery || n8nData?.summary || n8nData?.['summary'] || n8nData?.['description'] || data.result.description,
-              n8nResults: n8nData
+              n8nResults: n8nData,
+              cached: false
             };
             
             console.log('🔍 Updated result with N8N data:', updatedResult);
-            setIsCompleted(true);
-            setResult(updatedResult);
+            setAssessmentCompleted(updatedResult);
           } else {
             console.error('🔍 Failed to get N8N results:', resultResponse.status);
             // Still show completion with default result
@@ -528,7 +532,7 @@ export default function DiagnosticAssessment() {
             setResult(data.result);
           }
         } catch (resultError) {
-          console.error('🔍 Error getting N8N results:', resultError);
+          console.error('Error getting N8N results:', resultError);
           // Still show completion with default result
           setIsCompleted(true);
           setResult(data.result);
@@ -600,19 +604,15 @@ export default function DiagnosticAssessment() {
             let resultData;
             try {
               const responseText = await resultResponse.text();
-              console.log('🔍 Raw result response text:', responseText);
               
               if (!responseText || responseText.trim() === '') {
-                console.log('⚠️ Empty response from result API, using fallback');
-                setIsCompleted(true);
-                setResult(data.result);
+                setAssessmentCompleted(data.result);
                 return;
               }
               
               resultData = JSON.parse(responseText);
-              console.log('🔍 N8N results received:', resultData);
             } catch (parseError) {
-              console.error('🔍 Failed to parse result response as JSON:', parseError);
+              console.error('Failed to parse result response as JSON:', parseError);
               // Fallback to default result if N8N fails
               setIsCompleted(true);
               setResult(data.result);
@@ -629,8 +629,7 @@ export default function DiagnosticAssessment() {
               n8nResults: n8nData
             } as AssessmentResult;
 
-            setIsCompleted(true);
-            setResult(updatedResult);
+            setAssessmentCompleted(updatedResult);
           } else {
             // Fallback to default result if N8N fails
             setIsCompleted(true);
@@ -710,13 +709,20 @@ export default function DiagnosticAssessment() {
         setResult(null);
         setError('');
         setCollectedAnswers([]);
-        setAllAnswers({});
+        
+        // Clear localStorage
+        try {
+          localStorage.removeItem('diagnostic_assessment_completed');
+          localStorage.removeItem('diagnostic_assessment_result');
+        } catch (error) {
+          console.warn('Failed to clear localStorage:', error);
+        }
         
         // Reload the first question
         await loadQuestion();
       } else {
         const errorData = await response.json();
-        console.error('🔍 Failed to reset assessment:', errorData.error);
+        console.error('Failed to reset assessment:', errorData.error);
         // If reset fails, just reload the page as fallback
         window.location.reload();
       }
@@ -744,10 +750,30 @@ export default function DiagnosticAssessment() {
         // Try to generate N8N questions if not already generated
         await generateN8NQuestions();
         
-        // If profile fetch succeeds, load the question
+        // If profile fetch succeeds, load the question (this will check completion status)
         await loadQuestion();
+        
+        console.log('🔍 Assessment initialization completed');
       } catch (error) {
         console.error('Failed to initialize assessment:', error);
+        
+        // Fallback: Check localStorage for completion status
+        try {
+          const isCompletedFromStorage = localStorage.getItem('diagnostic_assessment_completed');
+          const resultFromStorage = localStorage.getItem('diagnostic_assessment_result');
+          
+          if (isCompletedFromStorage === 'true' && resultFromStorage) {
+            console.log('🔍 Fallback: Loading assessment result from localStorage');
+            const parsedResult = JSON.parse(resultFromStorage);
+            setIsCompleted(true);
+            setResult(parsedResult);
+            setIsLoading(false);
+            return;
+          }
+        } catch (storageError) {
+          console.warn('Failed to read from localStorage:', storageError);
+        }
+        
         // If there's an authentication error, redirect to login
         if (error instanceof Error && error.message.includes('401')) {
           router.push('/login');
@@ -853,15 +879,17 @@ export default function DiagnosticAssessment() {
     );
   }
 
+
   // Completion screen
   if (isCompleted && result) {
     return (
-      <motion.main 
-        className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex flex-col"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
+      <>
+        <motion.main 
+          className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex flex-col"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
         {/* Header */}
         <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -875,7 +903,7 @@ export default function DiagnosticAssessment() {
             <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
               {userProfile ? userProfile.fullName.charAt(0).toUpperCase() : 'U'}
             </div>
-        </div>
+          </div>
         </header>
 
         {/* Progress Steps */}
@@ -1004,15 +1032,6 @@ export default function DiagnosticAssessment() {
                      </div>
                    </div>
                    
-                   {/* Debug: Show raw N8N data */}
-                   <div className="bg-gradient-to-br from-gray-500/20 to-gray-600/20 backdrop-blur-sm rounded-xl p-6 border border-gray-300/30">
-                     <h3 className="text-xl font-bold text-gray-100 mb-4 text-center">🔧 Debug: N8N Data Structure</h3>
-                     <div className="bg-white/10 rounded-lg p-4">
-                       <pre className="text-sm text-gray-100/90 overflow-x-auto">
-                         {JSON.stringify(result.n8nResults, null, 2)}
-                       </pre>
-                               </div>
-                           </div>
                  </div>
                )}
               
@@ -1052,6 +1071,13 @@ export default function DiagnosticAssessment() {
                   )}
                 </button>
                <button
+                 onClick={() => router.push('/career-exploration')}
+                 className="bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 backdrop-blur-sm text-white px-8 py-4 rounded-full font-semibold hover:from-yellow-500/30 hover:to-yellow-600/30 transition-all duration-300 flex items-center gap-3 border border-yellow-300/30"
+               >
+                 <span className="text-2xl">🚀</span>
+                 <span>Get my career path</span>
+               </button>
+               <button
                  onClick={() => router.push('/dashboard/student')}
                  className="bg-gradient-to-r from-white to-gray-100 text-purple-600 px-8 py-4 rounded-full font-semibold hover:from-gray-100 hover:to-gray-200 transition-all duration-300 flex items-center gap-3 shadow-lg"
                >
@@ -1066,15 +1092,32 @@ export default function DiagnosticAssessment() {
                  <span>Start Learning</span>
                </button>
              </motion.div>
-
-
-
-
-
-
           </motion.div>
         </div>
-      </motion.main>
+        </motion.main>
+
+        {/* Result Summary Modal */}
+        <ResultSummaryModal
+          isOpen={showResultModal}
+          onClose={() => setShowResultModal(false)}
+          score={result?.n8nResults?.Score || result?.score || 0}
+          totalQuestions={result?.n8nResults?.['Total Questions'] || result?.totalQuestions || 0}
+          summary={result?.n8nResults?.Summery || result?.description || 'Assessment completed successfully.'}
+          onGetCareerPath={() => {
+            setShowResultModal(false);
+            router.push('/career-exploration');
+          }}
+          onPrevious={() => setShowResultModal(false)}
+          onSubmit={() => setShowResultModal(false)}
+          currentQuestion="Assessment completed successfully"
+          questionLevel="Completed"
+          questionNumber={totalQuestions}
+          progress={Array.from({ length: totalQuestions }, (_, i) => ({
+            questionNumber: i + 1,
+            status: 'completed' as const
+          }))}
+        />
+      </>
     );
   }
 
@@ -1245,14 +1288,6 @@ export default function DiagnosticAssessment() {
       {/* Question Content */}
       <div className="flex-1 px-6 py-8">
         <div className="max-w-4xl mx-auto">
-          {/* Debug: Show current question state */}
-          {currentQuestion && (
-            <div className="mb-4 p-4 bg-gray-100 rounded-lg text-sm">
-              <strong>Debug:</strong> Question Type: {currentQuestion.type}, 
-              Has Options: {currentQuestion.options ? 'Yes' : 'No'}, 
-              Options Count: {currentQuestion.options?.length || 0}
-            </div>
-          )}
           
           <AnimatePresence mode="wait">
             {currentQuestion ? (
@@ -1306,6 +1341,7 @@ export default function DiagnosticAssessment() {
                               checked={isSelected}
                               onChange={(e) => setSelectedOption([e.target.value])}
                               className="sr-only"
+                              aria-describedby={`option-${index}-description`}
                             />
                             <div className={`bg-white rounded-xl p-6 border-2 transition-all duration-200 ${
                               isSelected 
@@ -1320,7 +1356,10 @@ export default function DiagnosticAssessment() {
                                 }`}>
                                   {letter}
                                 </div>
-                                <span className="text-gray-800 font-medium text-lg leading-relaxed flex-1">
+                                <span 
+                                  id={`option-${index}-description`}
+                                  className="text-gray-800 font-medium text-lg leading-relaxed flex-1"
+                                >
                                   {option}
                                 </span>
                               </div>
@@ -1360,6 +1399,7 @@ export default function DiagnosticAssessment() {
                                 }
                               }}
                               className="sr-only"
+                              aria-describedby={`option-${index}-description`}
                             />
                             <div className={`bg-white rounded-xl p-6 border-2 transition-all duration-200 ${
                               isSelected 
@@ -1374,7 +1414,10 @@ export default function DiagnosticAssessment() {
                                 }`}>
                                   {letter}
                                 </div>
-                                <span className="text-gray-800 font-medium text-lg leading-relaxed flex-1">
+                                <span 
+                                  id={`option-${index}-description`}
+                                  className="text-gray-800 font-medium text-lg leading-relaxed flex-1"
+                                >
                                   {option}
                                 </span>
                               </div>

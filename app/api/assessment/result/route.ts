@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import Student from '@/models/Student';
 import AssessmentResponse from '@/models/AssessmentResponse';
+import { N8NCacheService } from '@/lib/N8NCacheService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const N8N_SCORE_WEBHOOK_URL = 'https://nclbtaru.app.n8n.cloud/webhook/Score-result';
@@ -64,26 +65,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🔍 Sending uniqueID to N8N Score-result webhook:', student.uniqueId);
+    // Check for cached analysis results first
+    const forceRegenerate = request.headers.get('x-force-regenerate') === 'true';
+    
+    if (!forceRegenerate) {
+      const cachedAnalysis = await N8NCacheService.getCachedAssessmentResults(
+        student.uniqueId,
+        'analysis',
+        24 // 24 hours cache
+      );
+      
+      if (cachedAnalysis) {
+        console.log(`🎯 Using cached assessment analysis for student ${student.uniqueId}`);
+        return NextResponse.json({
+          success: true,
+          result: cachedAnalysis,
+          cached: true,
+          metadata: {
+            generatedAt: new Date().toISOString(),
+            studentId: decoded.userId,
+            cacheHit: true
+          }
+        });
+      }
+    }
 
-    // Send uniqueID to N8N webhook using GET request
-    const params = new URLSearchParams({
+    console.log('🔍 Sending uniqueID to N8N Score-result webhook:', student.uniqueId);
+    console.log('🔍 N8N webhook URL:', N8N_SCORE_WEBHOOK_URL);
+
+    // Send uniqueID to N8N webhook using GET request with URL parameters
+    const urlParams = new URLSearchParams({
       uniqueId: student.uniqueId
     });
+    
+    const webhookUrl = `${N8N_SCORE_WEBHOOK_URL}?${urlParams.toString()}`;
+    console.log('🔍 Webhook URL:', webhookUrl);
 
-    // Add timeout to prevent hanging requests
+    // Add timeout to prevent hanging requests (increased to 30 seconds for n8n workflows)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     let n8nOutput: any; // Declare n8nOutput here
     try {
-      const response = await fetch(`${N8N_SCORE_WEBHOOK_URL}?${params}`, {
+      console.log('🔍 Making GET request to N8N webhook...');
+      const response = await fetch(webhookUrl, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
         signal: controller.signal
       });
+      
+      console.log('🔍 N8N webhook response status:', response.status);
+      console.log('🔍 N8N webhook response statusText:', response.statusText);
 
       clearTimeout(timeoutId);
 
@@ -117,7 +151,7 @@ export async function POST(request: NextRequest) {
     } catch (fetchError) {
       clearTimeout(timeoutId);
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        console.error('🔍 N8N webhook request timed out after 10 seconds');
+        console.error('🔍 N8N webhook request timed out after 30 seconds');
       } else {
         console.error('🔍 N8N webhook request failed:', fetchError);
       }
@@ -134,7 +168,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Parse the N8N output format
+    // Parse the N8N output format - expecting array with single object
     let result = null;
     if (n8nOutput && Array.isArray(n8nOutput) && n8nOutput.length > 0) {
       result = n8nOutput[0];
@@ -157,30 +191,71 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Update assessment response with N8N results
-    assessmentResponse.result = {
+    // Extract data from new N8N format
+    const score = parseInt(result.Score) || 0;
+    const totalQuestions = parseInt(result['Total Questions']) || 0;
+    const summary = result.Summary || 'Assessment completed successfully!';
+
+    // Prepare result data
+    const resultData = {
       type: 'Assessment Completed',
-      description: result.Summery || 'Assessment completed successfully!',
-      score: result.Score || 0,
+      description: summary, // Only show Summary as requested
+      score: score,
       learningStyle: 'Mixed',
       recommendations: [
         { title: 'Continue Learning', description: 'Keep exploring your interests', xp: 50 },
         { title: 'Practice Regularly', description: 'Consistent practice leads to improvement', xp: 75 },
         { title: 'Seek Help When Needed', description: 'Don\'t hesitate to ask questions', xp: 30 }
       ],
-      totalQuestions: result['Total Questions'] || 0,
+      totalQuestions: totalQuestions,
       n8nResults: result
     };
 
+    // Save to cache
+    try {
+      // Save to N8N cache
+      const n8nResult = await N8NCacheService.saveResult({
+        uniqueId: student.uniqueId,
+        resultType: 'assessment_analysis',
+        webhookUrl: N8N_SCORE_WEBHOOK_URL,
+        requestPayload: { uniqueId: student.uniqueId },
+        responseData: n8nOutput,
+        processedData: resultData,
+        status: 'completed',
+        metadata: {
+          studentId: decoded.userId,
+          assessmentId: `${student.uniqueId}_diagnostic`,
+          contentType: 'analysis',
+          version: '1.0'
+        },
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+      });
+
+      // Update assessment response with N8N results
+      await N8NCacheService.updateAssessmentResults(
+        student.uniqueId,
+        'analysis',
+        resultData,
+        n8nResult._id.toString()
+      );
+
+      console.log(`💾 Saved assessment analysis to cache for student ${student.uniqueId}`);
+    } catch (cacheError) {
+      console.error('❌ Error saving to cache:', cacheError);
+      // Continue with response even if cache fails
+    }
+
+    // Update assessment response with N8N results (legacy support)
+    assessmentResponse.result = resultData;
     await assessmentResponse.save();
     console.log('🔍 Assessment response updated with N8N results');
 
     return NextResponse.json({
       success: true,
       result: {
-        totalQuestions: result['Total Questions'] || 0,
-        score: result.Score || 0,
-        summary: result.Summery || 'Assessment completed successfully!',
+        totalQuestions: totalQuestions,
+        score: score,
+        summary: summary, // Only show Summary as requested
         n8nResults: result
       }
     });
@@ -235,11 +310,16 @@ export async function GET(request: NextRequest) {
     // Test N8N webhook connectivity
     try {
       console.log('🔍 Testing N8N webhook connectivity...');
-      const testResponse = await fetch(`${N8N_SCORE_WEBHOOK_URL}?uniqueId=test`, {
-        method: 'GET',
+      const testPayload = {
+        uniqueId: 'test',
+        submittedAt: new Date().toISOString()
+      };
+      const testResponse = await fetch(N8N_SCORE_WEBHOOK_URL, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify(testPayload)
       });
       
       console.log('🔍 N8N test response status:', testResponse.status);

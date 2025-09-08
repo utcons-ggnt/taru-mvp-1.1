@@ -100,4 +100,4 @@ teacherSchema.index({ schoolId: 1 });
 teacherSchema.index({ subjectSpecialization: 1 });
 teacherSchema.index({ isActive: 1 });
 
-export default mongoose.models.Teacher || mongoose.model<ITeacher>('Teacher', teacherSchema); 
+export default (mongoose.models && mongoose.models.Teacher) || mongoose.model<ITeacher>('Teacher', teacherSchema); 

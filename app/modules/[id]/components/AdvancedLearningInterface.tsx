@@ -7,7 +7,7 @@ import PDFViewer from './PDFViewer';
 import VideoLearningInterface from './VideoLearningInterface';
 import BookmarksPanel from './BookmarksPanel';
 import AdvancedFeaturePanel from './AdvancedFeaturePanel';
-import { N8NService } from '../services/N8NService';
+import { ClientN8NService } from '../services/ClientN8NService';
 import { SpeechService } from '../services/SpeechService';
 
 interface AdvancedLearningInterfaceProps {
@@ -30,7 +30,7 @@ export default function AdvancedLearningInterface({
   const [selectedText, setSelectedText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const n8nService = new N8NService();
+  const n8nService = new ClientN8NService();
   const speechService = new SpeechService();
 
   useEffect(() => {

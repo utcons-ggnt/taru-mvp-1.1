@@ -74,4 +74,4 @@ learningPathSchema.pre('save', function(next) {
   next();
 });
 
-export default mongoose.models.LearningPath || mongoose.model('LearningPath', learningPathSchema); 
+export default (mongoose.models && mongoose.models.LearningPath) || mongoose.model('LearningPath', learningPathSchema); 

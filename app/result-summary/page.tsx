@@ -25,6 +25,7 @@ interface AssessmentData {
     skillLevels: {[key: string]: number};
     interestAreas: string[];
     recommendedModules: string[];
+    summary?: string;
   };
 }
 
@@ -39,10 +40,38 @@ export default function ResultSummary() {
 
   const fetchAssessmentData = async () => {
     try {
+      // Fetch assessment result with score summary
+      const resultResponse = await fetch('/api/assessment/result');
+      if (resultResponse.ok) {
+        const resultData = await resultResponse.json();
+        if (resultData.success && resultData.result) {
+          // Update assessment with score summary
+          setAssessment(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              diagnosticCompleted: true,
+              diagnosticScore: resultData.result.score,
+              diagnosticResults: {
+                ...prev.diagnosticResults,
+                summary: resultData.result.summary
+              }
+            };
+          });
+        }
+      }
+
+      // Fetch skills and interests data
       const response = await fetch('/api/assessment/skills-interests');
       if (response.ok) {
         const data = await response.json();
-        setAssessment(data.assessment);
+        setAssessment(prev => {
+          if (!prev) return data.assessment;
+          return {
+            ...prev,
+            ...data.assessment
+          };
+        });
       } else {
         // setError('Failed to load assessment data'); // This line was removed as per the edit hint
       }
@@ -188,6 +217,26 @@ export default function ResultSummary() {
 
           {/* Center Column - Skills & Strengths */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Score Summary */}
+            {assessment.diagnosticCompleted && assessment.diagnosticResults?.summary && (
+              <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl shadow-lg p-6 mb-6">
+                <h2 className="text-xl font-semibold text-white mb-4">
+                  🎉 Your Assessment Summary
+                </h2>
+                <div className="bg-white/10 rounded-lg p-4">
+                  <p className="text-white text-lg leading-relaxed">
+                    {assessment.diagnosticResults.summary}
+                  </p>
+                </div>
+                {assessment.diagnosticScore && (
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="text-white/80">Your Score:</span>
+                    <span className="text-2xl font-bold text-white">{assessment.diagnosticScore}%</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Diagnostic Results */}
             {assessment.diagnosticCompleted && (
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
@@ -288,6 +337,13 @@ export default function ResultSummary() {
         {/* Action Buttons */}
         <div className="mt-8 text-center space-y-4">
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={() => router.push('/career-exploration')}
+              className="px-8 py-4 bg-purple-600 text-white rounded-lg font-medium transition-colors hover:bg-purple-700 flex items-center gap-2 mx-auto"
+            >
+              <span>🚀</span>
+              Explore Career Options
+            </button>
             <button
               onClick={() => router.push('/recommended-modules')}
               className="px-8 py-4 bg-blue-600 text-white rounded-lg font-medium transition-colors hover:bg-blue-700"

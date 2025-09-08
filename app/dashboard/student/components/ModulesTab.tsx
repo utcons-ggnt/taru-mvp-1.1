@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Star, CheckCircle, XCircle, Brain, BookOpen, ChevronDown, RotateCcw, Mic } from 'lucide-react';
 
 // Import AI-powered components
-import { N8NService } from '../../../modules/[id]/services/N8NService';
 import { SpeechService } from '../../../modules/[id]/services/SpeechService';
 
 // Import types
@@ -72,7 +71,6 @@ export default function ModulesTab() {
   const [showModuleSelector, setShowModuleSelector] = useState(false);
   
   // AI Services
-  const n8nService = useRef<N8NService | null>(null);
   const speechService = useRef<SpeechService | null>(null);
   
   // Chat state
@@ -208,7 +206,6 @@ export default function ModulesTab() {
 
   // Initialize AI Services
   useEffect(() => {
-    n8nService.current = new N8NService();
     speechService.current = new SpeechService(() => {});
   }, []);
 
@@ -281,7 +278,7 @@ export default function ModulesTab() {
       // Build URL parameters for GET request (matching new N8N workflow format)
       const params = new URLSearchParams({
         Query: message, // Use 'Query' to match the new N8N format
-        uniqueid: selectedModule?.transID || selectedModule?.uniqueID || 'TRANSCRIBE_003', // Use transID first, fallback to uniqueID
+        uniqueid: selectedModule?.transID || selectedModule?.uniqueID || user?.uniqueId || 'TRANSCRIBE_003', // Use transID first, fallback to uniqueID, then user uniqueId
         submittedAt: new Date().toISOString(),
         // Additional context for learning modules
         subject: selectedModule?.subject || 'General',
@@ -297,7 +294,7 @@ export default function ModulesTab() {
       const webhookUrl = `${N8N_WEBHOOK_URL}?${params.toString()}`;
       console.log('🔍 Sending message to N8N Transcribe Workflow:', {
         Query: message,
-        uniqueid: selectedModule?.transID || selectedModule?.uniqueID || 'TRANSCRIBE_003',
+        uniqueid: selectedModule?.transID || selectedModule?.uniqueID || user?.uniqueId || 'TRANSCRIBE_003',
         submittedAt: new Date().toISOString(),
         subject: selectedModule?.subject || 'General',
         module: selectedModule?.title || 'Learning Module'

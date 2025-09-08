@@ -341,7 +341,8 @@ export async function GET(request: NextRequest) {
         success: true,
         message: 'Assessment already completed',
         completed: true,
-        result: mutableAssessmentResponse.result
+        result: mutableAssessmentResponse.result,
+        responses: mutableAssessmentResponse.responses
       });
     }
 
@@ -379,7 +380,8 @@ export async function GET(request: NextRequest) {
         success: true,
         message: 'Assessment completed',
         completed: true,
-        result: mutableAssessmentResponse.result
+        result: mutableAssessmentResponse.result,
+        responses: mutableAssessmentResponse.responses
       });
     }
 

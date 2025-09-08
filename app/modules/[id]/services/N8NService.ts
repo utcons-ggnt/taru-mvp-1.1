@@ -1,4 +1,5 @@
 import { AIResponse, LearningContext, ActionType, MCQQuestion, N8NAssessmentResponse } from '../types';
+import { N8NCacheService } from '@/lib/N8NCacheService';
 
 export class N8NService {
   private n8nWebhookUrl: string;
@@ -92,10 +93,24 @@ export class N8NService {
     return questions.slice(0, 4);
   }
 
-  async generateMCQs(uniqueId: string, studentUniqueId?: string): Promise<MCQQuestion[]> {
+  async generateMCQs(uniqueId: string, forceRegenerate = false, studentUniqueId?: string): Promise<MCQQuestion[]> {
     try {
+      // Check cache first
+      if (!forceRegenerate) {
+        const cachedContent = await N8NCacheService.getCachedModuleContent(
+          uniqueId,
+          'mcq',
+          24 // 24 hours cache
+        );
+        
+        if (cachedContent && cachedContent.length > 0) {
+          console.log(`🎯 Using cached MCQ content for module ${uniqueId}`);
+          return cachedContent;
+        }
+      }
+
       const params = new URLSearchParams({
-        uniqueID: 'TRANSCRIBE_003',
+        uniqueID: uniqueId, // Use actual unique ID
         submittedAt: new Date().toISOString()
       });
 
@@ -141,10 +156,24 @@ export class N8NService {
     }
   }
 
-  async generateFlashcards(uniqueId: string, studentUniqueId?: string): Promise<any[]> {
+  async generateFlashcards(uniqueId: string, forceRegenerate = false, studentUniqueId?: string): Promise<any[]> {
     try {
+      // Check cache first
+      if (!forceRegenerate) {
+        const cachedContent = await N8NCacheService.getCachedModuleContent(
+          uniqueId,
+          'flashcard',
+          24 // 24 hours cache
+        );
+        
+        if (cachedContent && cachedContent.length > 0) {
+          console.log(`🎯 Using cached flashcard content for module ${uniqueId}`);
+          return cachedContent;
+        }
+      }
+
       const params = new URLSearchParams({
-        uniqueID: 'TRANSCRIBE_003',
+        uniqueID: uniqueId, // Use actual unique ID
         submittedAt: new Date().toISOString()
       });
 

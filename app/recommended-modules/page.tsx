@@ -39,7 +39,21 @@ interface RecommendedModules {
 }
 
 export default function RecommendedModules() {
-  const [modules, setModules] = useState<Array<{id: string; name: string; subject: string; description: string; xpPoints: number; estimatedDuration: number}>>([]);
+  const [modules, setModules] = useState<Array<{
+    id: string; 
+    name: string; 
+    subject: string; 
+    description: string; 
+    xpPoints: number; 
+    estimatedDuration: number;
+    difficulty: string;
+    grade: string;
+    tags: string[];
+    videoUrl?: string;
+    quizQuestions?: any[];
+    contentTypes?: any[];
+    gamification?: any;
+  }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<'all' | 'academic' | 'vocational' | 'lifeSkills'>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,12 +68,34 @@ export default function RecommendedModules() {
       const response = await fetch('/api/modules/recommended');
       if (response.ok) {
         const data = await response.json();
-        setModules(data);
+        console.log('Recommended modules data:', data);
+        
+        if (data.success && data.modules) {
+          // Transform API data to match component interface
+          const transformedModules = data.modules.map((module: any) => ({
+            id: module.id,
+            name: module.title,
+            subject: module.subject,
+            description: module.description,
+            xpPoints: module.points || 100,
+            estimatedDuration: module.duration || 30,
+            difficulty: module.difficulty || 'beginner',
+            grade: module.grade || 'All',
+            tags: module.tags || [],
+            videoUrl: module.videoUrl,
+            quizQuestions: module.quizQuestions || [],
+            contentTypes: module.contentTypes || [],
+            gamification: module.gamification || {}
+          }));
+          setModules(transformedModules);
+        } else {
+          console.warn('No modules data received from API');
+        }
       } else {
-        // setError('Failed to load recommended modules'); // Original code had this line commented out
+        console.error('Failed to fetch recommended modules:', response.status);
       }
-    } catch {
-      // setError('Failed to load recommended modules'); // Original code had this line commented out
+    } catch (error) {
+      console.error('Error fetching recommended modules:', error);
     } finally {
       setIsLoading(false);
     }
@@ -102,16 +138,15 @@ export default function RecommendedModules() {
   };
 
   const filteredModules = () => {
-    if (!modules) return [];
+    if (!modules || !Array.isArray(modules)) return [];
     
-    let moduleList = modules as unknown as Module[]; // Cast to Module[] to access module properties
+    let moduleList = modules;
     
     if (searchTerm) {
       moduleList = moduleList.filter(module =>
         module.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         module.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        module.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        module.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        module.subject.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
@@ -208,19 +243,19 @@ export default function RecommendedModules() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredModules().map(module => (
             <div
-              key={module.moduleId}
-              onClick={() => handleModuleClick(module.moduleId)}
+              key={module.id}
+              onClick={() => handleModuleClick(module.id)}
               className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105"
             >
               {/* Module Header */}
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center space-x-2">
-                    <span className="text-2xl">{getCategoryIcon(module.category)}</span>
+                    <span className="text-2xl">📚</span>
                     <span className="text-sm text-gray-500 dark:text-gray-400">{module.subject}</span>
                   </div>
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyColor(module.difficulty)}`}>
-                    {module.difficulty}
+                  <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                    Recommended
                   </span>
                 </div>
                 
@@ -243,44 +278,55 @@ export default function RecommendedModules() {
                       <span>⏱️</span>
                       <span className="text-gray-700 dark:text-gray-300">{formatDuration(module.estimatedDuration)}</span>
                     </span>
+                    <span className="flex items-center space-x-1">
+                      <span>📊</span>
+                      <span className="text-gray-700 dark:text-gray-300">{module.grade}</span>
+                    </span>
                   </div>
-                  <span className="flex items-center space-x-1">
-                    <span>{getLearningTypeIcon(module.learningType)}</span>
-                    <span className="text-gray-700 dark:text-gray-300 capitalize">{module.learningType}</span>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyColor(module.difficulty)}`}>
+                    {module.difficulty}
                   </span>
                 </div>
               </div>
 
               {/* Module Content */}
               <div className="p-6">
-                {/* Learning Objectives */}
+                {/* Learning Objectives Placeholder */}
                 <div className="mb-4">
                   <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">What you&apos;ll learn:</h4>
                   <ul className="space-y-1">
-                    {module.learningObjectives.slice(0, 3).map((objective, index) => (
-                      <li key={index} className="flex items-start space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                        <span className="text-green-500 mt-1">✓</span>
-                        <span>{objective}</span>
-                      </li>
-                    ))}
-                    {module.learningObjectives.length > 3 && (
-                      <li className="text-sm text-gray-500 dark:text-gray-500">
-                        +{module.learningObjectives.length - 3} more objectives
-                      </li>
-                    )}
+                    <li className="flex items-start space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                      <span className="text-green-500 mt-1">✓</span>
+                      <span>Master key concepts in {module.subject}</span>
+                    </li>
+                    <li className="flex items-start space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                      <span className="text-green-500 mt-1">✓</span>
+                      <span>Apply knowledge through practical exercises</span>
+                    </li>
+                    <li className="flex items-start space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                      <span className="text-green-500 mt-1">✓</span>
+                      <span>Build confidence in {module.subject} skills</span>
+                    </li>
                   </ul>
                 </div>
 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-2">
-                  {module.tags.slice(0, 3).map(tag => (
-                    <span key={tag} className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded text-xs">
-                      {tag}
-                    </span>
-                  ))}
-                  {module.tags.length > 3 && (
-                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs">
-                      +{module.tags.length - 3}
+                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded text-xs">
+                    {module.subject}
+                  </span>
+                  <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded text-xs">
+                    Recommended
+                  </span>
+                  {module.tags && module.tags.length > 0 ? (
+                    module.tags.slice(0, 2).map((tag: string, index: number) => (
+                      <span key={index} className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 rounded text-xs">
+                        {tag}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 rounded text-xs">
+                      Interactive
                     </span>
                   )}
                 </div>

@@ -4,10 +4,10 @@ import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Student from '@/models/Student';
 import AssessmentResponse from '@/models/AssessmentResponse';
+import { N8NCacheService } from '@/lib/N8NCacheService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const N8N_ASSESSMENT_WEBHOOK_URL = process.env.N8N_ASSESSMENT_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook/assessment-questions';
-const N8N_FALLBACK_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook/AI-BUDDY-MAIN';
 
 interface DecodedToken {
   userId: string;
@@ -70,6 +70,32 @@ export async function GET(request: NextRequest) {
     // Get parameters from URL search params for GET request
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'diagnostic';
+    const forceRegenerate = searchParams.get('forceRegenerate') === 'true';
+
+    // Check for cached questions first
+    if (!forceRegenerate) {
+      const cachedQuestions = await N8NCacheService.getCachedAssessmentResults(
+        student.uniqueId,
+        'questions',
+        24 // 24 hours cache
+      );
+      
+      if (cachedQuestions && cachedQuestions.length > 0) {
+        console.log(`🎯 Using cached assessment questions for student ${student.uniqueId}`);
+        return NextResponse.json({
+          success: true,
+          questions: cachedQuestions,
+          cached: true,
+          metadata: {
+            generatedAt: new Date().toISOString(),
+            studentId: decoded.userId,
+            type: type,
+            totalQuestions: cachedQuestions.length,
+            cacheHit: true
+          }
+        });
+      }
+    }
 
     // Prepare data for N8N
     const assessmentData = {
@@ -86,107 +112,64 @@ export async function GET(request: NextRequest) {
     };
 
     // Call N8N webhook to generate questions
-    let webhookUrl = N8N_ASSESSMENT_WEBHOOK_URL;
-    let usedFallback = false;
     let rawResponse;
 
-    // Try primary webhook first, then fallback if needed
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        console.log(`🔄 Attempt ${attempt}: Trying webhook:`, webhookUrl);
+    try {
+      console.log('🔄 Calling webhook:', N8N_ASSESSMENT_WEBHOOK_URL);
 
-        // Add timeout to prevent hanging requests
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-        // Convert payload to URL parameters for GET request
-        const urlParams = new URLSearchParams({
-          uniqueID: 'TRANSCRIBE_003', // Use fixed uniqueID like original implementation
-          submittedAt: new Date().toISOString()
-        });
+      // Convert payload to URL parameters for GET request
+      const urlParams = new URLSearchParams({
+        uniqueID: student.uniqueId, // Use actual student unique ID
+        submittedAt: new Date().toISOString()
+      });
 
-        const getUrl = `${webhookUrl}?${urlParams.toString()}`;
-        console.log('🔗 Full webhook URL:', getUrl);
+      const getUrl = `${N8N_ASSESSMENT_WEBHOOK_URL}?${urlParams.toString()}`;
+      console.log('🔗 Full webhook URL:', getUrl);
 
-        const response = await fetch(getUrl, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal
-        });
+      const response = await fetch(getUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal
+      });
 
-        clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
 
-        console.log('📡 Webhook response status:', response.status);
+      console.log('📡 Webhook response status:', response.status);
 
+      const responseText = await response.text();
+      console.log('📥 N8N Raw response text:', responseText);
+
+      if (!responseText || responseText.trim() === '') {
+        console.warn('📥 Empty response from N8N webhook');
+        rawResponse = { error: 'Empty response from N8N webhook' };
+      } else {
         try {
-          const responseText = await response.text();
-          console.log('📥 N8N Raw response text:', responseText);
-
-          if (!responseText || responseText.trim() === '') {
-            console.warn('📥 Empty response from N8N webhook');
-            if (attempt === 1) {
-              console.log('🔄 Empty response, trying fallback webhook...');
-              webhookUrl = N8N_FALLBACK_WEBHOOK_URL;
-              usedFallback = true;
-              continue;
-            } else {
-              rawResponse = { error: 'Empty response from N8N webhook' };
-              break;
-            }
-          } else {
-            try {
-              rawResponse = JSON.parse(responseText);
-              console.log('📥 N8N Parsed Response:', JSON.stringify(rawResponse, null, 2));
-              break; // Success, exit the retry loop
-            } catch (parseError) {
-              console.error('📥 Failed to parse response text as JSON:', parseError);
-              if (attempt === 1) {
-                console.log('🔄 JSON parse error, trying fallback webhook...');
-                webhookUrl = N8N_FALLBACK_WEBHOOK_URL;
-                usedFallback = true;
-                continue;
-              } else {
-                rawResponse = { error: 'Invalid JSON response from N8N', rawText: responseText };
-                break;
-              }
-            }
-          }
-        } catch (textError) {
-          console.error('📥 Failed to get response text:', textError);
-          if (attempt === 1) {
-            console.log('🔄 Text read error, trying fallback webhook...');
-            webhookUrl = N8N_FALLBACK_WEBHOOK_URL;
-            usedFallback = true;
-            continue;
-          } else {
-            rawResponse = { error: 'Failed to read response from N8N' };
-            break;
-          }
-        }
-      } catch (fetchError: unknown) {
-        const error = fetchError as Error & { code?: string };
-        console.error(`🔄 Attempt ${attempt} failed:`, error);
-
-        if (attempt === 1) {
-          console.log('🔄 Fetch error, trying fallback webhook...');
-          webhookUrl = N8N_FALLBACK_WEBHOOK_URL;
-          usedFallback = true;
-          continue;
-        } else {
-          let errorMessage = 'Connection failed';
-          if (error.name === 'AbortError') {
-            errorMessage = 'Webhook timeout (30s)';
-          } else if (error.code === 'ENOTFOUND') {
-            errorMessage = 'Webhook URL not found';
-          } else if (error.code === 'ECONNREFUSED') {
-            errorMessage = 'Connection refused';
-          }
-
-          console.error('Diagnosed issue:', errorMessage);
-          rawResponse = { error: `Webhook unreachable: ${errorMessage}` };
-          break;
+          rawResponse = JSON.parse(responseText);
+          console.log('📥 N8N Parsed Response:', JSON.stringify(rawResponse, null, 2));
+        } catch (parseError) {
+          console.error('📥 Failed to parse response text as JSON:', parseError);
+          rawResponse = { error: 'Invalid JSON response from N8N', rawText: responseText };
         }
       }
+    } catch (fetchError: unknown) {
+      const error = fetchError as Error & { code?: string };
+      console.error('🔄 Webhook call failed:', error);
+
+      let errorMessage = 'Connection failed';
+      if (error.name === 'AbortError') {
+        errorMessage = 'Webhook timeout (30s)';
+      } else if (error.code === 'ENOTFOUND') {
+        errorMessage = 'Webhook URL not found';
+      } else if (error.code === 'ECONNREFUSED') {
+        errorMessage = 'Connection refused';
+      }
+
+      console.error('Diagnosed issue:', errorMessage);
+      rawResponse = { error: `Webhook unreachable: ${errorMessage}` };
     }
 
     // Parse N8N response and extract questions
@@ -210,7 +193,41 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Store the generated questions in the database
+    // Store the generated questions in the database and cache
+    try {
+      // Save to N8N cache
+      const n8nResult = await N8NCacheService.saveResult({
+        uniqueId: student.uniqueId,
+        resultType: 'assessment_questions',
+        webhookUrl: N8N_ASSESSMENT_WEBHOOK_URL,
+        requestPayload: assessmentData,
+        responseData: rawResponse,
+        processedData: questions,
+        status: 'completed',
+        metadata: {
+          studentId: decoded.userId,
+          assessmentId: `${student.uniqueId}_${type}`,
+          contentType: 'questions',
+          version: '1.0'
+        },
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+      });
+
+      // Update assessment response with N8N results
+      await N8NCacheService.updateAssessmentResults(
+        student.uniqueId,
+        'questions',
+        questions,
+        n8nResult._id.toString()
+      );
+
+      console.log(`💾 Saved assessment questions to cache for student ${student.uniqueId}`);
+    } catch (cacheError) {
+      console.error('❌ Error saving to cache:', cacheError);
+      // Continue with response even if cache fails
+    }
+
+    // Store the generated questions in the database (legacy support)
     let assessmentResponse = await AssessmentResponse.findOne({
       uniqueId: student.uniqueId,
       assessmentType: type
@@ -240,8 +257,7 @@ export async function GET(request: NextRequest) {
         studentId: decoded.userId,
         type: type,
         totalQuestions: questions.length,
-        usedFallback: usedFallback,
-        webhookUrl: webhookUrl
+        webhookUrl: N8N_ASSESSMENT_WEBHOOK_URL
       }
     });
 

@@ -328,4 +328,4 @@ const studentProgressSchema = new mongoose.Schema<IStudentProgress>({
   timestamps: true
 });
 
-export default mongoose.models.StudentProgress || mongoose.model<IStudentProgress>('StudentProgress', studentProgressSchema); 
+export default (mongoose.models && mongoose.models.StudentProgress) || mongoose.model<IStudentProgress>('StudentProgress', studentProgressSchema); 

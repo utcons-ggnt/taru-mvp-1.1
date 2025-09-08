@@ -86,6 +86,39 @@ export interface IModule {
     learningPathRecommendation: boolean;
   };
   
+  // N8N Generated Content Cache
+  n8nGeneratedContent: {
+    mcqQuestions: Array<{
+      question: string;
+      options: string[];
+      correctAnswer: number;
+      explanation: string;
+      difficulty: 'easy' | 'medium' | 'hard';
+      generatedAt: Date;
+      n8nResultId: string;
+    }>;
+    flashcards: Array<{
+      front: string;
+      back: string;
+      category: string;
+      generatedAt: Date;
+      n8nResultId: string;
+    }>;
+    transcript: {
+      segments: Array<{
+        text: string;
+        startTime: number;
+        endTime: number;
+        confidence: number;
+      }>;
+      language: string;
+      generatedAt: Date;
+      n8nResultId: string;
+    };
+    lastGeneratedAt: Date;
+    generationStatus: 'pending' | 'completed' | 'failed';
+  };
+  
   points: number;
   tags: string[];
   isActive: boolean;
@@ -199,6 +232,47 @@ const moduleSchema = new mongoose.Schema<IModule>({
     learningPathRecommendation: { type: Boolean, default: true }
   },
   
+  // N8N Generated Content Cache
+  n8nGeneratedContent: {
+    mcqQuestions: [{
+      question: { type: String, required: true },
+      options: { type: [String], required: true },
+      correctAnswer: { type: Number, required: true },
+      explanation: { type: String, required: true },
+      difficulty: { 
+        type: String, 
+        enum: ['easy', 'medium', 'hard'],
+        default: 'medium'
+      },
+      generatedAt: { type: Date, default: Date.now },
+      n8nResultId: { type: String, required: true }
+    }],
+    flashcards: [{
+      front: { type: String, required: true },
+      back: { type: String, required: true },
+      category: { type: String, required: true },
+      generatedAt: { type: Date, default: Date.now },
+      n8nResultId: { type: String, required: true }
+    }],
+    transcript: {
+      segments: [{
+        text: { type: String, required: true },
+        startTime: { type: Number, required: true },
+        endTime: { type: Number, required: true },
+        confidence: { type: Number, default: 0.85 }
+      }],
+      language: { type: String, default: 'en' },
+      generatedAt: { type: Date, default: Date.now },
+      n8nResultId: { type: String, required: true }
+    },
+    lastGeneratedAt: { type: Date },
+    generationStatus: { 
+      type: String, 
+      enum: ['pending', 'completed', 'failed'],
+      default: 'pending'
+    }
+  },
+  
   points: { type: Number, default: 10 },
   tags: [{ type: String }],
   isActive: { type: Boolean, default: true }
@@ -206,4 +280,4 @@ const moduleSchema = new mongoose.Schema<IModule>({
   timestamps: true
 });
 
-export default mongoose.models.Module || mongoose.model<IModule>('Module', moduleSchema); 
+export default (mongoose.models && mongoose.models.Module) || mongoose.model<IModule>('Module', moduleSchema); 

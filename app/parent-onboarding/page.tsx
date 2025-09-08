@@ -610,15 +610,27 @@ export default function ParentOnboarding() {
               <p className="text-gray-600 text-sm">
                 Complete your profile to monitor your child&apos;s progress
               </p>
-              <div className="flex justify-center mt-4">
-                {[1, 2, 3, 4].map((step) => (
-                  <div
-                    key={step}
-                    className={`w-3 h-3 rounded-full mx-1 ${
-                      step === currentStep ? 'bg-[#7F00FF]' : 
-                      step < currentStep ? 'bg-green-500' : 'bg-gray-300'
-                    }`}
-                  />
+              <div className="flex justify-center mt-4 space-x-8">
+                {[
+                  { step: 1, label: 'Personal Info' },
+                  { step: 2, label: 'Address' },
+                  { step: 3, label: 'Link Student' },
+                  { step: 4, label: 'Consent' }
+                ].map(({ step, label }) => (
+                  <div key={step} className="flex flex-col items-center">
+                    <div
+                      className={`w-3 h-3 rounded-full ${
+                        step === currentStep ? 'bg-[#7F00FF]' : 
+                        step < currentStep ? 'bg-green-500' : 'bg-gray-300'
+                      }`}
+                    />
+                    <span className={`text-xs mt-2 font-medium ${
+                      step === currentStep ? 'text-[#7F00FF]' : 
+                      step < currentStep ? 'text-green-600' : 'text-gray-400'
+                    }`}>
+                      {label}
+                    </span>
+                  </div>
                 ))}
               </div>
             </div>

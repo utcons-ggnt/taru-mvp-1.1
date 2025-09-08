@@ -811,22 +811,49 @@ export default function StudentOnboarding() {
           
           {/* Progress Steps */}
           <div className="px-4 space-y-6">
-            {[1, 2, 3].map((step) => (
-              <div key={step} className="flex items-center">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${
-                  step === currentStep 
-                    ? 'bg-white text-purple-600' 
-                    : step < currentStep 
-                      ? 'bg-white/80 text-purple-600' 
-                      : 'bg-white/20 text-white/60'
-                }`}>
-                  {step}
-        </div>
-                {step < 3 && (
-                  <div className={`w-px h-8 ml-6 mt-4 ${
-                    step < currentStep ? 'bg-white/80' : 'bg-white/20'
-                  }`} />
-                )}
+            {[
+              { step: 1, label: 'Personal Information', description: 'Basic details about you' },
+              { step: 2, label: 'Learning Preferences', description: 'How you like to learn' },
+              { step: 3, label: 'Guardian Details', description: 'Parent/Guardian information' },
+              { step: 4, label: 'Consent & Terms', description: 'Agreements and permissions' }
+            ].map(({ step, label, description }) => (
+              <div key={step} className="flex items-start">
+                <div className="flex flex-col items-center">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${
+                    step === currentStep 
+                      ? 'bg-white text-purple-600' 
+                      : step < currentStep 
+                        ? 'bg-white/80 text-purple-600' 
+                        : 'bg-white/20 text-white/60'
+                  }`}>
+                    {step}
+                  </div>
+                  {step < 4 && (
+                    <div className={`w-px h-8 mt-4 ${
+                      step < currentStep ? 'bg-white/80' : 'bg-white/20'
+                    }`} />
+                  )}
+                </div>
+                <div className="ml-4 flex-1">
+                  <h3 className={`text-sm font-semibold ${
+                    step === currentStep 
+                      ? 'text-white' 
+                      : step < currentStep 
+                        ? 'text-white/90' 
+                        : 'text-white/60'
+                  }`}>
+                    {label}
+                  </h3>
+                  <p className={`text-xs mt-1 ${
+                    step === currentStep 
+                      ? 'text-white/80' 
+                      : step < currentStep 
+                        ? 'text-white/70' 
+                        : 'text-white/50'
+                  }`}>
+                    {description}
+                  </p>
+                </div>
               </div>
             ))}
           </div>

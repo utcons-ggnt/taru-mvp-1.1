@@ -43,7 +43,7 @@ const studentSchema = new mongoose.Schema({
   classGrade: {
     type: String,
     required: true,
-    maxlength: 6
+    maxlength: 10
   },
   schoolName: {
     type: String,
@@ -298,6 +298,18 @@ const studentSchema = new mongoose.Schema({
     careerAttraction: String
   },
   
+  // Session and Navigation State
+  currentSession: {
+    sessionId: String,
+    currentPage: String,
+    lastActivity: { type: Date, default: Date.now }
+  },
+  navigationHistory: [{
+    page: String,
+    timestamp: { type: Date, default: Date.now },
+    data: mongoose.Schema.Types.Mixed
+  }],
+  
   createdAt: {
     type: Date,
     default: Date.now
@@ -314,4 +326,4 @@ studentSchema.pre('save', function(next) {
   next();
 });
 
-export default mongoose.models.Student || mongoose.model('Student', studentSchema); 
+export default (mongoose.models && mongoose.models.Student) || mongoose.model('Student', studentSchema); 

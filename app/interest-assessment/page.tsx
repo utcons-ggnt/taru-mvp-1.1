@@ -194,6 +194,7 @@ export default function InterestAssessment() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [lastSubmitTime, setLastSubmitTime] = useState<number>(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -479,13 +480,30 @@ export default function InterestAssessment() {
   };
 
   const handleSubmit = async () => {
+    console.log('🔍 Frontend: handleSubmit called at:', new Date().toISOString());
+    console.log('🔍 Frontend: isSubmitting state:', isSubmitting);
+    
     if (!validateStep(currentStep)) {
       return;
     }
     
+    if (isSubmitting) {
+      console.log('🔍 Frontend: Already submitting, ignoring duplicate call');
+      return;
+    }
+
+    // Debounce: prevent multiple submissions within 2 seconds
+    const now = Date.now();
+    if (now - lastSubmitTime < 2000) {
+      console.log('🔍 Frontend: Too soon since last submission, ignoring');
+      return;
+    }
+    setLastSubmitTime(now);
+    
     setIsSubmitting(true);
     
     try {
+      console.log('🔍 Frontend: Making API call to interest assessment');
       const response = await fetch('/api/student/interest-assessment', {
         method: 'POST',
         headers: {
@@ -1085,6 +1103,7 @@ export default function InterestAssessment() {
               <div className="flex items-center justify-between gap-4 mt-8">
                 {/* Previous Button */}
                 <button
+                  type="button"
                   onClick={handlePrevious}
                   disabled={currentStep <= 1}
                   className="bg-gray-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
@@ -1095,6 +1114,7 @@ export default function InterestAssessment() {
                 {/* Next/Submit Button */}
                 {currentStep < 4 ? (
                   <button
+                    type="button"
                     onClick={handleNext}
                     className="bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-800 transition-colors flex items-center gap-2"
                   >
@@ -1102,6 +1122,7 @@ export default function InterestAssessment() {
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={handleSubmit}
                     disabled={isSubmitting}
                     className="bg-green-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"

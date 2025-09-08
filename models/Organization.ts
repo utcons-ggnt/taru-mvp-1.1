@@ -98,4 +98,4 @@ organizationSchema.set('toJSON', {
   }
 });
 
-export default mongoose.models.Organization || mongoose.model<IOrganization>('Organization', organizationSchema); 
+export default (mongoose.models && mongoose.models.Organization) || mongoose.model<IOrganization>('Organization', organizationSchema); 
