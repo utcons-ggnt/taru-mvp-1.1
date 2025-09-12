@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ResultSummaryModal from '../components/ResultSummaryModal';
 import { useAssessmentState } from '@/lib/hooks/useAssessmentState';
 import { useNavigationWithState } from '@/lib/hooks/useNavigationWithState';
+import ConsistentLoadingPage from '../components/ConsistentLoadingPage';
 
 interface AssessmentQuestion {
   id: string;
@@ -1124,12 +1125,16 @@ export default function DiagnosticAssessment() {
   // Loading screen
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your diagnostic assessment...</p>
-        </div>
-          </div>
+      <ConsistentLoadingPage
+        type="assessment"
+        title="Loading Assessment"
+        subtitle="Preparing your personalized diagnostic test..."
+        tips={[
+          'Preparing personalized questions for you',
+          'Calibrating difficulty to your level',
+          'Setting up adaptive assessment engine'
+        ]}
+      />
     );
   }
 

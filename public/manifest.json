@@ -1,0 +1,35 @@
+{
+  "name": "Taru - AI-Powered Educational Platform",
+  "short_name": "Taru",
+  "description": "A comprehensive AI-powered educational platform for personalized learning experiences",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#6D18CE",
+  "theme_color": "#6D18CE",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "en",
+  "dir": "ltr",
+  "scope": "/",
+  "screenshots": [
+    {
+      "src": "/landingPage.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Taru Educational Platform"
+    }
+  ]
+}

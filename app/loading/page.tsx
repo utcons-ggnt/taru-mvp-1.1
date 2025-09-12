@@ -1,18 +1,21 @@
+'use client';
+
 import React from 'react';
+import ConsistentLoadingPage from '../components/ConsistentLoadingPage';
 
-const Spinner = () => (
-  <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" style={{ borderTopColor: '#FFFFFF' }} />
-);
-
-const LoadingPage = () => {
+export default function LoadingPageDemo() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#6D18CE]">
-      <div className="flex flex-col items-center justify-center text-white">
-        <Spinner />
-        <p className="mt-4 text-lg font-semibold">Loading your dashboard...</p>
-      </div>
-    </div>
+    <ConsistentLoadingPage
+      type="modules"
+      title="Loading Your Learning Journey"
+      subtitle="Preparing personalized content just for you..."
+      showProgress={true}
+      progress={65}
+      tips={[
+        'AI is analyzing your learning preferences',
+        'Customizing content difficulty for you',
+        'Loading interactive elements and quizzes'
+      ]}
+    />
   );
-};
-
-export default LoadingPage;
+}

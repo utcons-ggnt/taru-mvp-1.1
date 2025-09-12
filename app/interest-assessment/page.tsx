@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import ConsistentLoadingPage from '../components/ConsistentLoadingPage';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface InterestAssessmentData {
@@ -966,12 +967,16 @@ export default function InterestAssessment() {
   // Loading screen
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-700">Loading your interest assessment...</p>
-        </div>
-      </div>
+      <ConsistentLoadingPage
+        type="assessment"
+        title="Loading Interest Assessment"
+        subtitle="Preparing your personalized interest assessment..."
+        tips={[
+          'Loading assessment questions',
+          'Setting up your profile',
+          'Preparing personalized content'
+        ]}
+      />
     );
   }
 

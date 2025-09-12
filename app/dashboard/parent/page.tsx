@@ -7,7 +7,6 @@ import Image from 'next/image';
 import { isValidProfilePictureUrl } from '@/lib/utils';
 import ChatModal from '../student/components/ChatModal';
 import { motion } from 'framer-motion';
-import SimpleGoogleTranslate from '../../components/SimpleGoogleTranslate';
 
 // Add custom hook for responsive behavior
 function useWindowSize() {
@@ -454,7 +453,6 @@ export default function ParentDashboard() {
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Language Selector */}
             <div className="hidden sm:block">
-              <SimpleGoogleTranslate />
             </div>
             
             {/* User Profile Section */}

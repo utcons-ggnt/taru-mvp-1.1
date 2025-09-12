@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import SimpleGoogleTranslate from '../components/SimpleGoogleTranslate'
 import { RegistrationDataManager } from '@/lib/utils'
+import ConsistentLoadingPage from '../components/ConsistentLoadingPage'
 
 export default function Register() {
   const router = useRouter()
@@ -23,6 +23,17 @@ export default function Register() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+
+  useEffect(() => {
+    // Track mouse position for interactive effects
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY })
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [])
 
   const handleRoleChange = (role: string) => {
     console.log('Role changed to:', role);
@@ -198,6 +209,22 @@ export default function Register() {
     }
   }
 
+  // Show loading screen during registration
+  if (isLoading) {
+    return (
+      <ConsistentLoadingPage
+        type="auth"
+        title="Creating Account"
+        subtitle="Setting up your account and preparing your personalized experience..."
+        tips={[
+          'Creating your account profile',
+          'Setting up your learning preferences',
+          'Preparing your dashboard'
+        ]}
+      />
+    );
+  }
+
   return (
     <motion.main 
       className="min-h-screen flex items-center justify-center overflow-hidden bg-[#6D18CE] p-4 relative"
@@ -205,6 +232,89 @@ export default function Register() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
     >
+      {/* Enhanced Interactive Background Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Mouse-following gradient orbs */}
+        <motion.div
+          className="absolute w-96 h-96 rounded-full bg-gradient-to-r from-white/10 to-purple-300/10 blur-3xl"
+          animate={{
+            x: mousePosition.x * 0.05 - 200,
+            y: mousePosition.y * 0.05 - 200,
+          }}
+          transition={{ type: "spring", stiffness: 30, damping: 20 }}
+        />
+        <motion.div
+          className="absolute w-64 h-64 rounded-full bg-gradient-to-r from-pink-300/10 to-blue-300/10 blur-2xl"
+          animate={{
+            x: mousePosition.x * -0.03 + 100,
+            y: mousePosition.y * -0.03 + 100,
+          }}
+          transition={{ type: "spring", stiffness: 20, damping: 25 }}
+        />
+        
+        {/* Floating particles */}
+        {[...Array(15)].map((_, i) => {
+          // Use deterministic positioning based on index to avoid hydration mismatch
+          const basePosition = (i * 137.5) % 100; // Golden ratio for better distribution
+          const left = (basePosition + (i * 23.7)) % 100;
+          const top = (basePosition * 1.618 + (i * 31.2)) % 100;
+          
+          return (
+            <motion.div
+              key={`particle-${i}`}
+              className="absolute w-2 h-2 bg-white/30 rounded-full"
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+              }}
+              animate={{
+                y: [0, -30, 0],
+                x: [0, (i % 3 - 1) * 10, 0],
+                scale: [1, 1.5, 1],
+                opacity: [0.2, 0.8, 0.2],
+              }}
+              transition={{
+                duration: 3 + (i % 3) * 1,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: (i % 4) * 0.5,
+              }}
+            />
+          );
+        })}
+        
+        {/* Floating geometric shapes */}
+        {[...Array(8)].map((_, i) => {
+          // Use deterministic positioning based on index to avoid hydration mismatch
+          const basePosition = (i * 89.3) % 100; // Different multiplier for variety
+          const left = (basePosition + (i * 41.7)) % 100;
+          const top = (basePosition * 2.414 + (i * 19.8)) % 100;
+          
+          return (
+            <motion.div
+              key={`shape-${i}`}
+              className="absolute w-3 h-3 bg-white/20 rounded-full"
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+              }}
+              animate={{
+                y: [0, -40, 0],
+                x: [0, (i % 5 - 2) * 8, 0],
+                scale: [1, 1.3, 1],
+                opacity: [0.3, 0.7, 0.3],
+                rotate: [0, 180, 360],
+              }}
+              transition={{
+                duration: 5 + (i % 4) * 1.2,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: (i % 3) * 0.8,
+              }}
+            />
+          );
+        })}
+      </div>
       {/* Main Registration Popup Container */}
       <motion.div 
         className="relative w-[1400px] h-[856px] bg-[#6D18CE] rounded-[40px] flex"
@@ -634,9 +744,12 @@ export default function Register() {
                 {/* Register Button */}
                 <motion.button
                   type="submit"
-                  className="w-[514px] h-[69px] bg-[#6D18CE] text-white rounded-[90px] font-semibold text-[16.0016px] flex items-center justify-center mx-auto"
+                  className="w-[514px] h-[69px] bg-gradient-to-r from-[#6D18CE] to-[#8B5CF6] text-white rounded-[90px] font-semibold text-[16.0016px] flex items-center justify-center mx-auto shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover-glow"
                   disabled={isLoading}
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ 
+                    scale: 1.02,
+                    boxShadow: "0 20px 25px -5px rgba(109, 24, 206, 0.4)"
+                  }}
                   whileTap={{ scale: 0.98 }}
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
@@ -705,11 +818,6 @@ export default function Register() {
          transition={{ delay: 0.4, duration: 0.6 }}
        >
          <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-3 py-2 shadow-lg">
-           <SimpleGoogleTranslate 
-             className="text-gray-700"
-             buttonText="Translate"
-             showIcon={true}
-           />
          </div>
        </motion.div>
      </motion.main>

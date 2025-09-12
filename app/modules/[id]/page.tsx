@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import AdvancedLearningInterface from './components/AdvancedLearningInterface';
-import SimpleGoogleTranslate from '../../components/SimpleGoogleTranslate';
+import ConsistentLoadingPage from '../../components/ConsistentLoadingPage';
 
 interface ModuleContent {
   type: string;
@@ -142,12 +142,16 @@ export default function ModuleDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading module...</p>
-        </div>
-      </div>
+      <ConsistentLoadingPage
+        type="modules"
+        title="Loading Module"
+        subtitle="Preparing your learning content..."
+        tips={[
+          'Loading module content and resources',
+          'Setting up interactive elements',
+          'Preparing your learning experience'
+        ]}
+      />
     );
   }
 
@@ -176,7 +180,6 @@ export default function ModuleDetail() {
         {/* Header */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8 relative">
           <div className="absolute top-4 right-4">
-            <SimpleGoogleTranslate className="text-white" buttonText="Translate" showIcon={true} />
           </div>
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center space-x-4">

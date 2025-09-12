@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import SimpleGoogleTranslate from '../components/SimpleGoogleTranslate';
+
 import { RegistrationDataManager } from '@/lib/utils';
 import { StudentKeyGenerator } from '@/lib/studentKeyGenerator';
+import ConsistentLoadingPage from '../components/ConsistentLoadingPage';
 
 
 
@@ -342,6 +343,8 @@ export default function StudentOnboarding() {
 
       console.log('🔍 Response status:', response.status);
       console.log('🔍 Response ok:', response.ok);
+      console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()));
+      console.log('🔍 Response url:', response.url);
 
       if (response.ok) {
         const result = await response.json();
@@ -357,9 +360,40 @@ export default function StudentOnboarding() {
           router.push('/interest-assessment');
         }, 3000);
       } else {
-        const errorData = await response.json();
-        console.error('🔍 Error response:', errorData);
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        let errorData: any = {};
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        
+        try {
+          const responseText = await response.text();
+          console.error('🔍 Error response text:', responseText);
+          
+          if (responseText && responseText.trim() !== '') {
+            try {
+              errorData = JSON.parse(responseText);
+              console.error('🔍 Parsed error response:', errorData);
+            } catch (parseError) {
+              console.error('🔍 Failed to parse error response as JSON:', parseError);
+              errorData = { error: responseText };
+            }
+          } else {
+            console.error('🔍 Empty error response received');
+            errorData = { error: 'Empty response from server' };
+          }
+          
+          // Extract error message with fallbacks
+          errorMessage = errorData?.error || 
+                        errorData?.message || 
+                        errorData?.details || 
+                        (typeof errorData === 'string' ? errorData : '') ||
+                        `Server error (${response.status})`;
+                        
+        } catch (responseError) {
+          console.error('🔍 Failed to read error response:', responseError);
+          errorMessage = `Failed to read server response (${response.status})`;
+        }
+        
+        console.error('🔍 Final error message:', errorMessage);
+        throw new Error(errorMessage);
       }
     } catch (error: unknown) {
       console.error('🔍 Onboarding submission error:', error);
@@ -372,22 +406,19 @@ export default function StudentOnboarding() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
-        <div className="w-full md:w-1/2 bg-gradient-to-br from-[#8B3DFF] to-[#6D18CE] px-6 py-8 text-white flex flex-col relative">
-                  <Image src="/icons/logo.svg" alt="Logo" width={60} height={60} className="w-15 h-15 object-contain mb-8" />
-        
-        <div className="flex-1 flex flex-col justify-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-12 px-4">
-            Loading <span className="text-white/90">Profile...</span>
-          </h1>
-        </div>
-        </div>
-        <div className="w-full md:w-1/2 bg-white px-4 sm:px-8 py-10 flex flex-col justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-        </div>
-      </main>
+      <ConsistentLoadingPage
+        type="general"
+        title="Loading Profile"
+        subtitle="Setting up your personalized learning profile..."
+        tips={[
+          'Loading your registration data',
+          'Preparing your student profile',
+          'Setting up your learning preferences'
+        ]}
+      />
     );
   }
+
 
   if (isSuccess) {
     return (
@@ -868,7 +899,6 @@ export default function StudentOnboarding() {
           {/* Header */}
           <div className="text-center mb-8 relative">
             <div className="absolute top-0 right-0">
-              <SimpleGoogleTranslate className="text-white" buttonText="Translate" showIcon={true} />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Getting to Know You

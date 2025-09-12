@@ -5,12 +5,15 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import SimpleGoogleTranslate from './components/SimpleGoogleTranslate'
+import { TypewriterText, StaggeredText, GradientText, FloatingText } from './components/TextAnimations'
+import { MagneticButton, TiltCard, RippleButton } from './components/InteractiveElements'
+import { StaggerContainer, StaggerItem } from './components/PageTransitions'
 
 export default function Home() {
   const router = useRouter()
   const [currentCard, setCurrentCard] = useState(0)
   const [showWelcome, setShowWelcome] = useState(false)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 
   useEffect(() => {
     // Show welcome modal on first visit
@@ -20,6 +23,14 @@ export default function Home() {
       localStorage.setItem('hasVisited', 'true')
       setTimeout(() => setShowWelcome(false), 3000)
     }
+
+    // Track mouse position for interactive effects
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY })
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
   const nextCard = () => {
@@ -67,11 +78,94 @@ export default function Home() {
 
   return (
     <motion.main 
-      className="min-h-screen flex flex-col overflow-hidden bg-gray-800"
+      className="min-h-screen flex flex-col overflow-hidden bg-gray-800 relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
     >
+      {/* Enhanced Interactive Background Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Mouse-following gradient orbs */}
+        <motion.div
+          className="absolute w-96 h-96 rounded-full bg-gradient-to-r from-purple-400/20 to-pink-400/20 blur-3xl"
+          animate={{
+            x: mousePosition.x * 0.1 - 200,
+            y: mousePosition.y * 0.1 - 200,
+          }}
+          transition={{ type: "spring", stiffness: 50, damping: 15 }}
+        />
+        <motion.div
+          className="absolute w-64 h-64 rounded-full bg-gradient-to-r from-blue-400/20 to-indigo-400/20 blur-2xl"
+          animate={{
+            x: mousePosition.x * -0.05 + 100,
+            y: mousePosition.y * -0.05 + 100,
+          }}
+          transition={{ type: "spring", stiffness: 30, damping: 20 }}
+        />
+        
+        {/* Enhanced floating particles */}
+        {[...Array(20)].map((_, i) => {
+          // Use deterministic positioning based on index to avoid hydration mismatch
+          const basePosition = (i * 137.5) % 100; // Golden ratio for better distribution
+          const left = (basePosition + (i * 23.7)) % 100;
+          const top = (basePosition * 1.618 + (i * 31.2)) % 100;
+          
+          return (
+            <motion.div
+              key={`particle-${i}`}
+              className="absolute w-2 h-2 bg-gradient-to-r from-purple-400/40 to-pink-400/40 rounded-full"
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+              }}
+              animate={{
+                y: [0, -40, 0],
+                x: [0, (i % 3 - 1) * 15, 0],
+                scale: [1, 1.8, 1],
+                opacity: [0.2, 0.9, 0.2],
+              }}
+              transition={{
+                duration: 4 + (i % 3) * 1.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: (i % 4) * 0.75,
+              }}
+            />
+          );
+        })}
+        
+        {/* Floating geometric shapes */}
+        {[...Array(8)].map((_, i) => {
+          // Use deterministic positioning based on index to avoid hydration mismatch
+          const basePosition = (i * 89.3) % 100; // Different multiplier for variety
+          const left = (basePosition + (i * 41.7)) % 100;
+          const top = (basePosition * 2.414 + (i * 19.8)) % 100;
+          
+          return (
+            <motion.div
+              key={`shape-${i}`}
+              className="absolute w-4 h-4 bg-gradient-to-r from-blue-400/30 to-purple-400/30 rounded-full"
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+              }}
+              animate={{
+                y: [0, -50, 0],
+                x: [0, (i % 5 - 2) * 10, 0],
+                scale: [1, 1.3, 1],
+                opacity: [0.4, 0.8, 0.4],
+                rotate: [0, 180, 360],
+              }}
+              transition={{
+                duration: 6 + (i % 4) * 1.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: (i % 3) * 1.2,
+              }}
+            />
+          );
+        })}
+      </div>
       {/* 🎉 Welcome Modal */}
       <AnimatePresence>
         {showWelcome && (
@@ -94,22 +188,30 @@ export default function Home() {
                 duration: 0.6
               }}
             >
-              <motion.h2 
-                className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-[#6a0dad] mb-2"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.4 }}
-              >
-                🎉 Welcome to JioWorld!
-              </motion.h2>
-              <motion.p 
-                className="text-sm md:text-base lg:text-lg text-gray-800 font-medium"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.4 }}
-              >
-                You&apos;re all set to begin your journey 🚀
-              </motion.p>
+                  <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.4 }}
+                  >
+                    <GradientText 
+                      text="🎉 Welcome to Taru!"
+                      className="text-2xl md:text-3xl lg:text-4xl font-extrabold mb-2"
+                      colors={['#6a0dad', '#8B5CF6', '#A855F7', '#C084FC']}
+                      speed={2}
+                    />
+                  </motion.div>
+                  <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.4 }}
+                  >
+                    <TypewriterText
+                      text="You're all set to begin your learning journey 🚀"
+                      className="text-sm md:text-base lg:text-lg text-gray-800 font-medium"
+                      delay={0.5}
+                      speed={0.03}
+                    />
+                  </motion.div>
             </motion.div>
           </motion.div>
         )}
@@ -404,77 +506,100 @@ export default function Home() {
                       )}
                  </motion.div>
 
-                                 {/* Title */}
-                 <motion.h2 
-                   className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 mb-6 sm:mb-8 tracking-tight"
-                   initial={{ y: 20, opacity: 0 }}
-                   animate={{ y: 0, opacity: 1 }}
-                   transition={{ delay: 0.4, duration: 0.5 }}
-                 >
-                  {currentCard === 0 && (
-                    <>
-                      <span className="text-black">Welcome to the </span>
-                      <span className="text-blue-600">Future</span>
-                      <span className="text-black"> of Learning</span>
-                    </>
-                  )}
-                  {currentCard === 1 && (
-                    <>
-                      <span className="text-black">Dynamic </span>
-                      <span className="text-blue-600">AI</span>
-                      <span className="text-black"> Learning Environments</span>
-                    </>
-                  )}
-                                     {currentCard === 2 && (
-                     <>
-                       <span className="text-black">Ready to </span>
-                       <span className="text-blue-600">Learn?</span>
-                     </>
-                   )}
-                   {currentCard === 3 && (
-                     <>
-                       <span className="text-black">Testimonials</span>
-                     </>
-                   )}
-                </motion.h2>
+                {/* Title with Advanced Animations */}
+                <motion.div
+                  className="mb-6 sm:mb-8"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.5 }}
+                >
+                 {currentCard === 0 && (
+                   <StaggeredText
+                     text="Welcome to the Future of Learning"
+                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 tracking-tight"
+                     delay={0.2}
+                     staggerDelay={0.08}
+                     animationType="fadeUp"
+                   />
+                 )}
+                 {currentCard === 1 && (
+                   <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight">
+                     <span className="text-black">Dynamic </span>
+                     <GradientText
+                       text="AI"
+                       className="text-blue-600"
+                       colors={['#2563eb', '#3b82f6', '#60a5fa']}
+                       speed={1.5}
+                     />
+                     <FloatingText
+                       text=" Learning Environments"
+                       className="text-black"
+                       intensity={3}
+                     />
+                   </div>
+                 )}
+                 {currentCard === 2 && (
+                   <StaggeredText
+                     text="Ready to Learn?"
+                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 tracking-tight"
+                     delay={0.1}
+                     staggerDelay={0.1}
+                     animationType="scale"
+                   />
+                 )}
+                 {currentCard === 3 && (
+                   <GradientText
+                     text="Success Stories"
+                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight"
+                     colors={['#059669', '#10b981', '#34d399', '#6ee7b7']}
+                     speed={2}
+                   />
+                 )}
+               </motion.div>
 
-                {/* Description */}
-                <motion.p 
+                {/* Description with Typewriter Effect */}
+                <motion.div 
                   className="text-lg sm:text-xl md:text-2xl text-gray-700 mb-8 sm:mb-12 leading-relaxed max-w-4xl"
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.5, duration: 0.5 }}
                 >
-                  {cards[currentCard].description}
-                </motion.p>
+                  <TypewriterText
+                    text={cards[currentCard].description}
+                    delay={0.8}
+                    speed={0.02}
+                    cursor={false}
+                  />
+                </motion.div>
 
-                {/* Buttons */}
-                <motion.div 
+                {/* Enhanced Interactive Buttons */}
+                <StaggerContainer 
                   className="flex gap-4 sm:gap-6 justify-center flex-wrap"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.6, duration: 0.5 }}
+                  staggerDelay={0.1}
+                  initialDelay={0.6}
                 >
                   {cards[currentCard].showBack && (
-                    <motion.button
-                      onClick={prevCard}
-                      className="px-8 sm:px-10 py-4 sm:py-5 bg-gray-100 border-2 border-gray-300 text-gray-700 rounded-full font-semibold hover:bg-gray-200 transition-colors duration-200 text-lg sm:text-xl"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      Back
-                    </motion.button>
+                    <StaggerItem>
+                      <MagneticButton
+                        onClick={prevCard}
+                        className="px-8 sm:px-10 py-4 sm:py-5 bg-gradient-to-r from-gray-100 to-gray-200 border-2 border-gray-300 text-gray-700 rounded-full font-semibold hover:shadow-lg transition-all duration-300 text-lg sm:text-xl"
+                        magnetStrength={0.2}
+                      >
+                        Back
+                      </MagneticButton>
+                    </StaggerItem>
                   )}
                   
-                  <motion.button
-                    onClick={cards[currentCard].buttonAction}
-                    className="px-8 sm:px-10 py-4 sm:py-5 bg-black text-white rounded-full font-semibold hover:bg-gray-800 transition-colors duration-200 text-lg sm:text-xl shadow-lg"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {cards[currentCard].buttonText}
-                  </motion.button>
-                </motion.div>
+                  <StaggerItem>
+                    <RippleButton
+                      onClick={cards[currentCard].buttonAction}
+                      className="px-8 sm:px-10 py-4 sm:py-5 bg-gradient-to-r from-black to-gray-800 text-white rounded-full font-semibold hover:shadow-xl transition-all duration-300 text-lg sm:text-xl relative overflow-hidden"
+                      rippleColor="rgba(255, 255, 255, 0.3)"
+                    >
+                      <span className="relative z-10">{cards[currentCard].buttonText}</span>
+                    </RippleButton>
+                  </StaggerItem>
+                </StaggerContainer>
               </div>
 
                              {/* Card Indicators */}
@@ -505,11 +630,6 @@ export default function Home() {
                  transition={{ delay: 0.8, duration: 0.5 }}
                >
                  <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-3 py-2 shadow-lg">
-                   <SimpleGoogleTranslate 
-                     className="text-gray-700"
-                     buttonText="Translate"
-                     showIcon={true}
-                   />
                  </div>
                </motion.div>              
             </motion.div>

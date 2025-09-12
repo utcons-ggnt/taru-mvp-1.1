@@ -4,6 +4,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Target, TrendingUp, Award, Zap, Play, ChevronRight, Star, Clock, Users, Briefcase } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { N8NCacheService } from '@/lib/N8NCacheService';
+import YouTubeVideoList from '../../../components/YouTubeVideoList';
+import YouTubeModulesGrid from '../../../components/YouTubeModulesGrid';
+import InlineLoading from '../../../components/InlineLoading';
 
 interface Course {
   title: string;
@@ -29,6 +33,7 @@ interface OverviewTabProps {
     overview?: {
       totalXp?: number;
       totalModules?: number;
+      studentKey?: string;
     };
     progress?: {
       badgesEarned?: Array<{
@@ -38,10 +43,95 @@ interface OverviewTabProps {
       }>;
     };
   };
+  user?: {
+    uniqueId?: string;
+  };
 }
 
-export default function OverviewTab({ courses, tests: _tests, onTabChange, dashboardData }: OverviewTabProps) {
+export default function OverviewTab({ courses, tests: _tests, onTabChange, dashboardData, user }: OverviewTabProps) {
   const router = useRouter();
+  const [showYouTubeVideos, setShowYouTubeVideos] = React.useState(false);
+  const [showYouTubeModules, setShowYouTubeModules] = React.useState(false);
+  const [isProcessingWebhook, setIsProcessingWebhook] = React.useState(false);
+  
+  // Handle video selection
+  const handleVideoSelect = (videoUrl: string, videoTitle: string) => {
+    console.log('Video selected:', { videoUrl, videoTitle });
+    window.open(videoUrl, '_blank');
+  };
+
+  // Handle back to overview
+  const handleBackToOverview = () => {
+    setShowYouTubeVideos(false);
+    setShowYouTubeModules(false);
+    setIsProcessingWebhook(false);
+  };
+
+  const handleBackToOverviewFromGrid = () => {
+    setShowYouTubeModules(false);
+  };
+
+  const handleModuleSelect = (moduleIndex: number) => {
+    // When a module is selected from the grid, show the video list for that module
+    setShowYouTubeModules(false);
+    setShowYouTubeVideos(true);
+  };
+  
+  // Call YouTube Link Scrapper webhook when Browse Modules is clicked
+  const handleBrowseModulesClick = async () => {
+    console.log('🔍 Browse Modules clicked - User data:', user, 'Dashboard data:', dashboardData);
+    
+    try {
+      const uniqueId = user?.uniqueId || dashboardData?.overview?.studentKey || 'unknown';
+      console.log('🔍 Resolved uniqueId:', uniqueId);
+      
+      if (uniqueId !== 'unknown') {
+        console.log('🔄 Calling YouTube Link Scrapper webhook for uniqueId:', uniqueId);
+        
+        // Show processing state
+        setIsProcessingWebhook(true);
+        
+        // Call our server-side API instead of calling the webhook directly
+        const response = await fetch('/api/webhook/youtube-link-scrapper', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ uniqueid: uniqueId })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ YouTube Link Scrapper webhook called successfully, result:', result);
+          
+          // If YouTube data is available, show YouTube modules grid
+          if (result.youtubeData) {
+            console.log('🎬 YouTube data available, showing modules grid');
+            setShowYouTubeModules(true);
+          } else {
+            console.log('⏳ YouTube data not ready yet, switching to modules tab');
+            onTabChange('modules');
+          }
+        } else {
+          const errorData = await response.json();
+          console.error('❌ Webhook API call failed:', errorData);
+          // Still switch to modules tab as fallback
+          onTabChange('modules');
+        }
+      } else {
+        console.warn('⚠️ No uniqueId available for webhook call');
+      }
+    } catch (error) {
+      console.error('❌ Error calling YouTube Link Scrapper webhook:', error);
+      // Don't block the UI, just log the error
+    } finally {
+      setIsProcessingWebhook(false);
+    }
+    
+    // Switch to modules tab regardless of webhook success/failure
+    onTabChange('modules');
+  };
+  
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -79,6 +169,130 @@ export default function OverviewTab({ courses, tests: _tests, onTabChange, dashb
       }
     }
   };
+
+  if (isProcessingWebhook) {
+    return (
+      <motion.div 
+        className="space-y-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <InlineLoading
+          type="webhook"
+          title="Generating YouTube Content"
+          subtitle="Processing your request and fetching personalized learning modules..."
+          size="lg"
+          showSteps={true}
+          currentStep={2}
+          totalSteps={3}
+        />
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-blue-900">Processing Your Request</h3>
+              <p className="text-sm text-blue-700">This may take up to 30 seconds to complete</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span>Analyzing your profile</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span>Fetching YouTube content</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span>Personalizing modules</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (showYouTubeModules) {
+    return (
+      <motion.div 
+        className="space-y-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">YouTube Learning Modules</h2>
+                <p className="text-red-100">Choose a module to start your learning journey</p>
+              </div>
+            </div>
+            <button
+              onClick={handleBackToOverviewFromGrid}
+              className="flex items-center gap-2 px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all duration-200 font-medium"
+            >
+              ← Back to Overview
+            </button>
+          </div>
+        </div>
+        <YouTubeModulesGrid
+          uniqueid={user?.uniqueId || dashboardData?.overview?.studentKey || ''}
+          onModuleSelect={handleModuleSelect}
+          onVideoSelect={handleVideoSelect}
+        />
+      </motion.div>
+    );
+  }
+
+  if (showYouTubeVideos) {
+    return (
+      <motion.div 
+        className="space-y-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">YouTube Learning Videos</h2>
+                <p className="text-red-100">Personalized content for your learning journey</p>
+              </div>
+            </div>
+            <button
+              onClick={handleBackToOverview}
+              className="flex items-center gap-2 px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all duration-200 font-medium"
+            >
+              ← Back to Overview
+            </button>
+          </div>
+        </div>
+        <YouTubeVideoList
+          uniqueid={user?.uniqueId || dashboardData?.overview?.studentKey || ''}
+          onVideoSelect={handleVideoSelect}
+        />
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div 
@@ -173,12 +387,26 @@ export default function OverviewTab({ courses, tests: _tests, onTabChange, dashb
             </div>
             <h4 className="text-lg font-medium text-gray-900 mb-2">No courses available</h4>
             <p className="text-gray-600 mb-4">Start your learning journey by exploring available modules</p>
-            <button 
-              onClick={() => onTabChange('modules')}
-              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              Browse Modules
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button 
+                onClick={handleBrowseModulesClick}
+                className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              >
+                <BookOpen className="w-5 h-5" />
+                Browse Modules
+              </button>
+              {user?.uniqueId && (
+                <button
+                  onClick={() => setShowYouTubeModules(true)}
+                  className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                  </svg>
+                  View YouTube Modules
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -186,9 +414,10 @@ export default function OverviewTab({ courses, tests: _tests, onTabChange, dashb
         {courses.length > 0 && (
           <div className="text-center mt-8">
             <button 
-              onClick={() => onTabChange('modules')}
-              className="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors text-lg"
+              onClick={handleBrowseModulesClick}
+              className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
+              <BookOpen className="w-5 h-5" />
               Learn more
             </button>
           </div>

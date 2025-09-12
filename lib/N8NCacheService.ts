@@ -342,4 +342,72 @@ export class N8NCacheService {
 
     return result;
   }
+
+  /**
+   * Call YouTube Link Scrapper webhook
+   */
+  static async callYouTubeLinkScrapper(uniqueId: string): Promise<any> {
+    // Use the correct webhook URL
+    const webhookUrl = 'https://nclbtaru.app.n8n.cloud/webhook/YoutubeLinkscrapper';
+    
+    try {
+      console.log('🔄 Calling YouTube Link Scrapper webhook URL:', webhookUrl);
+      console.log('🔄 Calling with uniqueId:', uniqueId);
+      
+      // Try GET request first
+      const urlParams = new URLSearchParams({
+        uniqueid: uniqueId
+      });
+      
+      const getUrl = `${webhookUrl}?${urlParams.toString()}`;
+      console.log('🔗 Full webhook URL:', getUrl);
+      
+      const response = await fetch(getUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      console.log('📡 YouTube Link Scrapper response status:', response.status);
+      
+      if (response.ok) {
+        const responseText = await response.text();
+        console.log('📥 YouTube Link Scrapper response:', responseText);
+        
+        // Try to parse as JSON, fallback to text if not valid JSON
+        try {
+          return JSON.parse(responseText);
+        } catch (parseError) {
+          console.log('📝 YouTube Link Scrapper returned non-JSON response, treating as text');
+          return { message: responseText, success: true };
+        }
+      } else {
+        console.log(`❌ GET request failed with status ${response.status}, trying POST...`);
+        
+        // Try POST request as fallback
+        const postResponse = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uniqueid: uniqueId })
+        });
+        
+        console.log('📡 POST response status:', postResponse.status);
+        
+        if (postResponse.ok) {
+          const responseText = await postResponse.text();
+          console.log('📥 POST response:', responseText);
+          
+          try {
+            return JSON.parse(responseText);
+          } catch (parseError) {
+            return { message: responseText, success: true };
+          }
+        } else {
+          throw new Error(`Both GET and POST requests failed. GET: ${response.status}, POST: ${postResponse.status}`);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error calling YouTube Link Scrapper webhook:', error);
+      throw error;
+    }
+  }
 }

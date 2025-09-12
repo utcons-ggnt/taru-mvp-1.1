@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "./components/SessionProvider";
+import ErrorBoundary from "./components/ErrorBoundary";
+import PerformanceMonitor from "./components/PerformanceMonitor";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +16,38 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Taru - Educational Platform",
-  description: "A comprehensive educational platform for students, parents, teachers, and administrators",
+  title: "Taru - AI-Powered Educational Platform",
+  description: "A comprehensive AI-powered educational platform for personalized learning experiences. Built for students, parents, teachers, and administrators.",
+  keywords: "education, AI, learning, personalized, students, teachers, assessment, modules",
+  authors: [{ name: "Taru Team" }],
+  creator: "Taru",
+  publisher: "Taru",
+  robots: "index, follow",
+  openGraph: {
+    title: "Taru - AI-Powered Educational Platform",
+    description: "Transform learning with AI-powered personalized education",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Taru - AI-Powered Educational Platform",
+    description: "Transform learning with AI-powered personalized education",
+  },
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/icons/logo.svg",
+  },
+  manifest: "/manifest.json",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: "#6D18CE",
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({
@@ -24,14 +56,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="scroll-smooth">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900 selection:bg-purple-200 selection:text-purple-900`}
         suppressHydrationWarning={true}
       >
-        <SessionProvider>
-          {children}
-        </SessionProvider>
+        <ErrorBoundary>
+          <SessionProvider>
+            {children}
+            <PerformanceMonitor 
+              enabled={true}
+              showInDevelopment={true}
+            />
+          </SessionProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

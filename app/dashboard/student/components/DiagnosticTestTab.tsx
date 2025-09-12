@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, Star, Brain, Trophy, Rocket, Sparkles, Zap, Palette, Puzzle, BookOpen, Heart, Smile, Lightbulb } from 'lucide-react';
+import ConsistentLoadingPage from '../../../components/ConsistentLoadingPage';
 
 interface DiagnosticQuestion {
   id: string;
@@ -296,26 +297,16 @@ export default function DiagnosticTestTab() {
 
   if (loading) {
     return (
-      <motion.div 
-        className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center px-4 py-6 md:px-8 md:py-12"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="max-w-md lg:max-w-lg w-full">
-          <div className="bg-white rounded-3xl shadow-xl p-8 text-center">
-            <motion.div 
-              className="w-20 h-20 bg-gradient-to-r from-[#6D18CE] to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            >
-              <Sparkles className="w-10 h-10 text-white" />
-            </motion.div>
-            <h2 className="text-xl font-bold text-gray-800 mb-2">Loading Magic...</h2>
-            <p className="text-gray-600">Preparing your magical learning adventure!</p>
-          </div>
-        </div>
-      </motion.div>
+      <ConsistentLoadingPage
+        type="assessment"
+        title="Loading Diagnostic Test"
+        subtitle="Preparing your personalized diagnostic test..."
+        tips={[
+          'Analyzing your learning profile',
+          'Generating personalized questions',
+          'Setting up adaptive assessment engine'
+        ]}
+      />
     );
   }
 

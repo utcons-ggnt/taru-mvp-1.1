@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import ConsistentLoadingPage from '../components/ConsistentLoadingPage';
 
 interface CareerOption {
   ID: string;
@@ -63,12 +64,16 @@ export default function CareerExploration() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#6D18CE] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white">Loading career options...</p>
-        </div>
-      </div>
+      <ConsistentLoadingPage
+        type="general"
+        title="Loading Career Options"
+        subtitle="Discovering personalized career paths for you..."
+        tips={[
+          'Analyzing your interests and skills',
+          'Matching you with suitable careers',
+          'Preparing personalized recommendations'
+        ]}
+      />
     );
   }
 

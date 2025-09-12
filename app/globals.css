@@ -512,7 +512,7 @@ body {
   overflow: hidden;
 }
 
-/* Pulse animation */
+/* Enhanced Pulse animation */
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -522,9 +522,437 @@ body {
   }
 }
 
-/* Pulse animation utility */
+/* Enhanced Pulse animation utility */
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Enhanced Loading Animations */
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes rotateIn {
+  from {
+    opacity: 0;
+    transform: rotate(-10deg);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg);
+  }
+}
+
+.animate-slide-in-up {
+  animation: slideInUp 0.6s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.6s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.6s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.6s ease-out;
+}
+
+.animate-rotate-in {
+  animation: rotateIn 0.6s ease-out;
+}
+
+/* Hover Effects */
+@keyframes gentle-bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+.hover-bounce:hover {
+  animation: gentle-bounce 0.6s ease-in-out;
+}
+
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 5px rgba(124, 58, 237, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(124, 58, 237, 0.3);
+  }
+}
+
+.hover-glow:hover {
+  animation: glow 1.5s ease-in-out infinite;
+}
+
+/* Skeleton Loading */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-text:last-child {
+  width: 60%;
+}
+
+.skeleton-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+}
+
+.skeleton-button {
+  height: 2.5rem;
+  border-radius: 0.5rem;
+}
+
+/* Advanced Text Animations */
+@keyframes textReveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0% 0 0);
+  }
+}
+
+@keyframes textSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes textGlow {
+  0%, 100% {
+    text-shadow: 0 0 5px rgba(124, 58, 237, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(124, 58, 237, 0.8), 0 0 30px rgba(124, 58, 237, 0.6);
+  }
+}
+
+@keyframes morphText {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.1) rotate(1deg);
+  }
+  50% {
+    transform: scale(0.95) rotate(-1deg);
+  }
+  75% {
+    transform: scale(1.05) rotate(0.5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.text-reveal {
+  animation: textReveal 1s ease-out;
+}
+
+.text-slide-up {
+  animation: textSlideUp 0.6s ease-out;
+}
+
+.text-glow {
+  animation: textGlow 2s ease-in-out infinite;
+}
+
+.text-morph {
+  animation: morphText 3s ease-in-out infinite;
+}
+
+/* Interactive Elements */
+@keyframes magneticPull {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(var(--mouse-x, 0), var(--mouse-y, 0));
+  }
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes tilt {
+  0% {
+    transform: perspective(1000px) rotateX(0deg) rotateY(0deg);
+  }
+  100% {
+    transform: perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  }
+}
+
+.magnetic {
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.ripple-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-effect::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.ripple-effect:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+.tilt-card {
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+}
+
+/* Morphing Shapes */
+@keyframes morphShape1 {
+  0%, 100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+  50% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+  }
+}
+
+@keyframes morphShape2 {
+  0%, 100% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+  }
+  50% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+}
+
+.morph-shape-1 {
+  animation: morphShape1 8s ease-in-out infinite;
+}
+
+.morph-shape-2 {
+  animation: morphShape2 8s ease-in-out infinite;
+}
+
+/* Floating Elements */
+@keyframes float-1 {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+  66% {
+    transform: translateY(5px) rotate(-1deg);
+  }
+}
+
+@keyframes float-2 {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  33% {
+    transform: translateY(8px) rotate(-1deg);
+  }
+  66% {
+    transform: translateY(-12px) rotate(1deg);
+  }
+}
+
+@keyframes float-3 {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(0.5deg);
+  }
+}
+
+.float-1 {
+  animation: float-1 6s ease-in-out infinite;
+}
+
+.float-2 {
+  animation: float-2 8s ease-in-out infinite;
+}
+
+.float-3 {
+  animation: float-3 4s ease-in-out infinite;
+}
+
+/* Advanced Hover Effects */
+.hover-lift-rotate {
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.hover-lift-rotate:hover {
+  transform: translateY(-8px) rotate(2deg) scale(1.02);
+}
+
+.hover-glow-intense:hover {
+  animation: glow 1s ease-in-out infinite;
+  filter: brightness(1.1);
+}
+
+.hover-shake:hover {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+  20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+/* Particle Effects */
+@keyframes particle-float {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.particle {
+  position: absolute;
+  pointer-events: none;
+  animation: particle-float linear infinite;
+}
+
+/* Gradient Text Effects */
+.gradient-text-animated {
+  background: linear-gradient(45deg, #6D18CE, #8B5CF6, #A855F7, #C084FC, #DDD6FE);
+  background-size: 300% 300%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 3s ease infinite;
+}
+
+/* Page Transition Effects */
+.page-enter {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateX(0%);
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+
+.page-exit {
+  opacity: 1;
+  transform: translateX(0%);
+}
+
+.page-exit-active {
+  opacity: 0;
+  transform: translateX(-100%);
+  transition: opacity 300ms ease, transform 300ms ease;
 }
 
 /* Grid responsive utilities */
@@ -924,168 +1352,6 @@ body {
   font-size: 1rem;
 }
 
-/* Google Translate Widget Styles */
-/* Fix for Google Translate widget styling and visibility */
-.goog-te-gadget {
-  font-family: inherit !important;
-  font-size: 13px !important;
-  color: #666 !important;
-}
-
-.goog-te-gadget .goog-te-combo {
-  margin: 0 !important;
-  padding: 4px 8px !important;
-  border: 1px solid #d1d5db !important;
-  border-radius: 6px !important;
-  background: white !important;
-  color: #374151 !important;
-  font-size: 13px !important;
-  font-family: inherit !important;
-  cursor: pointer !important;
-  min-width: 120px !important;
-}
-
-.goog-te-gadget .goog-te-combo:hover {
-  border-color: #9ca3af !important;
-  background: #f9fafb !important;
-}
-
-.goog-te-gadget .goog-te-combo:focus {
-  outline: 2px solid #3b82f6 !important;
-  outline-offset: 2px !important;
-  border-color: #3b82f6 !important;
-}
-
-/* Hide Google Translate branding for cleaner look */
-.goog-te-gadget .goog-te-gadget-simple .goog-te-menu-value span:first-child {
-  display: none;
-}
-
-.goog-te-gadget .goog-te-gadget-simple .goog-te-menu-value:before {
-  content: 'Translate';
-  font-family: inherit;
-  font-size: 13px;
-  color: #374151;
-}
-
-/* Fix for the translate banner that appears at the top */
-.goog-te-banner-frame {
-  display: none !important;
-}
-
-body {
-  top: 0 !important;
-}
-
-/* Style the Google Translate dropdown menu */
-.goog-te-menu-frame {
-  z-index: 9999 !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
-  border-radius: 8px !important;
-  border: 1px solid #e5e7eb !important;
-}
-
-/* Dark mode support for Google Translate */
-@media (prefers-color-scheme: dark) {
-  .goog-te-gadget .goog-te-combo {
-    background: #374151 !important;
-    color: #f9fafb !important;
-    border-color: #4b5563 !important;
-  }
-  
-  .goog-te-gadget .goog-te-combo:hover {
-    background: #4b5563 !important;
-    border-color: #6b7280 !important;
-  }
-  
-  .goog-te-gadget .goog-te-gadget-simple .goog-te-menu-value:before {
-    color: #f9fafb;
-  }
-}
-
-/* Ensure translate widget is visible and clickable */
-[id^="google_translate_element"] {
-  min-height: 20px;
-}
-
-[id^="google_translate_element"]:not(.hidden) {
-  display: block !important;
-  visibility: visible !important;
-}
-
-/* Fix for header variant positioning */
-.goog-te-gadget-simple {
-  background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-}
-
-/* Loading state for translate widget */
-[id^="google_translate_element"]:empty::after {
-  content: 'Loading...';
-  color: #9ca3af;
-  font-size: 12px;
-  font-family: inherit;
-}
-
-/* Additional improvements for Google Translate widget */
-.goog-te-gadget {
-  display: inline-block !important;
-  vertical-align: middle !important;
-}
-
-/* Ensure proper spacing and alignment */
-.goog-te-gadget-simple {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-/* Better mobile responsiveness */
-@media (max-width: 640px) {
-  .goog-te-gadget .goog-te-combo {
-    font-size: 12px !important;
-    padding: 3px 6px !important;
-    min-width: 100px !important;
-  }
-  
-  .goog-te-gadget .goog-te-gadget-simple .goog-te-menu-value:before {
-    font-size: 12px;
-  }
-}
-
-/* Accessibility improvements */
-.goog-te-gadget .goog-te-combo:focus-visible {
-  outline: 2px solid #3b82f6 !important;
-  outline-offset: 2px !important;
-  border-color: #3b82f6 !important;
-}
-
-/* Ensure dropdown menu is properly positioned */
-.goog-te-menu-frame {
-  position: absolute !important;
-  top: 100% !important;
-  left: 0 !important;
-  z-index: 9999 !important;
-}
-
-/* Fix for any potential layout shifts */
-[id^="google_translate_element"] {
-  display: inline-block !important;
-  vertical-align: middle !important;
-  line-height: 1 !important;
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .goog-te-gadget .goog-te-combo {
-    border-width: 2px !important;
-    border-color: #000 !important;
-  }
-  
-  .goog-te-gadget .goog-te-combo:hover {
-    border-color: #333 !important;
-  }
-}
 
 /* Diagnostic Assessment Result Page Animations */
 @keyframes float {

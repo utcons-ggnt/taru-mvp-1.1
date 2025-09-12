@@ -3,9 +3,11 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { useNavigationWithState } from '@/lib/hooks/useNavigationWithState';
 import { useCareerState } from '@/lib/hooks/useCareerState';
 import { useEnhancedSession } from '@/lib/hooks/useEnhancedSession';
+import ConsistentLoadingPage from '../components/ConsistentLoadingPage';
 
 interface Chapter {
   title: string;
@@ -46,10 +48,21 @@ function CareerDetailsContent() {
     id: string;
     avatar: string;
   } | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const router = useRouter();
   const searchParams = useSearchParams();
   const careerPath = searchParams.get('careerPath');
   const description = searchParams.get('description');
+
+  useEffect(() => {
+    // Track mouse position for interactive effects
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY })
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [])
 
   const toggleModule = (index: number) => {
     const newExpanded = new Set(expandedModules);
@@ -253,23 +266,16 @@ function CareerDetailsContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-6"></div>
-            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-r-purple-400 rounded-full animate-spin mx-auto" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
-          </div>
-          <h3 className="text-2xl font-bold text-gray-800 mb-3">Generating Your Career Path</h3>
-          <p className="text-gray-600 max-w-md mx-auto leading-relaxed">
-            We're analyzing your profile and creating a personalized career exploration guide tailored just for you...
-          </p>
-          <div className="mt-6 flex justify-center space-x-2">
-            <div className="w-3 h-3 bg-purple-600 rounded-full animate-bounce"></div>
-            <div className="w-3 h-3 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-            <div className="w-3 h-3 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-          </div>
-        </div>
-      </div>
+      <ConsistentLoadingPage
+        type="general"
+        title="Generating Your Career Path"
+        subtitle="We're analyzing your profile and creating a personalized career exploration guide tailored just for you..."
+        tips={[
+          'Analyzing your interests and skills',
+          'Matching you with relevant career paths',
+          'Preparing detailed career information'
+        ]}
+      />
     );
   }
 
@@ -378,7 +384,95 @@ function CareerDetailsContent() {
           animation: fadeIn 0.3s ease-out;
         }
       `}</style>
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
+      <motion.div 
+        className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 relative overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+      >
+        {/* Enhanced Interactive Background Elements */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Mouse-following gradient orbs */}
+          <motion.div
+            className="absolute w-96 h-96 rounded-full bg-gradient-to-r from-purple-400/10 to-pink-400/10 blur-3xl"
+            animate={{
+              x: mousePosition.x * 0.05 - 200,
+              y: mousePosition.y * 0.05 - 200,
+            }}
+            transition={{ type: "spring", stiffness: 30, damping: 20 }}
+          />
+          <motion.div
+            className="absolute w-64 h-64 rounded-full bg-gradient-to-r from-blue-400/10 to-indigo-400/10 blur-2xl"
+            animate={{
+              x: mousePosition.x * -0.03 + 100,
+              y: mousePosition.y * -0.03 + 100,
+            }}
+            transition={{ type: "spring", stiffness: 20, damping: 25 }}
+          />
+          
+          {/* Floating particles */}
+          {[...Array(12)].map((_, i) => {
+            // Use deterministic positioning based on index to avoid hydration mismatch
+            const basePosition = (i * 137.5) % 100; // Golden ratio for better distribution
+            const left = (basePosition + (i * 23.7)) % 100;
+            const top = (basePosition * 1.618 + (i * 31.2)) % 100;
+            
+            return (
+              <motion.div
+                key={`particle-${i}`}
+                className="absolute w-2 h-2 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full"
+                style={{
+                  left: `${left}%`,
+                  top: `${top}%`,
+                }}
+                animate={{
+                  y: [0, -30, 0],
+                  x: [0, (i % 3 - 1) * 10, 0],
+                  scale: [1, 1.5, 1],
+                  opacity: [0.2, 0.7, 0.2],
+                }}
+                transition={{
+                  duration: 3 + (i % 3) * 1,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: (i % 4) * 0.5,
+                }}
+              />
+            );
+          })}
+          
+          {/* Floating geometric shapes */}
+          {[...Array(6)].map((_, i) => {
+            // Use deterministic positioning based on index to avoid hydration mismatch
+            const basePosition = (i * 89.3) % 100; // Different multiplier for variety
+            const left = (basePosition + (i * 41.7)) % 100;
+            const top = (basePosition * 2.414 + (i * 19.8)) % 100;
+            
+            return (
+              <motion.div
+                key={`shape-${i}`}
+                className="absolute w-3 h-3 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full"
+                style={{
+                  left: `${left}%`,
+                  top: `${top}%`,
+                }}
+                animate={{
+                  y: [0, -40, 0],
+                  x: [0, (i % 5 - 2) * 8, 0],
+                  scale: [1, 1.3, 1],
+                  opacity: [0.3, 0.6, 0.3],
+                  rotate: [0, 180, 360],
+                }}
+                transition={{
+                  duration: 5 + (i % 4) * 1.2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: (i % 3) * 0.8,
+                }}
+              />
+            );
+          })}
+        </div>
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -677,7 +771,7 @@ function CareerDetailsContent() {
           <div>🔄 Source: {careerDetails?.output ? 'N8N API' : 'Fallback'}</div>
         </div>
       )}
-      </div>
+      </motion.div>
     </>
   );
 }

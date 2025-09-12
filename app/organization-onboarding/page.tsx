@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import SimpleGoogleTranslate from '../components/SimpleGoogleTranslate';
 import { RegistrationDataManager } from '@/lib/utils';
 
 export default function OrganizationOnboarding() {
@@ -157,11 +156,6 @@ export default function OrganizationOnboarding() {
         transition={{ delay: 0.8, duration: 0.5 }}
       >
         <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-3 py-2 shadow-lg">
-          <SimpleGoogleTranslate 
-            className="text-gray-700"
-            buttonText="Translate"
-            showIcon={true}
-          />
         </div>
       </motion.div>
       {/* Main Container */}

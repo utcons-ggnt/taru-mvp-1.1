@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import ConsistentLoadingPage from '../components/ConsistentLoadingPage';
 
 interface Milestone {
   milestoneId: string;
@@ -34,10 +36,21 @@ export default function CurriculumPath() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     fetchLearningPaths();
   }, []);
+
+  useEffect(() => {
+    // Track mouse position for interactive effects
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY })
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [])
 
   const fetchLearningPaths = async () => {
     try {
@@ -105,12 +118,16 @@ export default function CurriculumPath() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading learning paths...</p>
-        </div>
-      </div>
+      <ConsistentLoadingPage
+        type="modules"
+        title="Loading Learning Paths"
+        subtitle="Discovering personalized curriculum paths tailored to your interests and goals..."
+        tips={[
+          'Analyzing your learning preferences',
+          'Matching you with relevant curriculum paths',
+          'Preparing your personalized learning journey'
+        ]}
+      />
     );
   }
 
@@ -132,7 +149,95 @@ export default function CurriculumPath() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+    <motion.div 
+      className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 relative overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+    >
+      {/* Enhanced Interactive Background Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Mouse-following gradient orbs */}
+        <motion.div
+          className="absolute w-96 h-96 rounded-full bg-gradient-to-r from-purple-400/10 to-pink-400/10 blur-3xl"
+          animate={{
+            x: mousePosition.x * 0.05 - 200,
+            y: mousePosition.y * 0.05 - 200,
+          }}
+          transition={{ type: "spring", stiffness: 30, damping: 20 }}
+        />
+        <motion.div
+          className="absolute w-64 h-64 rounded-full bg-gradient-to-r from-blue-400/10 to-indigo-400/10 blur-2xl"
+          animate={{
+            x: mousePosition.x * -0.03 + 100,
+            y: mousePosition.y * -0.03 + 100,
+          }}
+          transition={{ type: "spring", stiffness: 20, damping: 25 }}
+        />
+        
+        {/* Floating particles */}
+        {[...Array(12)].map((_, i) => {
+          // Use deterministic positioning based on index to avoid hydration mismatch
+          const basePosition = (i * 137.5) % 100; // Golden ratio for better distribution
+          const left = (basePosition + (i * 23.7)) % 100;
+          const top = (basePosition * 1.618 + (i * 31.2)) % 100;
+          
+          return (
+            <motion.div
+              key={`particle-${i}`}
+              className="absolute w-2 h-2 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full"
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+              }}
+              animate={{
+                y: [0, -30, 0],
+                x: [0, (i % 3 - 1) * 10, 0],
+                scale: [1, 1.5, 1],
+                opacity: [0.2, 0.7, 0.2],
+              }}
+              transition={{
+                duration: 3 + (i % 3) * 1,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: (i % 4) * 0.5,
+              }}
+            />
+          );
+        })}
+        
+        {/* Floating geometric shapes */}
+        {[...Array(6)].map((_, i) => {
+          // Use deterministic positioning based on index to avoid hydration mismatch
+          const basePosition = (i * 89.3) % 100; // Different multiplier for variety
+          const left = (basePosition + (i * 41.7)) % 100;
+          const top = (basePosition * 2.414 + (i * 19.8)) % 100;
+          
+          return (
+            <motion.div
+              key={`shape-${i}`}
+              className="absolute w-3 h-3 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full"
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+              }}
+              animate={{
+                y: [0, -40, 0],
+                x: [0, (i % 5 - 2) * 8, 0],
+                scale: [1, 1.3, 1],
+                opacity: [0.3, 0.6, 0.3],
+                rotate: [0, 180, 360],
+              }}
+              transition={{
+                duration: 5 + (i % 4) * 1.2,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: (i % 3) * 0.8,
+              }}
+            />
+          );
+        })}
+      </div>
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -399,6 +504,6 @@ export default function CurriculumPath() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 } 

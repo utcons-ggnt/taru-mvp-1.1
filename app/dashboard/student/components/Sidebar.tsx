@@ -35,11 +35,6 @@ const IconRenderer = ({ icon, label, size = 24, className = "", isActive = false
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
       ),
-      'diagnostic': (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      ),
       'progress': (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -95,7 +90,6 @@ const IconRenderer = ({ icon, label, size = 24, className = "", isActive = false
 const defaultNavItems = [
   { id: 'overview', label: 'Overview', icon: '/icons/overview.png' },
   { id: 'modules', label: 'My Learning Modules', icon: '/icons/modules.png' },
-  { id: 'diagnostic', label: 'Take Diagnostic Test', icon: '/icons/diagnostic.png' },
   { id: 'progress', label: 'My Progress Report', icon: '/icons/report.png' },
   { id: 'rewards', label: 'My Rewards & Badges', icon: '/icons/rewards.png' },
   { id: 'settings', label: 'Profile & Settings', icon: '/icons/profile.png' }
@@ -306,25 +300,46 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                     key={item.id}
                     onClick={() => handleTabChange(item.id)}
                     className={`
-                      flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 
-                      font-medium text-gray-900
+                      flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-300 
+                      font-medium text-gray-900 relative overflow-hidden group
                       ${activeTab === item.id 
-                        ? 'bg-purple-600 text-white shadow-md' 
-                        : 'hover:bg-purple-50 active:bg-purple-100'
+                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' 
+                        : 'hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 active:bg-purple-100'
                       }
                     `}
                     initial={{ x: -50, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: 0.4 + index * 0.1, duration: 0.4 }}
                     whileHover={{ 
-                      scale: 1.02,
-                      x: 5,
-                      transition: { duration: 0.2 }
+                      scale: 1.05,
+                      x: 8,
+                      y: -2,
+                      boxShadow: activeTab === item.id 
+                        ? "0 10px 25px rgba(147, 51, 234, 0.4)"
+                        : "0 5px 15px rgba(147, 51, 234, 0.2)"
                     }}
                     whileTap={{ scale: 0.98 }}
                   >
+                    {/* Hover Background Effect */}
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-pink-400/20 opacity-0 group-hover:opacity-100"
+                      initial={{ x: "-100%" }}
+                      whileHover={{ x: "0%" }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                    />
+                    
+                    {/* Active Indicator */}
+                    {activeTab === item.id && (
+                      <motion.div
+                        className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-full"
+                        initial={{ scaleY: 0 }}
+                        animate={{ scaleY: 1 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                      />
+                    )}
+                    
                     <motion.span 
-                      className="text-lg"
+                      className="text-lg relative z-10"
                       animate={activeTab === item.id ? { 
                         scale: [1, 1.2, 1],
                         rotate: [0, 10, -10, 0]
@@ -359,11 +374,11 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                 initial={{ x: -50, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.4 + items.length * 0.1, duration: 0.4 }}
-                whileHover={{ 
-                  scale: 1.02,
-                  x: 5,
-                  transition: { duration: 0.2 }
-                }}
+                  whileHover={{ 
+                    scale: 1.05,
+                    y: -2,
+                    boxShadow: "0 4px 12px rgba(239, 68, 68, 0.2)"
+                  }}
                 whileTap={{ scale: 0.98 }}
               >
                 <motion.span 
@@ -495,11 +510,11 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                   key={item.id}
                   onClick={() => handleTabChange(item.id)}
                   className={`
-                    flex items-center gap-3 px-4 py-2 rounded-3xl text-left transition-all duration-200 
-                    font-medium text-gray-900
+                    flex items-center gap-3 px-4 py-2 rounded-3xl text-left transition-all duration-300 
+                    font-medium text-gray-900 relative overflow-hidden group
                     ${activeTab === item.id 
-                      ? 'bg-purple-600 text-white shadow-md' 
-                      : 'hover:bg-purple-100 active:bg-purple-200'
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' 
+                      : 'hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100 active:bg-purple-200'
                     }
                   `}
                   initial={{ x: -50, opacity: 0 }}

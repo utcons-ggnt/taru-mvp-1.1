@@ -196,17 +196,13 @@ export async function POST(request: NextRequest) {
     const totalQuestions = parseInt(result['Total Questions']) || 0;
     const summary = result.Summary || 'Assessment completed successfully!';
 
-    // Prepare result data
+    // Prepare result data from N8N analysis
     const resultData = {
-      type: 'Assessment Completed',
-      description: summary, // Only show Summary as requested
+      type: result.PersonalityType || 'Assessment Completed',
+      description: summary,
       score: score,
-      learningStyle: 'Mixed',
-      recommendations: [
-        { title: 'Continue Learning', description: 'Keep exploring your interests', xp: 50 },
-        { title: 'Practice Regularly', description: 'Consistent practice leads to improvement', xp: 75 },
-        { title: 'Seek Help When Needed', description: 'Don\'t hesitate to ask questions', xp: 30 }
-      ],
+      learningStyle: result.LearningStyle || 'Mixed',
+      recommendations: result.Recommendations || [],
       totalQuestions: totalQuestions,
       n8nResults: result
     };
@@ -356,19 +352,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      result: assessmentResponse.result || {
-        type: 'Assessment Completed',
-        description: 'Assessment completed successfully!',
-        score: 0,
-        learningStyle: 'Mixed',
-        recommendations: [
-          { title: 'Continue Learning', description: 'Keep exploring your interests', xp: 50 },
-          { title: 'Practice Regularly', description: 'Consistent practice leads to improvement', xp: 75 },
-          { title: 'Seek Help When Needed', description: 'Don\'t hesitate to ask questions', xp: 30 }
-        ],
-        totalQuestions: 0,
-        n8nResults: null
-      }
+      result: assessmentResponse.result || null
     });
 
   } catch (error) {

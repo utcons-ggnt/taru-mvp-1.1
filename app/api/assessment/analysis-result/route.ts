@@ -53,27 +53,11 @@ export async function POST(request: NextRequest) {
 
     // Update with n8n analysis results
     assessmentResponse.result = {
-      type: personalityType || 'Visual Superstar',
-      description: analysisResult?.description || 'You learn best with fun visuals and bright colors!',
-      score: score || assessmentResponse.result?.score || 85,
-      learningStyle: learningStyle || 'Visual',
-      recommendations: recommendations || [
-        { 
-          title: 'The Water Cycle', 
-          description: 'Learn about water cycle with visual animations', 
-          xp: 75 
-        },
-        { 
-          title: 'Shapes Adventure', 
-          description: 'Explore geometric shapes through games', 
-          xp: 50 
-        },
-        { 
-          title: 'Story of the Moon', 
-          description: 'Discover moon phases with storytelling', 
-          xp: 30 
-        }
-      ]
+      type: personalityType || 'Assessment Completed',
+      description: analysisResult?.description || 'Assessment analysis completed',
+      score: score || assessmentResponse.result?.score || 0,
+      learningStyle: learningStyle || 'Mixed',
+      recommendations: recommendations || []
     };
 
     assessmentResponse.analysisCompleted = true;

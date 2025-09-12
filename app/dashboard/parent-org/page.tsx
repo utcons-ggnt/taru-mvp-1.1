@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Dialog } from '@headlessui/react';
 import { motion } from 'framer-motion';
-import SimpleGoogleTranslate from '../../components/SimpleGoogleTranslate';
 
 interface ParentOrgProfile {
   name: string;
@@ -128,7 +127,6 @@ export default function ParentOrgDashboard() {
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Language Selector */}
             <div className="hidden sm:block">
-              <SimpleGoogleTranslate />
             </div>
             
             {/* User Profile Section */}

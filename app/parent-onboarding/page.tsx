@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import SimpleGoogleTranslate from '../components/SimpleGoogleTranslate';
 import { RegistrationDataManager } from '@/lib/utils';
 
 interface ParentOnboardingData {
@@ -597,7 +596,6 @@ export default function ParentOnboarding() {
       }}>
         {/* Google Translate */}
         <div className="absolute top-6 right-6 z-20">
-                      <SimpleGoogleTranslate className="text-white" buttonText="Translate" showIcon={true} />
         </div>
 
         <div className="max-w-md mx-auto w-full">
