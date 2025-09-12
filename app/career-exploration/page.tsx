@@ -135,9 +135,9 @@ export default function CareerExploration() {
           <div className="w-full h-full bg-gradient-to-br from-white/10 to-transparent rounded-full"></div>
         </div>
 
-        {/* Jio Logo */}
+        {/* Taru Logo */}
         <div className="absolute w-[68px] h-[68px] left-[63px] top-[64px] bg-white rounded-full flex items-center justify-center">
-          <span className="text-[#6D18CE] font-bold text-xl">Jio</span>
+          <span className="text-[#6D18CE] font-bold text-xl">Taru</span>
         </div>
 
         {/* Students Details Title */}

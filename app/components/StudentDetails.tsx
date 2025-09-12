@@ -120,7 +120,7 @@ const StudentDetails = () => {
 
       {/* Left Panel - Purple background with progress indicator */}
       <div className="absolute w-[469px] h-[800px] left-0 top-0 bg-[#6D18CE] rounded-l-[40px]">
-        {/* Jio Logo */}
+        {/* Taru Logo */}
         <div className="absolute w-[68px] h-[68px] left-[63px] top-[64px] bg-blue-500 rounded-full flex items-center justify-center">
           <span className="text-white font-bold text-xl">J</span>
         </div>

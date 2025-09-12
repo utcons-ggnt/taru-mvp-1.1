@@ -807,7 +807,7 @@ export default function DiagnosticAssessment() {
         <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image src="/icons/logo.svg" alt="Logo" width={40} height={40} className="rounded-full" />
-            <span className="font-semibold text-gray-800">JioWorld Learning</span>
+            <span className="font-semibold text-gray-800">Taru Learning</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-gray-600">
@@ -895,7 +895,7 @@ export default function DiagnosticAssessment() {
         <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image src="/icons/logo.svg" alt="Logo" width={40} height={40} className="rounded-full" />
-            <span className="font-semibold text-gray-800">JioWorld Learning</span>
+            <span className="font-semibold text-gray-800">Taru Learning</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-gray-600">
@@ -1194,7 +1194,7 @@ export default function DiagnosticAssessment() {
       <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Image src="/icons/logo.svg" alt="Logo" width={40} height={40} className="rounded-full" />
-          <span className="font-semibold text-gray-800">JioWorld Learning</span>
+          <span className="font-semibold text-gray-800">Taru Learning</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-gray-600">

@@ -251,7 +251,7 @@ export default function ParentOnboarding() {
           <Image src="/icons/logo.svg" alt="Logo" width={56} height={56} className="absolute top-4 left-4 w-14 h-14 object-contain" />
           <div className="mt-20 md:mt-32">
             <h2 className="text-3xl md:text-4xl font-bold leading-snug md:leading-snug px-2 md:px-10">
-              🎉 Welcome to JioWorld! <br />
+              🎉 Welcome to Taru! <br />
               Your onboarding is complete!
             </h2>
           </div>

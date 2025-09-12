@@ -191,7 +191,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
             name: studentData.name,
             email: studentData.email,
             grade: studentData.grade,
-            school: studentData.school || 'JioWorld Learning',
+            school: studentData.school || 'Taru Learning',
             uniqueId: studentUniqueId, // Include unique ID in student data
             timestamp: new Date().toISOString()
           }

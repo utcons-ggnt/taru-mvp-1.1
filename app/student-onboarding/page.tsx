@@ -112,14 +112,14 @@ export default function StudentOnboarding() {
   };
 
   const shareViaWhatsApp = () => {
-    const message = `Hi! My JioWorld Learning student ID is: ${uniqueId}. Please use this ID to link your parent account.`;
+    const message = `Hi! My Taru Learning student ID is: ${uniqueId}. Please use this ID to link your parent account.`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
 
   const shareViaEmail = () => {
-    const subject = 'My JioWorld Learning Student ID';
-    const body = `Hi! My JioWorld Learning student ID is: ${uniqueId}. Please use this ID to link your parent account.`;
+    const subject = 'My Taru Learning Student ID';
+    const body = `Hi! My Taru Learning student ID is: ${uniqueId}. Please use this ID to link your parent account.`;
     const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(mailtoUrl);
   };
@@ -128,7 +128,7 @@ export default function StudentOnboarding() {
     const shareUrl = `${window.location.origin}/register?role=parent&studentId=${uniqueId}`;
     if (navigator.share) {
       navigator.share({
-        title: 'JioWorld Learning Student ID',
+        title: 'Taru Learning Student ID',
         text: `My student ID: ${uniqueId}`,
         url: shareUrl
       });
@@ -428,7 +428,7 @@ export default function StudentOnboarding() {
         
         <div className="flex-1 flex flex-col justify-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-12 px-4">
-            Welcome to <span className="text-white/90">JioWorld!</span>
+            Welcome to <span className="text-white/90">Taru!</span>
           </h1>
           <p className="text-xl px-4 text-white/80">Your onboarding is complete!</p>
         </div>
@@ -785,7 +785,7 @@ export default function StudentOnboarding() {
       <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
         <h3 className="text-lg font-semibold text-purple-800 mb-2">Data Usage Consent</h3>
         <p className="text-sm text-purple-700 mb-3">
-          By accepting this consent, you agree to allow JioWorld Learning to collect, process, and use your learning data 
+          By accepting this consent, you agree to allow Taru Learning to collect, process, and use your learning data 
           to provide personalized educational experiences and track your progress.
         </p>
         <label className="flex items-center space-x-2">
@@ -1092,7 +1092,7 @@ export default function StudentOnboarding() {
                   <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                     <h3 className="text-lg font-semibold text-purple-800 mb-2">Data Usage Consent</h3>
                     <p className="text-sm text-purple-700 mb-3">
-                      By accepting this consent, you agree to allow JioWorld Learning to collect, process, and use your learning data 
+                      By accepting this consent, you agree to allow Taru Learning to collect, process, and use your learning data 
                       to provide personalized educational experiences and track your progress.
                     </p>
                     <label className="flex items-center space-x-2">
