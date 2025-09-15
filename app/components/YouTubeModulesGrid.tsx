@@ -35,32 +35,119 @@ const YouTubeModulesGrid: React.FC<YouTubeModulesGridProps> = ({
   const [youtubeData, setYoutubeData] = useState<YouTubeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
     fetchYouTubeData();
   }, [uniqueid]);
 
-  const fetchYouTubeData = async () => {
-    if (!uniqueid) return;
+  const fetchYouTubeData = async (isRetry = false) => {
+    if (!uniqueid || uniqueid === 'default') {
+      setLoading(false);
+      setError('No uniqueId available');
+      return;
+    }
     
-    setLoading(true);
-    setError(null);
+    if (!isRetry) {
+      setLoading(true);
+      setError(null);
+    }
     
     try {
-      const response = await fetch(`/api/youtube-data?uniqueid=${encodeURIComponent(uniqueid)}`);
+      console.log('🔍 YouTubeModulesGrid: Fetching data for uniqueid:', uniqueid);
+      const response = await fetch(`/api/youtube-data`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' // Include cookies for authentication
+      });
+      
+      console.log('📊 YouTubeModulesGrid: API response status:', response.status);
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.statusText}`);
+        if (response.status === 404) {
+          // Show fallback content while scraper is processing
+          setShowFallback(true);
+          setError('Scraper is processing your content. Showing fallback modules while we wait...');
+          startPolling();
+          return;
+        } else {
+          throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+        }
       }
       
       const data = await response.json();
-      setYoutubeData(data);
+      console.log('📊 YouTubeModulesGrid: API response data:', data);
+      
+      if (data.success && data.data) {
+        // Check if this is real data or fallback
+        if (data.isFallback) {
+          setShowFallback(true);
+          setError('Using fallback content while scraper processes your personalized modules...');
+          startPolling();
+        } else {
+          // Real data received, stop polling and show real content
+          setYoutubeData(data.data);
+          setShowFallback(false);
+          setIsPolling(false);
+          setError(null);
+        }
+      } else {
+        setError(data.message || 'No video data available');
+      }
     } catch (err) {
-      console.error('Error fetching YouTube data:', err);
+      console.error('❌ YouTubeModulesGrid: Error fetching YouTube data:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch YouTube data');
+      setShowFallback(true);
     } finally {
-      setLoading(false);
+      if (!isRetry) {
+        setLoading(false);
+      }
     }
+  };
+
+  const startPolling = () => {
+    if (isPolling) return;
+    
+    setIsPolling(true);
+    console.log('🔄 YouTubeModulesGrid: Starting polling for real data...');
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/youtube-data`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' // Include cookies for authentication
+      });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data && !data.isFallback) {
+            // Real data is now available
+            console.log('✅ YouTubeModulesGrid: Real data received, stopping polling');
+            setYoutubeData(data.data);
+            setShowFallback(false);
+            setIsPolling(false);
+            setError(null);
+            clearInterval(pollInterval);
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ YouTubeModulesGrid: Polling error:', err);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    // Stop polling after 5 minutes
+    setTimeout(() => {
+      if (isPolling) {
+        console.log('⏰ YouTubeModulesGrid: Polling timeout, keeping fallback content');
+        setIsPolling(false);
+        clearInterval(pollInterval);
+      }
+    }, 300000); // 5 minutes
   };
 
   const handleModuleClick = (moduleIndex: number) => {
@@ -153,14 +240,42 @@ const YouTubeModulesGrid: React.FC<YouTubeModulesGridProps> = ({
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Play className="w-8 h-8 text-red-500" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Unable to Load YouTube Modules</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          {isPolling ? 'Processing Your Content...' : 'Unable to Load YouTube Modules'}
+        </h3>
         <p className="text-red-600 mb-4">{error}</p>
-        <button
-          onClick={fetchYouTubeData}
-          className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-        >
-          Try Again
-        </button>
+        
+        {isPolling && (
+          <div className="mb-6">
+            <div className="flex items-center justify-center space-x-2 mb-2">
+              <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse"></div>
+              <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+            </div>
+            <p className="text-sm text-gray-600">
+              Checking for your personalized content every 5 seconds...
+            </p>
+          </div>
+        )}
+        
+        <div className="space-y-2">
+          <button
+            onClick={() => {
+              // Reset error state and try fetching again
+              setError(null);
+              fetchYouTubeData();
+            }}
+            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium mr-3"
+          >
+            {isPolling ? 'Check Now' : 'Try Again'}
+          </button>
+          <div className="text-sm text-gray-500">
+            {isPolling 
+              ? 'We\'re processing your personalized learning modules. This may take a few minutes.'
+              : 'If the problem persists, try clicking "Browse Learning Modules" first to generate videos.'
+            }
+          </div>
+        </div>
       </div>
     );
   }
@@ -168,11 +283,26 @@ const YouTubeModulesGrid: React.FC<YouTubeModulesGridProps> = ({
   if (!youtubeData || youtubeData.modules.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <BookOpen className="w-8 h-8 text-gray-400" />
+        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Play className="w-8 h-8 text-blue-500" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">No YouTube Modules Available</h3>
-        <p className="text-gray-600">No learning modules found for this user.</p>
+        <p className="text-gray-600 mb-4">
+          No learning modules found for this user. The system will show fallback content instead.
+        </p>
+        <div className="text-sm text-gray-500 mb-4">
+          Fallback modules are being loaded to ensure you have content to learn from.
+        </div>
+        <button
+          onClick={() => {
+            // Reset error state and try fetching again
+            setError(null);
+            fetchYouTubeData();
+          }}
+          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+        >
+          Try Again
+        </button>
       </div>
     );
   }

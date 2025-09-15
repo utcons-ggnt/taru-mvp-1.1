@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import AdvancedLearningInterface from './components/AdvancedLearningInterface';
 import ConsistentLoadingPage from '../../components/ConsistentLoadingPage';
+import YouTubeVideoList from '../../components/YouTubeVideoList';
+import ModuleErrorBoundary from '../../components/ModuleErrorBoundary';
 
 interface ModuleContent {
   type: string;
@@ -41,19 +42,18 @@ interface ModuleProgress {
   xpEarned: number;
 }
 
-export default function ModuleDetail() {
+function ModuleDetailContent() {
   const [module, setModule] = useState<Module | null>(null);
   const [progress, setProgress] = useState<ModuleProgress | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'progress' | 'ai-learning'>('overview');
-  const [showAILearning, setShowAILearning] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'progress' | 'youtube-videos'>('overview');
+  const [showYouTubeVideos, setShowYouTubeVideos] = useState(false);
   const router = useRouter();
   const params = useParams();
   const moduleId = params.id as string;
 
   useEffect(() => {
     fetchModuleData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moduleId]);
 
   const fetchModuleData = async () => {
@@ -64,10 +64,13 @@ export default function ModuleDetail() {
         setModule(data.module);
         setProgress(data.progress);
       } else {
-        // setError('Module not found'); // Original code had this line commented out
+        // If API fails, we'll show a fallback module
+        console.warn('Module API failed, using fallback content');
+        // The API now returns fallback modules instead of errors
       }
-    } catch {
-      // setError('Failed to load module'); // Original code had this line commented out
+    } catch (error) {
+      console.warn('Failed to load module, using fallback content:', error);
+      // The API now returns fallback modules instead of errors
     } finally {
       setLoading(false);
     }
@@ -295,11 +298,11 @@ export default function ModuleDetail() {
                 { key: 'overview', label: 'Overview', icon: '📋' },
                 { key: 'content', label: 'Content', icon: '📚' },
                 { key: 'progress', label: 'Progress', icon: '📊' },
-                { key: 'ai-learning', label: 'AI Learning', icon: '🤖' }
+                { key: 'youtube-videos', label: 'YouTube Videos', icon: '📺' }
               ].map(tab => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key as 'overview' | 'content' | 'progress' | 'ai-learning')}
+                  onClick={() => setActiveTab(tab.key as 'overview' | 'content' | 'progress' | 'youtube-videos')}
                   className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
                     activeTab === tab.key
                       ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
@@ -484,13 +487,15 @@ export default function ModuleDetail() {
               </div>
             )}
 
-            {/* AI Learning Tab */}
-            {activeTab === 'ai-learning' && (
+            {/* YouTube Videos Tab */}
+            {activeTab === 'youtube-videos' && (
               <div className="h-[calc(100vh-200px)]">
-                <AdvancedLearningInterface
-                  apiKey={process.env.NEXT_PUBLIC_GEMINI_API_KEY || ''}
-                  moduleId={moduleId}
-                  className="h-full"
+                <YouTubeVideoList
+                  uniqueid={moduleId}
+                  onVideoSelect={(videoUrl, videoTitle) => {
+                    console.log('Video selected:', { videoUrl, videoTitle });
+                    window.open(videoUrl, '_blank');
+                  }}
                 />
               </div>
             )}
@@ -498,5 +503,13 @@ export default function ModuleDetail() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ModuleDetail() {
+  return (
+    <ModuleErrorBoundary>
+      <ModuleDetailContent />
+    </ModuleErrorBoundary>
   );
 } 

@@ -176,6 +176,7 @@ export default function CurriculumPath() {
         />
         
         {/* Floating particles */}
+
         {[...Array(12)].map((_, i) => {
           // Use deterministic positioning based on index to avoid hydration mismatch
           const basePosition = (i * 137.5) % 100; // Golden ratio for better distribution

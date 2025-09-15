@@ -23,10 +23,10 @@ export class N8NService {
       const payload = {
         message,
         context: {
-          pdfContent: context.pdfContent.substring(0, 1000),
+          pdfContent: context.pdfContent?.substring(0, 1000) || '',
           selectedText: context.selectedText,
           currentTime: context.currentTime,
-          bookmarksCount: context.bookmarks.length,
+          bookmarksCount: context.bookmarks?.length || 0,
           action: action || 'general'
         },
         timestamp: new Date().toISOString()
@@ -47,6 +47,8 @@ export class N8NService {
       const data = await response.json();
       
       return {
+        success: true,
+        message: 'Response generated successfully',
         content: data.content || data.response || 'I received your message and am processing it.',
         suggestions: data.suggestions || this.extractSuggestions(data.content || ''),
         relatedQuestions: data.relatedQuestions || this.generateRelatedQuestions(data.content || '', context),
@@ -55,6 +57,8 @@ export class N8NService {
     } catch (error) {
       console.error('🔴 N8N Webhook Error:', error);
       return {
+        success: false,
+        message: 'I apologize, but I encountered an error processing your request. Please try again.',
         content: 'I apologize, but I encountered an error processing your request. Please try again.',
         suggestions: [],
         relatedQuestions: [],
@@ -137,11 +141,13 @@ export class N8NService {
           const questionsData = JSON.parse(data[0].output);
           if (Array.isArray(questionsData)) {
             return questionsData.map((q, index) => ({
-              Q: q.Q || (index + 1).toString(),
-              level: q.level || 'Basic',
+              id: q.id || `q_${index + 1}`,
               question: q.question || '',
               options: q.options || [],
-              answer: q.answer || ''
+              correctAnswer: q.answer || 0,
+              explanation: q.explanation || '',
+              difficulty: (q.level || 'medium') as 'easy' | 'medium' | 'hard',
+              category: q.category || ''
             }));
           }
         } catch (parseError) {

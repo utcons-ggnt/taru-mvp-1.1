@@ -4,6 +4,7 @@ import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Assessment from '@/models/Assessment';
 import LearningPath from '@/models/LearningPath';
+import Student from '@/models/Student';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const N8N_WEBHOOK_URL = process.env.N8N_LEARNING_PATH_WEBHOOK_URL || 'https://nclbtaru.app.n8n.cloud/webhook/learnign-path';
@@ -53,6 +54,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Please complete assessment first' },
         { status: 400 }
+      );
+    }
+
+    // Get student profile to access uniqueId
+    const student = await Student.findOne({ userId: decoded.userId });
+    if (!student) {
+      return NextResponse.json(
+        { error: 'Student profile not found' },
+        { status: 404 }
       );
     }
 
@@ -117,6 +127,7 @@ export async function POST(request: NextRequest) {
         const pathId = `LP_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         const newLearningPath = new LearningPath({
           pathId,
+          uniqueId: student.uniqueId,
           name: learningPath.name || 'Personalized Learning Path',
           description: learningPath.description || 'AI-generated learning path based on your assessment',
           category: learningPath.category || 'academic',
@@ -166,7 +177,7 @@ export async function POST(request: NextRequest) {
       console.error('N8N learning path generation error:', error);
       
       // Fallback learning path generation
-      const fallbackPath = generateFallbackLearningPath(learningPathData);
+      const fallbackPath = generateFallbackLearningPath(learningPathData, student.uniqueId);
       
       return NextResponse.json({
         success: true,
@@ -190,7 +201,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Fallback learning path generator
-function generateFallbackLearningPath(data: any) {
+function generateFallbackLearningPath(data: any, uniqueId: string) {
   const { studentProfile } = data;
   const pathId = `LP_FALLBACK_${Date.now()}`;
   
@@ -269,6 +280,7 @@ function generateFallbackLearningPath(data: any) {
 
   return {
     pathId,
+    uniqueId,
     name: 'Personalized Learning Journey',
     description: 'A customized learning path based on your skills, interests, and goals',
     milestones,

@@ -49,6 +49,11 @@ function CareerDetailsContent() {
     avatar: string;
   } | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [hasFetchedCareerDetails, setHasFetchedCareerDetails] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savedPathId, setSavedPathId] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const careerPath = searchParams.get('careerPath');
@@ -72,6 +77,51 @@ function CareerDetailsContent() {
       newExpanded.add(index);
     }
     setExpandedModules(newExpanded);
+  };
+
+  const saveLearningPath = async () => {
+    if (!careerDetails || !careerPath) {
+      setSaveError('No career details or path to save');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      const response = await fetch('/api/learning-paths/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          careerDetails: careerDetails,
+          careerPath: careerPath
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        console.log('✅ Learning path saved successfully:', result.pathId);
+        setIsSaved(true);
+        setSavedPathId(result.pathId);
+        
+        // Show success message for 3 seconds before navigating
+        setTimeout(() => {
+          router.push('/dashboard/student');
+        }, 3000);
+      } else {
+        console.error('❌ Failed to save learning path:', result.error);
+        setSaveError(result.error || 'Failed to save learning path');
+      }
+    } catch (error) {
+      console.error('❌ Error saving learning path:', error);
+      setSaveError('Network error while saving learning path');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const fetchUserInfo = async () => {
@@ -128,8 +178,14 @@ function CareerDetailsContent() {
   // Note: All data is now dynamically generated from N8N API
 
   const fetchCareerDetails = async () => {
+    if (hasFetchedCareerDetails) {
+      console.log('🔍 Career details already fetched, skipping...');
+      return;
+    }
+    
     try {
       console.log('🔍 Fetching career details for:', { careerPath, description });
+      setHasFetchedCareerDetails(true);
       setLoading(true);
       const response = await fetch('/api/career-details', {
         method: 'POST',
@@ -208,7 +264,7 @@ function CareerDetailsContent() {
       // If we have a career path, always try to fetch details (this ensures webhook is called)
       if (careerPath) {
         console.log('🔍 Career path found, fetching career details...');
-        fetchCareerDetails();
+        await fetchCareerDetails();
         return;
       }
 
@@ -242,12 +298,7 @@ function CareerDetailsContent() {
         await migrateExistingData();
       }
 
-      // If we have a career path but no saved data, fetch from API
-      if (careerPath) {
-        console.log('🔍 Fetching career details from API...');
-        await fetchCareerDetails();
-        return;
-      }
+      // This section is no longer needed since we handle career path above
 
       console.log('🔍 No career path specified, showing error...');
       setError('Career path not specified');
@@ -256,6 +307,11 @@ function CareerDetailsContent() {
 
     initializePage();
   }, [careerPath, loadPageState, sessionInitialized, getCareerPathData, sessionData, migrateExistingData]);
+
+  // Reset fetch flag when career path changes
+  useEffect(() => {
+    setHasFetchedCareerDetails(false);
+  }, [careerPath]);
 
   // Fetch user info when session data changes
   useEffect(() => {
@@ -528,6 +584,14 @@ function CareerDetailsContent() {
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             {userInfo?.name ? `Hi ${userInfo.name}! ` : ''}{output.greeting}
           </p>
+          {isSaved && (
+            <div className="mt-4 inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Learning path saved successfully!
+            </div>
+          )}
         </div>
 
         {/* Why This Career Fits You */}
@@ -751,15 +815,90 @@ function CareerDetailsContent() {
                 Explore More Careers
               </button>
               <button
-                onClick={() => router.push('/dashboard/student')}
-                className="px-8 py-3 bg-purple-700 text-white rounded-xl font-semibold hover:bg-purple-800 transition-colors duration-200"
+                onClick={saveLearningPath}
+                disabled={isSaving || isSaved}
+                className={`px-8 py-3 rounded-xl font-semibold transition-colors duration-200 flex items-center gap-2 ${
+                  isSaving 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : isSaved
+                    ? 'bg-green-600 text-white cursor-default'
+                    : 'bg-purple-700 text-white hover:bg-purple-800'
+                }`}
               >
-                Go to Dashboard
+                {isSaving ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving Learning Path...
+                  </>
+                ) : isSaved ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Saved! Redirecting...
+                  </>
+                ) : (
+                  'Go to Dashboard'
+                )}
               </button>
             </div>
+            {saveError && (
+              <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                <p className="text-sm">❌ {saveError}</p>
+                <button
+                  onClick={() => setSaveError(null)}
+                  className="text-xs underline hover:no-underline mt-1"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
           </div>
         </section>
       </main>
+
+      {/* Success Modal - Learning Path Saved */}
+      {isSaved && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Learning Path Saved! 🎉</h3>
+            <p className="text-gray-600 mb-4">
+              Your personalized learning path for <strong>{careerPath}</strong> has been successfully saved to your dashboard.
+            </p>
+            <div className="bg-gray-50 rounded-lg p-3 mb-4">
+              <p className="text-sm text-gray-500">Path ID: {savedPathId}</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => router.push('/dashboard/student')}
+                className="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+              >
+                Go to Dashboard Now
+              </button>
+              <button
+                onClick={() => {
+                  setIsSaved(false);
+                  setSavedPathId(null);
+                }}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+              >
+                Continue Exploring
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-3">
+              Redirecting to dashboard in 3 seconds...
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Debug Info - Development only */}
       {process.env.NODE_ENV === 'development' && (

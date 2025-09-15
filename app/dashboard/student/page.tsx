@@ -53,7 +53,23 @@ interface StudentProfile {
     school?: string;
   };
   _id?: string; // Added for user ID
-  uniqueId?: string; // Added for student unique ID
+  uniqueId?: string | null; // Added for student unique ID
+  fullName?: string; // Added for ModulesTab compatibility
+  classGrade?: string; // Added for ModulesTab compatibility
+}
+
+interface YouTubeData {
+  _id: string;
+  uniqueid: string;
+  chapters: Array<{
+    chapterIndex: number;
+    chapterKey: string;
+    videoTitle: string;
+    videoUrl: string;
+  }>;
+  totalChapters: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface Notification {
@@ -141,6 +157,8 @@ export default function StudentDashboard() {
   const [user, setUser] = useState<StudentProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [youtubeData, setYoutubeData] = useState<YouTubeData | null>(null);
+  const [youtubeLoading, setYoutubeLoading] = useState(false);
 
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -152,6 +170,123 @@ export default function StudentDashboard() {
   const logoutTriggered = useRef(false);
   const { width: windowWidth } = useWindowSize();
   const isMobile = windowWidth < 1024;
+
+  // Function to fetch YouTube data with comprehensive error handling
+  const fetchYouTubeData = async (uniqueId: string) => {
+    // Input validation
+    if (!uniqueId || typeof uniqueId !== 'string' || uniqueId.trim() === '') {
+      console.error('❌ Cannot fetch YouTube data: uniqueId is invalid:', uniqueId);
+      setYoutubeData(null);
+      return;
+    }
+
+    // Prevent multiple concurrent requests
+    if (youtubeLoading) {
+      console.log('⏳ YouTube data fetch already in progress, skipping...');
+      return;
+    }
+
+    try {
+      setYoutubeLoading(true);
+      console.log('🔍 Fetching YouTube data for uniqueId:', uniqueId);
+      
+      const apiUrl = `/api/youtube-data`;
+      console.log('🌐 API URL:', apiUrl);
+      
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' // Include cookies for authentication
+      });
+      
+      clearTimeout(timeoutId);
+      console.log('📡 Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      
+      if (response.ok) {
+        let result;
+        try {
+          result = await response.json();
+          console.log('✅ YouTube data API response:', result);
+        } catch (jsonError) {
+          console.error('❌ Failed to parse successful response as JSON:', jsonError);
+          const textResponse = await response.text();
+          console.log('📄 Raw successful response:', textResponse);
+          setYoutubeData(null);
+          return;
+        }
+        
+        if (result && typeof result === 'object' && result.success && result.data) {
+          console.log('✅ Setting YouTube data:', result.data);
+          setYoutubeData(result.data);
+        } else {
+          console.log('📭 No YouTube data available yet:', result?.message || 'No valid data in response');
+          setYoutubeData(null);
+        }
+      } else {
+        // Handle non-200 responses
+        let errorData = {
+          status: response.status,
+          statusText: response.statusText,
+          message: `HTTP ${response.status}: ${response.statusText}`
+        };
+        
+        try {
+          const responseText = await response.text();
+          console.log('📄 Error response body:', responseText);
+          
+          if (responseText && responseText.trim() !== '') {
+            try {
+              const parsedError = JSON.parse(responseText);
+              errorData = { ...errorData, ...parsedError };
+            } catch (parseError) {
+              console.log('⚠️ Error response is not JSON, using as text');
+              errorData.message = responseText;
+            }
+          }
+        } catch (readError) {
+          console.error('❌ Error reading error response:', readError);
+        }
+        
+        console.error('❌ YouTube data fetch failed:', errorData);
+        
+        if (response.status === 404) {
+          console.log('📭 No YouTube data found (404), might need to trigger scrapping');
+        } else if (response.status >= 500) {
+          console.log('🔥 Server error, might be temporary');
+        } else if (response.status === 401 || response.status === 403) {
+          console.log('🔒 Authentication/authorization error');
+        }
+        
+        setYoutubeData(null);
+      }
+    } catch (error: any) {
+      // Handle network errors, timeouts, etc.
+      if (error.name === 'AbortError') {
+        console.error('❌ YouTube data fetch timed out after 10 seconds');
+      } else {
+        console.error('❌ Network error fetching YouTube data:', {
+          name: error?.name,
+          message: error?.message,
+          stack: error?.stack
+        });
+      }
+      setYoutubeData(null);
+    } finally {
+      setYoutubeLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Fetch user data from the server
@@ -167,19 +302,53 @@ export default function StudentDashboard() {
           
           // Fetch student profile to get unique ID
           try {
+            console.log('🔍 Fetching student profile...');
             const studentResponse = await fetch('/api/student/profile');
+            console.log('📊 Student profile response status:', studentResponse.status);
+            
             if (studentResponse.ok) {
               const studentData = await studentResponse.json();
+              console.log('✅ Student data received:', studentData);
+              
+              const userWithProfile = {
+                ...userData.user,
+                uniqueId: studentData.uniqueId,
+                fullName: studentData.fullName,
+                classGrade: studentData.classGrade,
+                schoolName: studentData.schoolName
+              };
+              
+              setUser(userWithProfile);
+              
+              // If we have a uniqueId, fetch YouTube data
+              if (studentData.uniqueId) {
+                fetchYouTubeData(studentData.uniqueId);
+              }
+              
+            } else {
+              const errorData = await studentResponse.json();
+              console.error('❌ Student profile fetch failed:', errorData);
+              
+              // Check if the error is due to missing student profile
+              if (errorData.error === 'Student profile not found') {
+                console.log('🔄 Student profile not found, redirecting to onboarding...');
+                router.push('/student-onboarding');
+                return;
+              }
+              
+              // Set user without uniqueId, components will handle the fallback
               setUser({
                 ...userData.user,
-                uniqueId: studentData.uniqueId
+                uniqueId: null // Explicitly set to null so components know it's missing
               });
-            } else {
-              setUser(userData.user);
             }
           } catch (error) {
-            console.error('Error fetching student profile:', error);
-            setUser(userData.user);
+            console.error('❌ Error fetching student profile:', error);
+            // Set user without uniqueId, components will handle the fallback
+            setUser({
+              ...userData.user,
+              uniqueId: null // Explicitly set to null so components know it's missing
+            });
           }
         } else {
           router.push('/login');
@@ -249,6 +418,97 @@ export default function StudentDashboard() {
 
     fetchDashboardData();
   }, [user]);
+
+  // Function to test API connectivity
+  const testApiConnectivity = async () => {
+    if (!user?.uniqueId) {
+      console.error('❌ No uniqueId available for API test');
+      return;
+    }
+
+    try {
+      console.log('🧪 Testing API connectivity...');
+      
+      // Test the YouTube API endpoint directly
+      const testUrl = `/api/youtube-data?uniqueid=${encodeURIComponent(user.uniqueId)}`;
+      console.log('🌐 Testing URL:', testUrl);
+      
+      const response = await fetch(testUrl);
+      const responseText = await response.text();
+      
+      console.log('📊 API Test Results:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        body: responseText
+      });
+      
+      // Try to parse as JSON
+      if (responseText) {
+        try {
+          const jsonData = JSON.parse(responseText);
+          console.log('✅ Parsed JSON response:', jsonData);
+        } catch (e) {
+          console.log('❌ Response is not valid JSON');
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ API connectivity test failed:', error);
+    }
+  };
+
+  // Function to trigger YouTube scrapping
+  const triggerYouTubeScrapping = async () => {
+    if (!user?.uniqueId) {
+      console.error('❌ No uniqueId available for scrapping');
+      return;
+    }
+
+    try {
+      console.log('🚀 Getting current student data for uniqueId:', user.uniqueId);
+      
+      const response = await fetch('/api/webhook/trigger-current-student', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('🔍 Response status:', response.status, response.statusText);
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Current student data retrieved successfully:', result);
+        
+        // Wait a bit then try to fetch YouTube data again
+        setTimeout(() => {
+          if (user.uniqueId) {
+            fetchYouTubeData(user.uniqueId);
+          }
+        }, 5000); // Wait 5 seconds before checking for new data
+        
+      } else {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (jsonError) {
+          errorData = {
+            status: response.status,
+            statusText: response.statusText,
+            message: 'Failed to parse error response as JSON'
+          };
+        }
+        console.error('❌ Failed to get current student data:', errorData);
+      }
+    } catch (error) {
+      console.error('❌ Error getting current student data:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error: error,
+        uniqueId: user?.uniqueId
+      });
+    }
+  };
 
   // Assessment data removed - diagnostic tab no longer available
 
@@ -539,7 +799,6 @@ export default function StudentDashboard() {
     if (activeTab !== 'logout') {
       logoutTriggered.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]); // handleLogout is stable
 
   if (isLoading || dashboardLoading) {
@@ -593,51 +852,70 @@ export default function StudentDashboard() {
       {/* Additional Particle Effects */}
       <div className="fixed inset-0 pointer-events-none z-0">
         {/* Floating Geometric Shapes */}
-        {[...Array(8)].map((_, i) => (
-          <motion.div
-            key={`shape-${i}`}
-            className="absolute w-4 h-4 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              y: [0, -30, 0],
-              x: [0, Math.random() * 20 - 10, 0],
-              scale: [1, 1.2, 1],
-              opacity: [0.3, 0.8, 0.3],
-            }}
-            transition={{
-              duration: Math.random() * 4 + 6,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: Math.random() * 2,
-            }}
-          />
-        ))}
+        {[...Array(8)].map((_, i) => {
+          // Use deterministic positioning based on index to avoid hydration mismatch
+          const left = (i * 73) % 100;
+          const top = (i * 97) % 100;
+          const xOffset = (i * 23) % 20 - 10;
+          const duration = 6 + (i % 4);
+          const delay = (i % 3) * 0.5;
+          
+          return (
+            <motion.div
+              key={`shape-${i}`}
+              className="absolute w-4 h-4 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full"
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+              }}
+              animate={{
+                y: [0, -30, 0],
+                x: [0, xOffset, 0],
+                scale: [1, 1.2, 1],
+                opacity: [0.3, 0.8, 0.3],
+              }}
+              transition={{
+                duration: duration,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: delay,
+              }}
+            />
+          );
+        })}
         
         {/* Floating Lines */}
-        {[...Array(5)].map((_, i) => (
-          <motion.div
-            key={`line-${i}`}
-            className="absolute h-px bg-gradient-to-r from-transparent via-purple-400/30 to-transparent"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              width: `${Math.random() * 200 + 100}px`,
-            }}
-            animate={{
-              x: [0, Math.random() * 100 - 50, 0],
-              opacity: [0, 1, 0],
-            }}
-            transition={{
-              duration: Math.random() * 3 + 4,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: Math.random() * 2,
-            }}
-          />
-        ))}
+        {[...Array(5)].map((_, i) => {
+          // Use deterministic positioning based on index to avoid hydration mismatch
+          const left = (i * 67) % 100;
+          const top = (i * 89) % 100;
+          const width = 100 + (i * 37) % 200;
+          const xOffset = (i * 41) % 100 - 50;
+          const duration = 4 + (i % 3);
+          const delay = (i % 4) * 0.5;
+          
+          return (
+            <motion.div
+              key={`line-${i}`}
+              className="absolute h-px bg-gradient-to-r from-transparent via-purple-400/30 to-transparent"
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+                width: `${width}px`,
+              }}
+              animate={{
+                x: [0, xOffset, 0],
+                opacity: [0, 1, 0],
+              }}
+              transition={{
+                duration: duration,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: delay,
+              }}
+            />
+          );
+        })}
       </div>
 
       
@@ -960,55 +1238,212 @@ export default function StudentDashboard() {
           </div>
         </div>
         
+        {/* Debug Info Panel - Development Only */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="fixed top-4 right-4 z-50 bg-black/80 text-white p-4 rounded-lg text-xs font-mono max-w-sm max-h-96 overflow-y-auto">
+            <h3 className="font-bold mb-2 text-green-400">Debug Info v2.1</h3>
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <span>User:</span>
+                <span className={user ? 'text-green-400' : 'text-yellow-400'}>
+                  {user ? 'Loaded' : 'Loading...'}
+                </span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span>UniqueId:</span>
+                <span className={user?.uniqueId ? 'text-green-400' : 'text-red-400'}>
+                  {user?.uniqueId || 'Not available'}
+                </span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span>User Role:</span>
+                <span>{user?.role || 'Unknown'}</span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span>User Email:</span>
+                <span className="text-xs truncate">{user?.email || 'Unknown'}</span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span>Processing:</span>
+                <span className={youtubeLoading ? 'text-yellow-400' : 'text-gray-400'}>
+                  {youtubeLoading ? 'Yes' : 'No'}
+                </span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span>Progress:</span>
+                <span>{dashboardData?.overview ? `${dashboardData.overview.completedModules}/${dashboardData.overview.totalModules}` : '0/0'}</span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span>Status:</span>
+                <span className={isLoading || dashboardLoading || youtubeLoading ? 'text-yellow-400' : 'text-green-400'}>
+                  {isLoading ? 'Loading' : dashboardLoading ? 'Fetching Data' : youtubeLoading ? 'Loading YouTube' : 'Idle'}
+                </span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span>YouTube Data:</span>
+                <span className={youtubeData ? 'text-green-400' : 'text-red-400'}>
+                  {youtubeData ? `${youtubeData.totalChapters} chapters` : 'Not available'}
+                </span>
+              </div>
+              
+              {user?.uniqueId && (
+                <div className="pt-2 border-t border-gray-600">
+                  <div className="text-xs text-gray-300 mb-1">API Test:</div>
+                  <div className="text-xs break-all">
+                    /api/youtube-data?uniqueid={user.uniqueId}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {!youtubeData && user?.uniqueId && (
+              <button 
+                onClick={triggerYouTubeScrapping}
+                className="mt-3 w-full px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:bg-gray-600"
+                disabled={youtubeLoading}
+              >
+                {youtubeLoading ? 'Processing...' : 'Trigger YouTube Scrapping'}
+              </button>
+            )}
+            
+            {user?.uniqueId && (
+              <>
+                <button 
+                  onClick={() => fetchYouTubeData(user.uniqueId!)}
+                  className="mt-1 w-full px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:bg-gray-600"
+                  disabled={youtubeLoading}
+                >
+                  {youtubeLoading ? 'Loading...' : 'Retry YouTube Fetch'}
+                </button>
+                
+                <button 
+                  onClick={testApiConnectivity}
+                  className="mt-1 w-full px-2 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700"
+                >
+                  Test API Connectivity
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    console.log('🔄 Force refreshing page to clear cache...');
+                    window.location.reload();
+                  }}
+                  className="mt-1 w-full px-2 py-1 bg-orange-600 text-white rounded text-xs hover:bg-orange-700"
+                >
+                  Force Refresh Page
+                </button>
+                
+                <button 
+                  onClick={async () => {
+                    console.log('🧪 Testing YouTube data structure...');
+                    try {
+                      const response = await fetch('/api/test-youtube-structure');
+                      if (response.ok) {
+                        const result = await response.json();
+                        console.log('✅ Structure test result:', result);
+                        alert(`Structure test ${result.success ? 'PASSED' : 'FAILED'}!\nCheck console for details.`);
+                      } else {
+                        let errorData;
+                        try {
+                          errorData = await response.json();
+                        } catch (jsonError) {
+                          errorData = {
+                            status: response.status,
+                            statusText: response.statusText,
+                            message: 'Failed to parse error response as JSON'
+                          };
+                        }
+                        console.error('❌ Structure test failed:', errorData);
+                        alert(`Structure test failed! Status: ${response.status}\nCheck console for details.`);
+                      }
+                    } catch (error) {
+                      console.error('❌ Structure test failed:', error);
+                      alert('Structure test failed! Check console for details.');
+                    }
+                  }}
+                  className="mt-1 w-full px-2 py-1 bg-cyan-600 text-white rounded text-xs hover:bg-cyan-700"
+                >
+                  Test Data Structure
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Main Content with Responsive Layout */}
         <div className="dashboard-content relative">
           {/* Content Background Effects */}
           <div className="absolute inset-0 pointer-events-none">
             {/* Gradient Orbs */}
-            {[...Array(4)].map((_, i) => (
-              <motion.div
-                key={`content-orb-${i}`}
-                className="absolute w-64 h-64 rounded-full bg-gradient-to-r from-purple-400/5 to-pink-400/5 blur-3xl"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                }}
-                animate={{
-                  x: [0, Math.random() * 50 - 25, 0],
-                  y: [0, Math.random() * 50 - 25, 0],
-                  scale: [1, 1.2, 1],
-                }}
-                transition={{
-                  duration: 8 + Math.random() * 4,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: Math.random() * 2,
-                }}
-              />
-            ))}
+            {[...Array(4)].map((_, i) => {
+              // Use deterministic positioning based on index to avoid hydration mismatch
+              const left = (i * 79) % 100;
+              const top = (i * 83) % 100;
+              const xOffset = (i * 47) % 50 - 25;
+              const yOffset = (i * 53) % 50 - 25;
+              const duration = 8 + (i % 4);
+              const delay = (i % 3) * 0.5;
+              
+              return (
+                <motion.div
+                  key={`content-orb-${i}`}
+                  className="absolute w-64 h-64 rounded-full bg-gradient-to-r from-purple-400/5 to-pink-400/5 blur-3xl"
+                  style={{
+                    left: `${left}%`,
+                    top: `${top}%`,
+                  }}
+                  animate={{
+                    x: [0, xOffset, 0],
+                    y: [0, yOffset, 0],
+                    scale: [1, 1.2, 1],
+                  }}
+                  transition={{
+                    duration: duration,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: delay,
+                  }}
+                />
+              );
+            })}
             
             {/* Floating Dots */}
-            {[...Array(12)].map((_, i) => (
-              <motion.div
-                key={`content-dot-${i}`}
-                className="absolute w-2 h-2 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                }}
-                animate={{
-                  y: [0, -20, 0],
-                  opacity: [0.3, 0.8, 0.3],
-                  scale: [1, 1.5, 1],
-                }}
-                transition={{
-                  duration: 3 + Math.random() * 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: Math.random() * 2,
-                }}
-              />
-            ))}
+            {[...Array(12)].map((_, i) => {
+              // Use deterministic positioning based on index to avoid hydration mismatch
+              const left = (i * 71) % 100;
+              const top = (i * 91) % 100;
+              const duration = 3 + (i % 2);
+              const delay = (i % 5) * 0.4;
+              
+              return (
+                <motion.div
+                  key={`content-dot-${i}`}
+                  className="absolute w-2 h-2 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full"
+                  style={{
+                    left: `${left}%`,
+                    top: `${top}%`,
+                  }}
+                  animate={{
+                    y: [0, -20, 0],
+                    opacity: [0.3, 0.8, 0.3],
+                    scale: [1, 1.5, 1],
+                  }}
+                  transition={{
+                    duration: duration,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: delay,
+                  }}
+                />
+              );
+            })}
           </div>
           {/* Main Panel */}
           <main className="flex-1">
@@ -1187,12 +1622,15 @@ export default function StudentDashboard() {
                     tests={tests}
                     onTabChange={setActiveTab}
                     dashboardData={dashboardData}
-                    user={user}
+                    user={user ? { uniqueId: user.uniqueId || undefined } : undefined}
+                    youtubeData={youtubeData}
+                    youtubeLoading={youtubeLoading}
+                    onTriggerYouTubeScrapping={triggerYouTubeScrapping}
                   />
                   </motion.div>
                 </motion.div>
               )}
-              {activeTab === 'modules' && <ModulesTab />}
+              {activeTab === 'modules' && <ModulesTab user={user} />}
               {activeTab === 'progress' && <ProgressTab progress={progressData} onTabChange={setActiveTab} />}
               {activeTab === 'rewards' && <RewardsTab badges={badgesData} onTabChange={setActiveTab} />}
               {activeTab === 'settings' && <SettingsTab profile={profileData} onProfileUpdate={handleProfileUpdate} />}
@@ -1319,11 +1757,20 @@ export default function StudentDashboard() {
       </div>
 
       {/* Chat Modal */}
-      <ChatModal 
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        studentData={user}
-      />
+      {user && (
+        <ChatModal 
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          studentData={{
+            name: user.name,
+            email: user.email,
+            uniqueId: user.uniqueId || undefined,
+            grade: user.profile?.grade,
+            school: user.profile?.school,
+            studentId: user._id
+          }}
+        />
+      )}
 
 
       {/* Enhanced Floating AI Chat Button */}

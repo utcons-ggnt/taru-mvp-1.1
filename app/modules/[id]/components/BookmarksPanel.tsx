@@ -43,12 +43,15 @@ export default function BookmarksPanel({
 
     const bookmark: BookmarkItem = {
       id: Date.now().toString(),
+      title: newBookmark.text.substring(0, 50) + (newBookmark.text.length > 50 ? '...' : ''),
+      content: newBookmark.text,
       text: newBookmark.text,
       context: newBookmark.context,
       timestamp: Date.now(),
       notes: newBookmark.notes,
       tags: newBookmark.tags,
-      createdAt: new Date()
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
 
     onAddBookmark(bookmark);

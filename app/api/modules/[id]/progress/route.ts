@@ -191,11 +191,7 @@ export async function POST(
         quizAttempts: [],
         quizScore: 0,
         gamificationProgress: {
-          quests: moduleData.gamification.quests.map((quest: IModule['gamification']['quests'][number]) => ({
-            questId: quest.id,
-            current: 0,
-            completed: false
-          })),
+          quests: [], // No gamification quests available in current module structure
           badges: [],
           streaks: {
             currentStreak: 0,

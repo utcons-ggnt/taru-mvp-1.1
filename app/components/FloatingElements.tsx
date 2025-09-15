@@ -16,15 +16,25 @@ export const FloatingParticles: React.FC<FloatingParticlesProps> = ({
   colors = ['#6D18CE', '#8B5CF6', '#A855F7', '#C084FC', '#DDD6FE']
 }) => {
   const particles = React.useMemo(() => {
-    return Array.from({ length: count }, (_, i) => ({
-      id: i,
-      size: Math.random() * 6 + 2,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      duration: Math.random() * 20 + 10,
-      delay: Math.random() * 5
-    }));
+    return Array.from({ length: count }, (_, i) => {
+      // Use deterministic values based on index to avoid hydration mismatch
+      const size = 2 + (i * 7) % 6;
+      const x = (i * 73) % 100;
+      const y = (i * 97) % 100;
+      const colorIndex = (i * 11) % colors.length;
+      const duration = 10 + (i * 13) % 20;
+      const delay = (i * 17) % 5;
+      
+      return {
+        id: i,
+        size,
+        x,
+        y,
+        color: colors[colorIndex],
+        duration,
+        delay
+      };
+    });
   }, [count, colors]);
 
   return (
@@ -42,7 +52,7 @@ export const FloatingParticles: React.FC<FloatingParticlesProps> = ({
           }}
           animate={{
             y: [0, -30, 0],
-            x: [0, Math.random() * 20 - 10, 0],
+            x: [0, (particle.id * 23) % 20 - 10, 0],
             scale: [1, 1.2, 1],
             opacity: [0.2, 0.5, 0.2]
           }}

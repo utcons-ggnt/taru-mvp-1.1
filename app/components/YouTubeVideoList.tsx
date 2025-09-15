@@ -4,20 +4,17 @@ import React, { useState, useEffect } from 'react';
 import { Play, ExternalLink, Loader2, AlertCircle, Youtube, Clock, Eye } from 'lucide-react';
 
 interface Chapter {
+  chapterIndex: number;
   chapterKey: string;
   videoTitle: string;
   videoUrl: string;
 }
 
-interface Module {
-  moduleIndex: number;
-  chapters: Chapter[];
-}
-
 interface YouTubeData {
   _id: string;
   uniqueid: string;
-  modules: Module[];
+  chapters: Chapter[];
+  totalChapters: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -31,7 +28,9 @@ export default function YouTubeVideoList({ uniqueid, onVideoSelect }: YouTubeVid
   const [youtubeData, setYoutubeData] = useState<YouTubeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedModule, setSelectedModule] = useState<number>(0);
+  const [isPolling, setIsPolling] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
+  // No longer need selectedModule since we have chapters directly
 
   useEffect(() => {
     if (uniqueid) {
@@ -39,33 +38,114 @@ export default function YouTubeVideoList({ uniqueid, onVideoSelect }: YouTubeVid
     }
   }, [uniqueid]);
 
-  const fetchYouTubeData = async () => {
-    try {
+  const fetchYouTubeData = async (isRetry = false) => {
+    if (!uniqueid || uniqueid === 'default') {
+      setLoading(false);
+      setError('No uniqueId available');
+      return;
+    }
+    
+    if (!isRetry) {
       setLoading(true);
       setError(null);
+    }
+    
+    try {
+      console.log('🔍 YouTubeVideoList: Fetching data for uniqueid:', uniqueid);
       
-      console.log('🔍 Fetching YouTube data for uniqueid:', uniqueid);
+      const response = await fetch(`/api/youtube-data`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' // Include cookies for authentication
+      });
       
-      const response = await fetch(`/api/youtube-data?uniqueid=${encodeURIComponent(uniqueid)}`);
+      console.log('📊 YouTubeVideoList: API response status:', response.status);
       
       if (response.ok) {
         const result = await response.json();
-        if (result.success) {
-          setYoutubeData(result.data);
-          console.log('✅ YouTube data loaded:', result.data);
+        console.log('📊 YouTubeVideoList: API response data:', result);
+        
+        if (result.success && result.data) {
+          // Check if this is real data or fallback
+          if (result.isFallback) {
+            setShowFallback(true);
+            setError('Using fallback content while scraper processes your personalized videos...');
+            startPolling();
+          } else {
+            // Real data received, stop polling and show real content
+            setYoutubeData(result.data);
+            setShowFallback(false);
+            setIsPolling(false);
+            setError(null);
+            console.log('✅ YouTube data loaded:', result.data);
+          }
         } else {
-          setError(result.message || 'Failed to fetch YouTube data');
+          setError(result.message || 'No video data available');
         }
       } else {
-        const errorData = await response.json();
-        setError(errorData.message || 'Failed to fetch YouTube data');
+        if (response.status === 404) {
+          // Show fallback content while scraper is processing
+          setShowFallback(true);
+          setError('Scraper is processing your content. Showing fallback videos while we wait...');
+          startPolling();
+        } else {
+          const errorData = await response.json();
+          setError(errorData.message || 'Failed to fetch YouTube data');
+        }
       }
     } catch (err) {
-      console.error('❌ Error fetching YouTube data:', err);
+      console.error('❌ YouTubeVideoList: Error fetching YouTube data:', err);
       setError('Network error while fetching YouTube data');
+      setShowFallback(true);
     } finally {
-      setLoading(false);
+      if (!isRetry) {
+        setLoading(false);
+      }
     }
+  };
+
+  const startPolling = () => {
+    if (isPolling) return;
+    
+    setIsPolling(true);
+    console.log('🔄 YouTubeVideoList: Starting polling for real data...');
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/youtube-data`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' // Include cookies for authentication
+      });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data && !data.isFallback) {
+            // Real data is now available
+            console.log('✅ YouTubeVideoList: Real data received, stopping polling');
+            setYoutubeData(data.data);
+            setShowFallback(false);
+            setIsPolling(false);
+            setError(null);
+            clearInterval(pollInterval);
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ YouTubeVideoList: Polling error:', err);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    // Stop polling after 5 minutes
+    setTimeout(() => {
+      if (isPolling) {
+        console.log('⏰ YouTubeVideoList: Polling timeout, keeping fallback content');
+        setIsPolling(false);
+        clearInterval(pollInterval);
+      }
+    }, 300000); // 5 minutes
   };
 
   const handleVideoClick = (videoUrl: string, videoTitle: string) => {
@@ -112,11 +192,55 @@ export default function YouTubeVideoList({ uniqueid, onVideoSelect }: YouTubeVid
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Unable to Load Videos</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            {isPolling ? 'Processing Your Videos...' : 'Unable to Load Videos'}
+          </h3>
           <p className="text-red-600 mb-6">{error}</p>
+          
+          {isPolling && (
+            <div className="mb-6">
+              <div className="flex items-center justify-center space-x-2 mb-2">
+                <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse"></div>
+                <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+              <p className="text-sm text-gray-600">
+                Checking for your personalized videos every 5 seconds...
+              </p>
+            </div>
+          )}
+          
           <button
-            onClick={fetchYouTubeData}
+            onClick={() => {
+              // Reset error state and try fetching again
+              setError(null);
+              fetchYouTubeData();
+            }}
             className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+          >
+            {isPolling ? 'Check Now' : 'Try Again'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!youtubeData || youtubeData.chapters.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Youtube className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Videos Available</h3>
+          <p className="text-gray-600 mb-6">No YouTube videos found for this user. Fallback content will be loaded instead.</p>
+          <button
+            onClick={() => {
+              // Reset error state and try fetching again
+              setError(null);
+              fetchYouTubeData();
+            }}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
           >
             Try Again
           </button>
@@ -125,66 +249,8 @@ export default function YouTubeVideoList({ uniqueid, onVideoSelect }: YouTubeVid
     );
   }
 
-  if (!youtubeData || youtubeData.modules.length === 0) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Youtube className="w-8 h-8 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Videos Available</h3>
-          <p className="text-gray-600 mb-6">No YouTube videos found for this user. Try triggering the content generation first.</p>
-          <button
-            onClick={fetchYouTubeData}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
-          >
-            Refresh
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const currentModule = youtubeData.modules[selectedModule];
-
   return (
     <div className="space-y-6">
-      {/* Module Selector */}
-      {youtubeData.modules.length > 1 && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-200 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Youtube className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Learning Modules</h3>
-              <p className="text-sm text-gray-600">Choose a module to explore videos</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {youtubeData.modules.map((module, index) => (
-              <button
-                key={index}
-                onClick={() => setSelectedModule(index)}
-                className={`p-4 rounded-xl font-medium transition-all duration-200 text-left ${
-                  selectedModule === index
-                    ? 'bg-blue-600 text-white shadow-lg transform scale-105'
-                    : 'bg-white text-gray-700 hover:bg-blue-50 hover:shadow-md border border-gray-200'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-semibold">Module {index + 1}</div>
-                    <div className="text-sm opacity-75">{module.chapters.length} videos</div>
-                  </div>
-                  <Play className="w-5 h-5 opacity-75" />
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Video Grid */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
@@ -195,29 +261,28 @@ export default function YouTubeVideoList({ uniqueid, onVideoSelect }: YouTubeVid
               </div>
               <div>
                 <h3 className="text-xl font-semibold text-white">
-                  Module {selectedModule + 1} - YouTube Videos
+                  YouTube Learning Videos
                 </h3>
                 <p className="text-red-100 text-sm">
-                  {currentModule.chapters.length} learning videos available
+                  {youtubeData.totalChapters} learning videos available
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-white/90">
               <Eye className="w-4 h-4" />
-              <span className="text-sm font-medium">{currentModule.chapters.length} videos</span>
+              <span className="text-sm font-medium">{youtubeData.totalChapters} videos</span>
             </div>
           </div>
         </div>
         
         <div className="p-6">
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {currentModule.chapters.map((chapter, index) => {
+            {youtubeData.chapters.map((chapter, index) => {
               const thumbnailUrl = getThumbnailUrl(chapter.videoUrl);
               
               return (
                 <div
-                  key={`${selectedModule}-${index}`}
+                  key={`chapter-${chapter.chapterIndex}`}
                   className="bg-white rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border border-gray-100 hover:border-red-200"
                   onClick={() => handleVideoClick(chapter.videoUrl, chapter.videoTitle)}
                 >
@@ -229,7 +294,6 @@ export default function YouTubeVideoList({ uniqueid, onVideoSelect }: YouTubeVid
                         alt={chapter.videoTitle}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
-                          // Fallback to a placeholder if thumbnail fails to load
                           e.currentTarget.style.display = 'none';
                         }}
                       />
@@ -259,7 +323,7 @@ export default function YouTubeVideoList({ uniqueid, onVideoSelect }: YouTubeVid
                   <div className="p-5">
                     <div className="flex items-start gap-3 mb-3">
                       <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Youtube className="w-4 h-4 text-red-600" />
+                        <span className="text-red-600 font-bold text-sm">{chapter.chapterIndex}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-gray-900 mb-1 line-clamp-2 group-hover:text-red-600 transition-colors">
@@ -299,20 +363,16 @@ export default function YouTubeVideoList({ uniqueid, onVideoSelect }: YouTubeVid
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg p-4 border border-green-100">
-            <div className="text-2xl font-bold text-green-600">{youtubeData.modules.length}</div>
-            <div className="text-sm text-green-700">Modules</div>
+            <div className="text-2xl font-bold text-green-600">{youtubeData.totalChapters}</div>
+            <div className="text-sm text-green-700">Total Videos</div>
           </div>
           <div className="bg-white rounded-lg p-4 border border-green-100">
-            <div className="text-2xl font-bold text-green-600">
-              {youtubeData.modules.reduce((sum, module) => sum + module.chapters.length, 0)}
-            </div>
-            <div className="text-sm text-green-700">Videos</div>
+            <div className="text-2xl font-bold text-green-600">{youtubeData.chapters.length}</div>
+            <div className="text-sm text-green-700">Available</div>
           </div>
           <div className="bg-white rounded-lg p-4 border border-green-100">
-            <div className="text-2xl font-bold text-green-600">
-              {currentModule.chapters.length}
-            </div>
-            <div className="text-sm text-green-700">Current Module</div>
+            <div className="text-2xl font-bold text-green-600">0</div>
+            <div className="text-sm text-green-700">Watched</div>
           </div>
           <div className="bg-white rounded-lg p-4 border border-green-100">
             <div className="text-xs font-medium text-green-600 truncate">

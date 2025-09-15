@@ -228,11 +228,14 @@ export async function POST(request: NextRequest) {
         { expiresIn: '7d' }
       );
 
-      const response = NextResponse.json({ 
+      const responseData = { 
         success: true, 
         message: 'Student onboarding completed successfully',
         uniqueId: student.uniqueId
-      });
+      };
+      
+      console.log('🔍 Preparing success response:', responseData);
+      const response = NextResponse.json(responseData);
 
       // Update the auth token cookie
       response.cookies.set('auth-token', newToken, {
@@ -243,6 +246,7 @@ export async function POST(request: NextRequest) {
         path: '/'
       });
 
+      console.log('🔍 Returning success response with status 200');
       return response;
 
     } catch (parseError) {
@@ -258,23 +262,40 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('🔍 Student onboarding error:', error);
+    console.error('🔍 Error type:', typeof error);
+    console.error('🔍 Error constructor:', error?.constructor?.name);
+    console.error('🔍 Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    
+    // Ensure we always return a proper error response
+    let errorMessage = 'Internal server error. Please try again later.';
+    let statusCode = 500;
     
     // Provide more specific error messages
     if (error instanceof Error) {
-      if (error.message.includes('MongoDB')) {
-        return NextResponse.json({ 
-          error: 'Database connection failed. Please check your MongoDB configuration.' 
-        }, { status: 500 });
-      }
-      if (error.message.includes('validation')) {
-        return NextResponse.json({ 
-          error: 'Data validation failed: ' + error.message 
-        }, { status: 400 });
+      console.error('🔍 Error message:', error.message);
+      
+      if (error.message.includes('MongoDB') || error.message.includes('connection')) {
+        errorMessage = 'Database connection failed. Please check your MongoDB configuration.';
+        statusCode = 500;
+      } else if (error.message.includes('validation')) {
+        errorMessage = 'Data validation failed: ' + error.message;
+        statusCode = 400;
+      } else if (error.message.includes('duplicate') || error.message.includes('E11000')) {
+        errorMessage = 'Student profile already exists. Please contact support if you need to update your information.';
+        statusCode = 409;
+      } else {
+        errorMessage = `Server error: ${error.message}`;
       }
     }
     
-    return NextResponse.json({ 
-      error: 'Internal server error. Please try again later.' 
-    }, { status: 500 });
+    // Always return a proper error response with error field
+    const errorResponse = NextResponse.json({ 
+      success: false,
+      error: errorMessage,
+      timestamp: new Date().toISOString()
+    }, { status: statusCode });
+    
+    console.error('🔍 Returning error response:', { error: errorMessage, status: statusCode });
+    return errorResponse;
   }
 } 

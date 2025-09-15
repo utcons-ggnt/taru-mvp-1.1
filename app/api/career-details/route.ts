@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import Student from '@/models/Student';
+import LearningPath from '@/models/LearningPath';
+import CareerSession from '@/models/CareerSession';
+import { processLearningPathData, saveLearningPathToDatabase, getLearningPathByCareer, saveN8NLearningPathResponse } from '@/lib/utils/learningPathUtils';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const N8N_CAREER_DETAILS_WEBHOOK_URL = 'https://nclbtaru.app.n8n.cloud/webhook/detail-career-path';
@@ -40,12 +43,123 @@ interface CareerDetails {
     learningPath: Module[];
     finalTip: string;
   };
+  learningPathId?: string; // Added for tracking saved learning path
+}
+
+// Utility function to save career details to CareerSession model
+async function saveCareerDetailsToSession(
+  careerDetails: CareerDetails,
+  student: any,
+  careerPath: string,
+  description: string
+): Promise<string | null> {
+  try {
+    if (!careerDetails?.output) {
+      console.log('⚠️ No career details output to save');
+      return null;
+    }
+
+    // Find existing career session or create new one
+    let careerSession = await CareerSession.findOne({
+      userId: student.userId,
+      studentId: student.uniqueId,
+      isCompleted: false
+    });
+
+    if (!careerSession) {
+      // Create new career session
+      careerSession = new CareerSession({
+        userId: student.userId,
+        studentId: student.uniqueId,
+        sessionId: `career_${student.uniqueId}_${Date.now()}`,
+        currentCareerPath: careerPath,
+        careerPaths: [],
+        explorationHistory: [],
+        selectedCareerDetails: null,
+        isCompleted: false,
+        lastActivity: new Date()
+      });
+    }
+
+    // Add or update career path details
+    const careerPathData = {
+      careerPath: careerPath,
+      description: description || '',
+      details: careerDetails.output,
+      selectedAt: new Date()
+    };
+
+    // Check if this career path already exists in the session
+    const existingPathIndex = careerSession.careerPaths.findIndex(
+      (path: any) => path.careerPath === careerPath
+    );
+
+    if (existingPathIndex >= 0) {
+      // Update existing career path
+      careerSession.careerPaths[existingPathIndex] = careerPathData;
+    } else {
+      // Add new career path
+      careerSession.careerPaths.push(careerPathData);
+    }
+
+    // Update current career path and selected details
+    careerSession.currentCareerPath = careerPath;
+    careerSession.selectedCareerDetails = careerDetails.output;
+    careerSession.lastActivity = new Date();
+
+    // Add to exploration history if not already present
+    if (!careerSession.explorationHistory.includes(careerPath)) {
+      careerSession.explorationHistory.push(careerPath);
+    }
+
+    await careerSession.save();
+    console.log('✅ Career details saved to CareerSession:', careerSession._id);
+    return careerSession._id.toString();
+  } catch (error) {
+    console.error('❌ Error saving career details to CareerSession:', error);
+    return null;
+  }
+}
+
+// Utility function to process and save learning path using enhanced utilities
+async function saveDetailedLearningPath(
+  careerDetails: CareerDetails, 
+  student: any, 
+  careerPath: string
+): Promise<string | null> {
+  try {
+    if (!careerDetails?.output?.learningPath || careerDetails.output.learningPath.length === 0) {
+      console.log('⚠️ No learning path data to save');
+      return null;
+    }
+
+    // Process the raw learning path data
+    const processedData = processLearningPathData(
+      careerDetails.output,
+      student,
+      careerPath,
+      'n8n'
+    );
+
+    // Save to database with validation
+    const result = await saveLearningPathToDatabase(processedData);
+    
+    if (result.success) {
+      console.log('✅ Detailed learning path saved to database:', result.pathId);
+      return result.pathId || null;
+    } else {
+      console.error('❌ Failed to save learning path:', result.error);
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ Error saving detailed learning path to database:', error);
+    return null;
+  }
 }
 
 // Dummy data fallback function
 const getDummyCareerDetails = (careerPath: string) => {
   const careerData: { [key: string]: any } = {
-
     "Cyber Security Analyst": {
       greeting: "🔒 Great choice! Becoming a Cyber Security Analyst is a thrilling career that keeps the digital world safe and secure!",
       overview: [
@@ -312,6 +426,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if a detailed learning path already exists for this uniqueId and careerPath
+    const existingLearningPath = await getLearningPathByCareer(student.uniqueId, careerPath);
+
+    if (existingLearningPath) {
+      console.log('🔍 Detailed learning path already exists for uniqueId:', student.uniqueId, 'and careerPath:', careerPath);
+      return NextResponse.json({
+        success: true,
+        careerDetails: {
+          output: {
+            greeting: existingLearningPath.description,
+            overview: [existingLearningPath.description],
+            timeRequired: `${Math.ceil(existingLearningPath.totalDuration / 60)} hours`,
+            focusAreas: existingLearningPath.milestones.map((m: any) => m.name),
+            learningPath: existingLearningPath.milestones.map((milestone: any, index: number) => ({
+              module: milestone.name,
+              description: milestone.description,
+              submodules: milestone.modules.map((moduleId: any, subIndex: number) => ({
+                title: `Submodule ${subIndex + 1}`,
+                description: `Learn ${moduleId}`,
+                chapters: [
+                  { title: `Chapter ${subIndex + 1}: ${moduleId}` }
+                ]
+              }))
+            })),
+            finalTip: "Continue your learning journey with this personalized path!"
+          }
+        },
+        existing: true,
+        learningPathId: existingLearningPath.pathId
+      });
+    }
+
     console.log('🔍 Sending uniqueID, career path, and description to N8N career details webhook:', {
       uniqueId: student.uniqueId,
       careerPath,
@@ -405,11 +551,43 @@ export async function POST(request: NextRequest) {
       console.log('🔍 Learning path array content:', careerDetails.output.learningPath);
     }
 
+    // Save the career details to CareerSession (for exploration tracking)
+    let careerSessionId = null;
+    if (careerDetails && careerDetails.output) {
+      careerSessionId = await saveCareerDetailsToSession(
+        careerDetails, 
+        student, 
+        careerPath, 
+        description || ''
+      );
+    }
+
+    // Save N8N output in exact format to database
+    let n8nSaveResult = null;
+    if (careerDetails && careerDetails.output) {
+      console.log('💾 Saving N8N output in exact format for student:', student.uniqueId);
+      n8nSaveResult = await saveN8NLearningPathResponse(
+        careerDetails.output,
+        student.uniqueId
+      );
+      
+      if (n8nSaveResult.success) {
+        console.log('✅ N8N output saved successfully:', n8nSaveResult.id);
+      } else {
+        console.error('❌ Failed to save N8N output:', n8nSaveResult.error);
+      }
+    }
+
+    // Note: Learning path will be saved when user clicks "GO TO DASHBOARD"
+    // This allows users to explore multiple career options before committing
+
     // Ensure the data structure is properly formatted for the frontend
     const responseData = {
       success: true,
       careerDetails: careerDetails,
-      n8nResults: n8nOutput
+      n8nResults: n8nOutput,
+      careerSessionId: careerSessionId,
+      n8nSaveResult: n8nSaveResult
     };
     
     console.log('🔍 Final API response:', JSON.stringify(responseData, null, 2));
@@ -473,6 +651,38 @@ export async function GET(request: NextRequest) {
         { error: 'Career path is required' },
         { status: 400 }
       );
+    }
+
+    // Check if a detailed learning path already exists for this uniqueId and careerPath
+    const existingLearningPath = await getLearningPathByCareer(student.uniqueId, careerPath);
+
+    if (existingLearningPath) {
+      console.log('🔍 Detailed learning path already exists for uniqueId:', student.uniqueId, 'and careerPath:', careerPath);
+      return NextResponse.json({
+        success: true,
+        careerDetails: {
+          output: {
+            greeting: existingLearningPath.description,
+            overview: [existingLearningPath.description],
+            timeRequired: `${Math.ceil(existingLearningPath.totalDuration / 60)} hours`,
+            focusAreas: existingLearningPath.milestones.map((m: any) => m.name),
+            learningPath: existingLearningPath.milestones.map((milestone: any, index: number) => ({
+              module: milestone.name,
+              description: milestone.description,
+              submodules: milestone.modules.map((moduleId: any, subIndex: number) => ({
+                title: `Submodule ${subIndex + 1}`,
+                description: `Learn ${moduleId}`,
+                chapters: [
+                  { title: `Chapter ${subIndex + 1}: ${moduleId}` }
+                ]
+              }))
+            })),
+            finalTip: "Continue your learning journey with this personalized path!"
+          }
+        },
+        existing: true,
+        learningPathId: existingLearningPath.pathId
+      });
     }
 
     console.log('🔍 Sending uniqueID, career path, and description to N8N career details webhook (GET):', {
@@ -567,11 +777,43 @@ export async function GET(request: NextRequest) {
       console.log('🔍 Learning path array content:', careerDetails.output.learningPath);
     }
 
+    // Save the career details to CareerSession (for exploration tracking)
+    let careerSessionId = null;
+    if (careerDetails && careerDetails.output) {
+      careerSessionId = await saveCareerDetailsToSession(
+        careerDetails, 
+        student, 
+        careerPath, 
+        description || ''
+      );
+    }
+
+    // Save N8N output in exact format to database
+    let n8nSaveResult = null;
+    if (careerDetails && careerDetails.output) {
+      console.log('💾 Saving N8N output in exact format for student:', student.uniqueId);
+      n8nSaveResult = await saveN8NLearningPathResponse(
+        careerDetails.output,
+        student.uniqueId
+      );
+      
+      if (n8nSaveResult.success) {
+        console.log('✅ N8N output saved successfully:', n8nSaveResult.id);
+      } else {
+        console.error('❌ Failed to save N8N output:', n8nSaveResult.error);
+      }
+    }
+
+    // Note: Learning path will be saved when user clicks "GO TO DASHBOARD"
+    // This allows users to explore multiple career options before committing
+
     // Ensure the data structure is properly formatted for the frontend
     const responseData = {
       success: true,
       careerDetails: careerDetails,
-      n8nResults: n8nOutput
+      n8nResults: n8nOutput,
+      careerSessionId: careerSessionId,
+      n8nSaveResult: n8nSaveResult
     };
     
     console.log('🔍 Final API response:', JSON.stringify(responseData, null, 2));

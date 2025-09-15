@@ -29,12 +29,11 @@ const YoutubeUrlSchema = new Schema<IYoutubeUrl>({
   }],
   uniqueid: {
     type: String,
-    required: true,
-    index: true
+    required: true
   }
 }, {
   timestamps: true,
-  collection: 'Youtube_Url'
+  collection: 'YoutubeUrl'
 });
 
 // Create index for uniqueid for faster queries

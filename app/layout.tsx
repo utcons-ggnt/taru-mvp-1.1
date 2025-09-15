@@ -4,6 +4,7 @@ import "./globals.css";
 import SessionProvider from "./components/SessionProvider";
 import ErrorBoundary from "./components/ErrorBoundary";
 import PerformanceMonitor from "./components/PerformanceMonitor";
+import DataRecoveryUI from "./components/DataRecoveryUI";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -68,6 +69,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <SessionProvider>
             {children}
+            <DataRecoveryUI />
             <PerformanceMonitor 
               enabled={true}
               showInDevelopment={true}

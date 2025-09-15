@@ -602,7 +602,7 @@ export default function InterestAssessment() {
                       type="text"
                       value={(clusterData as any).techInterests || ''}
                       onChange={(e) => handleClusterInputChange(cluster, 'techInterests', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800"
+                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800 bg-white"
                       placeholder="e.g., apps, robots, games, websites, AI"
                     />
                   </div>
@@ -614,7 +614,7 @@ export default function InterestAssessment() {
                       type="text"
                       value={(clusterData as any).codingExperience || ''}
                       onChange={(e) => handleClusterInputChange(cluster, 'codingExperience', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800"
+                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800 bg-white"
                       placeholder="Tell us about your experience"
                     />
                   </div>
@@ -626,7 +626,7 @@ export default function InterestAssessment() {
                       type="text"
                       value={(clusterData as any).buildingGoals || ''}
                       onChange={(e) => handleClusterInputChange(cluster, 'buildingGoals', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800"
+                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800 bg-white"
                       placeholder="Share your ideas and dreams"
                     />
                   </div>
@@ -643,7 +643,7 @@ export default function InterestAssessment() {
                       type="text"
                       value={(clusterData as any).scienceTopics || ''}
                       onChange={(e) => handleClusterInputChange(cluster, 'scienceTopics', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800"
+                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800 bg-white"
                       placeholder="e.g., physics, biology, chemistry"
                     />
                   </div>
@@ -655,7 +655,7 @@ export default function InterestAssessment() {
                       type="text"
                       value={(clusterData as any).projectExperience || ''}
                       onChange={(e) => handleClusterInputChange(cluster, 'projectExperience', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800"
+                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800 bg-white"
                       placeholder="Tell us about your project"
                     />
                   </div>
@@ -667,7 +667,7 @@ export default function InterestAssessment() {
                       type="text"
                       value={(clusterData as any).inventionIdeas || ''}
                       onChange={(e) => handleClusterInputChange(cluster, 'inventionIdeas', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800"
+                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800 bg-white"
                       placeholder="Share your invention idea"
                     />
                   </div>
@@ -685,7 +685,7 @@ export default function InterestAssessment() {
                       type="text"
                       value={(clusterData as any).generalInterest || ''}
                       onChange={(e) => handleClusterInputChange(cluster, 'generalInterest', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800"
+                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800 bg-white"
                       placeholder="Tell us what excites you"
                     />
                   </div>
@@ -697,7 +697,7 @@ export default function InterestAssessment() {
                       type="text"
                       value={(clusterData as any).experience || ''}
                       onChange={(e) => handleClusterInputChange(cluster, 'experience', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800"
+                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800 bg-white"
                       placeholder="Share your experience"
                     />
                   </div>
@@ -709,7 +709,7 @@ export default function InterestAssessment() {
                       type="text"
                       value={(clusterData as any).goals || ''}
                       onChange={(e) => handleClusterInputChange(cluster, 'goals', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800"
+                      className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-800 bg-white"
                       placeholder="Share your goals"
                     />
                   </div>
@@ -879,7 +879,7 @@ export default function InterestAssessment() {
                   dreamCareer: e.target.value
                 }
               }))}
-              className="w-full h-24 px-4 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-gray-800"
+              className="w-full h-24 px-4 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-gray-800 bg-white"
                               placeholder="e.g., 'I want to be an app developer' / 'I want to help animals' / 'I&apos;m not sure yet'"
             />
             {errors.dreamCareer && <p className="text-red-500 text-sm mt-1">{errors.dreamCareer}</p>}
@@ -939,7 +939,7 @@ export default function InterestAssessment() {
                   careerAttraction: e.target.value
                 }
               }))}
-              className="w-full h-24 px-4 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-gray-800"
+              className="w-full h-24 px-4 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-gray-800 bg-white"
               placeholder="e.g., 'I like solving problems' / 'I enjoy creating things' / 'I want to help others'"
             />
             {errors.careerAttraction && <p className="text-red-500 text-sm mt-1">{errors.careerAttraction}</p>}

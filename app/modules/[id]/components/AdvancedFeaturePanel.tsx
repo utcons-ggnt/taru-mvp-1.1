@@ -1,9 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ExplanationResult } from '../types';
 import { ClientN8NService } from '../services/ClientN8NService';
 import { SpeechService } from '../services/SpeechService';
+
+interface ExplanationResult {
+  text: string;
+  explanation: string;
+  confidence: number;
+  timestamp: number;
+  examples: string[];
+  relatedTopics: string[];
+  difficulty: string;
+}
 
 interface AdvancedFeaturePanelProps {
   isVisible: boolean;
@@ -77,9 +86,12 @@ export default function AdvancedFeaturePanel({
       );
 
       const result: ExplanationResult = {
-        explanation: response.content,
-        examples: response.suggestions,
-        relatedTopics: response.relatedQuestions,
+        text: explanationText,
+        explanation: response.content || response.message || 'No explanation available',
+        confidence: 0.8,
+        timestamp: Date.now(),
+        examples: response.suggestions || [],
+        relatedTopics: response.relatedQuestions || [],
         difficulty: 'medium'
       };
 

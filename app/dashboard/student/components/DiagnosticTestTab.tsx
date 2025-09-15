@@ -255,7 +255,7 @@ export default function DiagnosticTestTab() {
               value={currentAnswer}
               onChange={(e) => handleAnswerChange(e.target.value)}
               placeholder="Tell me more about yourself..."
-              className="w-full h-32 p-4 border-2 border-gray-200 rounded-2xl resize-none focus:ring-2 focus:ring-[#6D18CE] focus:border-[#6D18CE] text-gray-900"
+              className="w-full h-32 p-4 border-2 border-gray-200 rounded-2xl resize-none focus:ring-2 focus:ring-[#6D18CE] focus:border-[#6D18CE] text-gray-900 bg-white"
               maxLength={500}
             />
           </div>
@@ -267,7 +267,7 @@ export default function DiagnosticTestTab() {
             type="text"
             value={currentAnswer}
             onChange={(e) => handleAnswerChange(e.target.value)}
-            className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-[#6D18CE] focus:border-[#6D18CE]"
+            className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-[#6D18CE] focus:border-[#6D18CE] text-gray-900 bg-white"
           />
         );
     }

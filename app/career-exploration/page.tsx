@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import ConsistentLoadingPage from '../components/ConsistentLoadingPage';
 
@@ -14,6 +14,7 @@ export default function CareerExploration() {
   const [careerOptions, setCareerOptions] = useState<CareerOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -56,11 +57,24 @@ export default function CareerExploration() {
     router.push('/dashboard/student');
   };
 
-  const handleLearnMore = (career: string, description: string) => {
+  const handleLearnMore = useCallback((career: string, description: string) => {
+    // Prevent double navigation
+    if (isNavigating) {
+      console.log('🔍 Learn More already navigating, ignoring duplicate click');
+      return;
+    }
+    
     console.log('🔍 Learn More clicked for career:', { career, description });
+    setIsNavigating(true);
+    
     // Navigate to detailed career page with career path and description parameters
     router.push(`/career-details?careerPath=${encodeURIComponent(career)}&description=${encodeURIComponent(description)}`);
-  };
+    
+    // Reset navigation state after a short delay
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
+  }, [isNavigating, router]);
 
   if (loading) {
     return (
@@ -227,10 +241,21 @@ export default function CareerExploration() {
                   {/* Learn More Button */}
                   {hasLearnMore && (
                     <button 
-                      onClick={() => handleLearnMore(title, description)}
-                      className="absolute bottom-[27px] left-[27px] w-[73.78px] h-[23.93px] bg-[#6D18CE] rounded-[27.9506px] flex items-center justify-center hover:bg-[#5B10B1] transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleLearnMore(title, description);
+                      }}
+                      disabled={isNavigating}
+                      className={`absolute bottom-[27px] left-[27px] w-[73.78px] h-[23.93px] rounded-[27.9506px] flex items-center justify-center transition-colors ${
+                        isNavigating 
+                          ? 'bg-gray-400 cursor-not-allowed' 
+                          : 'bg-[#6D18CE] hover:bg-[#5B10B1] cursor-pointer'
+                      }`}
                     >
-                      <span className="text-[8.38492px] font-medium text-white">Learn more</span>
+                      <span className="text-[8.38492px] font-medium text-white">
+                        {isNavigating ? 'Loading...' : 'Learn more'}
+                      </span>
                     </button>
                   )}
                 </div>

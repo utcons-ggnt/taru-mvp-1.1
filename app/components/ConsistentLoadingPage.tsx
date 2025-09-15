@@ -173,25 +173,34 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
     >
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
-        {[...Array(15)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 bg-white/20 rounded-full"
-            initial={{
-              x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1200),
-              y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800),
-            }}
-            animate={{
-              y: [null, Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800)],
-              x: [null, Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1200)],
-            }}
-            transition={{
-              duration: Math.random() * 10 + 15,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          />
-        ))}
+        {[...Array(15)].map((_, i) => {
+          // Use deterministic positioning based on index to avoid hydration mismatch
+          const baseX = (i * 73) % 1200; // Deterministic x position
+          const baseY = (i * 97) % 800;  // Deterministic y position
+          const targetX = ((i * 149) % 1200); // Deterministic target x
+          const targetY = ((i * 167) % 800);  // Deterministic target y
+          const duration = 15 + (i % 10); // Deterministic duration
+          
+          return (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 bg-white/20 rounded-full"
+              initial={{
+                x: baseX,
+                y: baseY,
+              }}
+              animate={{
+                y: [null, targetY],
+                x: [null, targetX],
+              }}
+              transition={{
+                duration: duration,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+          );
+        })}
       </div>
 
       <div className="max-w-md w-full relative z-10">

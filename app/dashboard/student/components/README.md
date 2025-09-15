@@ -142,9 +142,8 @@ The application now supports transcript generation and analysis for seeded modul
 - `GET /api/modules/[id]/transcript` - Get transcript information
 
 ### Components:
-- `TranscriptService` - Handles transcript generation and caching
-- `VideoLearningInterface` - Displays interactive transcript
-- `VideoPlayer` - Sends transcript data with video analytics
+- `YouTubeVideoPlayer` - Displays YouTube videos with playlist
+- `StudentVideoViewer` - Student-specific video viewing interface
 
 ### N8N Integration:
 - **Transcript Generation**: Sends video URLs to N8N for transcript creation

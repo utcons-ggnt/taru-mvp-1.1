@@ -532,7 +532,6 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
               transition={{ delay: 0.3, duration: 0.4 }}
             >
               <AnimatePresence>
-                {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
                 {messages.map((message, _index) => (
                   <motion.div
                     key={message.id}
@@ -653,7 +652,7 @@ export default function ChatModal({ isOpen, onClose, studentData }: ChatModalPro
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Ask me anything about your learning..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-gray-900 text-sm sm:text-base touch-manipulation"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-gray-900 bg-white text-sm sm:text-base touch-manipulation"
                   rows={1}
                   disabled={isLoading}
                   whileFocus={{ 

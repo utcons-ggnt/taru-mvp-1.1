@@ -4,6 +4,7 @@ import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Module from '@/models/Module';
 import StudentProgress from '@/models/StudentProgress';
+import { FallbackModuleService } from '@/lib/FallbackModuleService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -71,13 +72,19 @@ export async function GET(
       );
     }
 
-    // Get module
-    const foundModule = await Module.findOne({ moduleId: id, isActive: true });
+    // Get module - try database first, then fallback
+    let foundModule = await Module.findOne({ moduleId: id, isActive: true });
+    
     if (!foundModule) {
-      return NextResponse.json(
-        { error: 'Module not found' },
-        { status: 404 }
-      );
+      // Try to get a fallback module
+      const fallbackModule = FallbackModuleService.getFallbackModule(id);
+      if (fallbackModule) {
+        foundModule = fallbackModule as any; // Type assertion for compatibility
+      } else {
+        // If specific module not found, return a random fallback module
+        const randomFallback = FallbackModuleService.getRandomFallbackModule();
+        foundModule = randomFallback as any;
+      }
     }
 
     // Get student progress for this module

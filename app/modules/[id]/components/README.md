@@ -1,30 +1,28 @@
-# AI-Powered Learning Platform Components
+# YouTube Learning Platform Components
 
-This directory contains a comprehensive set of React components that implement an advanced AI-powered learning platform with multi-modal learning capabilities.
+This directory contains React components that implement a YouTube-based learning platform focused on video content from the YoutubeUrl collection.
 
 ## 🚀 Features
 
 ### Core Components
 
-1. **AdvancedLearningInterface** - Main interface that combines all learning modes
-2. **AIAssistant** - Real-time chat interface with context awareness
-3. **PDFViewer** - Interactive PDF viewer with text selection and AI integration
-4. **VideoLearningInterface** - Multi-modal video learning with tabs
-5. **VideoPlayer** - Advanced video player with AI integration
+1. **AIAssistant** - Real-time chat interface with context awareness
+2. **YouTubeVideoList** - Display and manage YouTube videos from the database
+3. **YouTubeModulesGrid** - Grid view of learning modules
 
 ### Interactive Components
 
-6. **EnhancedTextTooltip** - Contextual text selection interface
-7. **FlashCard** - Interactive learning cards with flip animation
-8. **ChatMessages** - Message display with audio playback
-9. **SpeechProgressIndicator** - Audio playback controls
-10. **BookmarksPanel** - Document annotation system
-11. **AdvancedFeaturePanel** - Comprehensive learning tools
+4. **EnhancedTextTooltip** - Contextual text selection interface
+5. **FlashCard** - Interactive learning cards with flip animation
+6. **ChatMessages** - Message display with audio playback
+7. **SpeechProgressIndicator** - Audio playback controls
+8. **BookmarksPanel** - Document annotation system
+9. **AdvancedFeaturePanel** - Comprehensive learning tools
 
 ### Services
 
-12. **GeminiService** - AI text processing and responses
-13. **SpeechService** - Text-to-speech with progress tracking
+10. **ClientN8NService** - N8N integration for AI processing
+11. **SpeechService** - Text-to-speech with progress tracking
 
 ## 🎯 Key Features
 
@@ -147,22 +145,13 @@ import AIAssistant from './components/AIAssistant';
 
 ### Video Learning Interface
 ```tsx
-import VideoLearningInterface from './components/VideoLearningInterface';
+import YouTubeVideoPlayer from './components/YouTubeVideoPlayer';
 
-<VideoLearningInterface
-  apiKey="your_api_key"
+<YouTubeVideoPlayer
+  uniqueid="student_unique_id"
+  autoPlay={false}
+  showPlaylist={true}
   className="h-full"
-/>
-```
-
-### PDF Viewer with AI Integration
-```tsx
-import PDFViewer from './components/PDFViewer';
-
-<PDFViewer
-  onPDFReady={handlePDFReady}
-  onTextSelection={handleTextSelection}
-  apiKey="your_api_key"
 />
 ```
 

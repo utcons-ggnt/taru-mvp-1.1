@@ -1,62 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import YoutubeUrl from '@/models/YoutubeUrl';
+import { FallbackModuleService } from '@/lib/FallbackModuleService';
+import Student from '@/models/Student';
 
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+interface DecodedToken {
+  userId: string;
+  [key: string]: unknown;
+}
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const uniqueid = searchParams.get('uniqueid');
-    
-    if (!uniqueid) {
-      return NextResponse.json({
-        success: false,
-        message: 'uniqueid parameter is required'
-      }, { status: 400 });
+    // Get token from HTTP-only cookie
+    const token = request.cookies.get('auth-token')?.value;
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authorization token required' },
+        { status: 401 }
+      );
     }
-    
+
+    // Verify token
+    let decoded: DecodedToken;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid token' },
+        { status: 401 }
+      );
+    }
+
     // Connect to database
     await connectDB();
+
+    // Get student profile to access uniqueId
+    const student = await Student.findOne({ 
+      userId: decoded.userId,
+      onboardingCompleted: true 
+    });
+
+    if (!student) {
+      return NextResponse.json(
+        { error: 'Student not found or onboarding not completed' },
+        { status: 404 }
+      );
+    }
+
+    console.log('🎬 Fetching YouTube data for student uniqueId:', student.uniqueId);
     
-    console.log('🔍 Fetching YouTube data for uniqueid:', uniqueid);
-    
-    // Find the most recent YouTube data for this uniqueid
-    const youtubeData = await YoutubeUrl.findOne({ uniqueid })
+    // Find the most recent YouTube data for this student's uniqueId
+    const youtubeData = await YoutubeUrl.findOne({ uniqueid: student.uniqueId })
       .sort({ createdAt: -1 })
       .lean() as any;
     
     if (!youtubeData) {
+      // Return fallback YouTube data instead of error
+      const fallbackData = FallbackModuleService.getFallbackYouTubeData(student.uniqueId);
       return NextResponse.json({
-        success: false,
-        message: 'No YouTube data found for this uniqueid',
-        data: null
-      }, { status: 404 });
+        success: true,
+        message: 'Using fallback YouTube data',
+        data: fallbackData,
+        isFallback: true
+      });
     }
     
     // Convert the Module array to a more usable format
+    // Each item in Module array contains one chapter (e.g., {"Chapter 1": {...}})
+    const chapters = youtubeData.Module.map((moduleItem: any, index: number) => {
+      // Each moduleItem is an object like {"Chapter 1": {videoUrl: "...", videoTitle: "..."}}
+      const chapterKey = Object.keys(moduleItem)[0]; // e.g., "Chapter 1"
+      const chapterData = moduleItem[chapterKey];
+      
+      return {
+        chapterIndex: index + 1,
+        chapterKey,
+        videoTitle: chapterData.videoTitle,
+        videoUrl: chapterData.videoUrl
+      };
+    });
+
     const formattedData = {
       _id: youtubeData._id,
       uniqueid: youtubeData.uniqueid,
-      modules: youtubeData.Module.map((module: any, index: number) => {
-        const chapters = Object.entries(module).map(([chapterKey, chapterData]: [string, any]) => ({
-          chapterKey,
-          videoTitle: chapterData.videoTitle,
-          videoUrl: chapterData.videoUrl
-        }));
-        
-        return {
-          moduleIndex: index,
-          chapters
-        };
-      }),
+      chapters: chapters,
+      totalChapters: chapters.length,
       createdAt: youtubeData.createdAt,
       updatedAt: youtubeData.updatedAt
     };
     
-    console.log('✅ YouTube data fetched successfully:', {
-      uniqueid,
-      moduleCount: formattedData.modules.length,
-      totalChapters: formattedData.modules.reduce((sum: number, module: any) => sum + module.chapters.length, 0)
-    });
     
     return NextResponse.json({
       success: true,
@@ -79,59 +113,84 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { uniqueid } = body;
-    
-    if (!uniqueid) {
-      return NextResponse.json({
-        success: false,
-        message: 'uniqueid is required in request body'
-      }, { status: 400 });
+    // Get token from HTTP-only cookie
+    const token = request.cookies.get('auth-token')?.value;
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authorization token required' },
+        { status: 401 }
+      );
     }
-    
+
+    // Verify token
+    let decoded: DecodedToken;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid token' },
+        { status: 401 }
+      );
+    }
+
     // Connect to database
     await connectDB();
+
+    // Get student profile to access uniqueId
+    const student = await Student.findOne({ 
+      userId: decoded.userId,
+      onboardingCompleted: true 
+    });
+
+    if (!student) {
+      return NextResponse.json(
+        { error: 'Student not found or onboarding not completed' },
+        { status: 404 }
+      );
+    }
+
+    console.log('🎬 Fetching YouTube data for student uniqueId:', student.uniqueId);
     
-    console.log('🔍 Fetching YouTube data (POST) for uniqueid:', uniqueid);
-    
-    // Find the most recent YouTube data for this uniqueid
-    const youtubeData = await YoutubeUrl.findOne({ uniqueid })
+    // Find the most recent YouTube data for this student's uniqueId
+    const youtubeData = await YoutubeUrl.findOne({ uniqueid: student.uniqueId })
       .sort({ createdAt: -1 })
       .lean() as any;
     
     if (!youtubeData) {
+      // Return fallback YouTube data instead of error
+      const fallbackData = FallbackModuleService.getFallbackYouTubeData(student.uniqueId);
       return NextResponse.json({
-        success: false,
-        message: 'No YouTube data found for this uniqueid',
-        data: null
-      }, { status: 404 });
+        success: true,
+        message: 'Using fallback YouTube data',
+        data: fallbackData,
+        isFallback: true
+      });
     }
     
     // Convert the Module array to a more usable format
+    // Each item in Module array contains one chapter (e.g., {"Chapter 1": {...}})
+    const chapters = youtubeData.Module.map((moduleItem: any, index: number) => {
+      // Each moduleItem is an object like {"Chapter 1": {videoUrl: "...", videoTitle: "..."}}
+      const chapterKey = Object.keys(moduleItem)[0]; // e.g., "Chapter 1"
+      const chapterData = moduleItem[chapterKey];
+      
+      return {
+        chapterIndex: index + 1,
+        chapterKey,
+        videoTitle: chapterData.videoTitle,
+        videoUrl: chapterData.videoUrl
+      };
+    });
+
     const formattedData = {
       _id: youtubeData._id,
       uniqueid: youtubeData.uniqueid,
-      modules: youtubeData.Module.map((module: any, index: number) => {
-        const chapters = Object.entries(module).map(([chapterKey, chapterData]: [string, any]) => ({
-          chapterKey,
-          videoTitle: chapterData.videoTitle,
-          videoUrl: chapterData.videoUrl
-        }));
-        
-        return {
-          moduleIndex: index,
-          chapters
-        };
-      }),
+      chapters: chapters,
+      totalChapters: chapters.length,
       createdAt: youtubeData.createdAt,
       updatedAt: youtubeData.updatedAt
     };
     
-    console.log('✅ YouTube data fetched successfully (POST):', {
-      uniqueid,
-      moduleCount: formattedData.modules.length,
-      totalChapters: formattedData.modules.reduce((sum: number, module: any) => sum + module.chapters.length, 0)
-    });
     
     return NextResponse.json({
       success: true,

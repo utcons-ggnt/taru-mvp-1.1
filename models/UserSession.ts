@@ -50,7 +50,7 @@ const userSessionSchema = new mongoose.Schema<IUserSession>({
 
 // Index for efficient queries
 userSessionSchema.index({ userId: 1, isActive: 1 });
-userSessionSchema.index({ sessionId: 1 });
+// Note: sessionId already has an index due to unique: true constraint
 userSessionSchema.index({ lastActivity: 1 });
 
 // Update lastActivity before saving

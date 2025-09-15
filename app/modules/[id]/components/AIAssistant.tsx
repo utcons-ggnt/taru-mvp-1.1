@@ -1,11 +1,22 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Message, ActionType, SpeechProgress } from '../types';
 import { ClientN8NService } from '../services/ClientN8NService';
 import { SpeechService } from '../services/SpeechService';
+import { SpeechProgress } from '../types';
 import ChatMessages from './ChatMessages';
 import SpeechProgressIndicator from './SpeechProgressIndicator';
+
+interface Message {
+  id: number;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+  audioUrl?: string;
+}
+
+type ActionType = 'explain' | 'define' | 'translate' | 'summarize';
+
 
 interface AIAssistantProps {
   isPDFReady?: boolean;
@@ -60,9 +71,8 @@ export default function AIAssistant({
       id: Date.now(),
       role,
       content,
-      timestamp: new Date(),
-      audioUrl,
-      language: selectedLanguage
+      timestamp: Date.now(),
+      audioUrl
     };
     setMessages(prev => [...prev, newMessage]);
   };
@@ -89,7 +99,7 @@ export default function AIAssistant({
       const response = await n8nService.current.generateResponse(userMessage, context);
       
       // Add AI response
-      addMessage('assistant', response.content);
+      addMessage('assistant', response.content || response.message || 'No response received');
 
       // Auto-speak the response if enabled
       if (speechService.current && response.content) {

@@ -125,7 +125,7 @@ export default function FlashCard({
               {/* Footer */}
               <div className="flex items-center justify-between mt-4">
                 <div className="flex flex-wrap gap-1">
-                  {flashcard.tags.map((tag, index) => (
+                  {flashcard.tags?.map((tag, index) => (
                     <span
                       key={index}
                       className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 rounded"
