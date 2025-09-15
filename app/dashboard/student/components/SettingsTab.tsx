@@ -1,4 +1,27 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  User, 
+  Mail, 
+  GraduationCap, 
+  Building, 
+  Globe, 
+  Key, 
+  Save, 
+  X, 
+  Edit3, 
+  Check, 
+  AlertCircle, 
+  Eye, 
+  EyeOff,
+  Settings,
+  Shield,
+  Bell,
+  Palette,
+  Moon,
+  Sun,
+  Monitor
+} from 'lucide-react';
 
 interface ProfileData {
   name: string;
@@ -27,6 +50,9 @@ export default function SettingsTab({ profile, onProfileUpdate }: SettingsTabPro
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [hoveredField, setHoveredField] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security'>('profile');
 
   const handleInputChange = (field: keyof ProfileData, value: string) => {
     setEditedProfile(prev => ({
@@ -98,35 +124,73 @@ export default function SettingsTab({ profile, onProfileUpdate }: SettingsTabPro
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 max-w-4xl mx-auto">
+    <motion.div 
+      className="bg-white rounded-2xl shadow-xl p-8 max-w-6xl mx-auto"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+    >
       {/* Header with title and edit button */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">{profile.name}</h2>
-          <p className="text-gray-600 text-lg">Update your Details!</p>
-        </div>
-        {!isEditing && (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="px-4 py-2 bg-purple-50 text-purple-600 rounded-md hover:bg-purple-100 transition-colors text-sm font-medium border border-purple-200"
+      <motion.div 
+        className="flex justify-between items-center mb-8"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <div className="flex items-center gap-4">
+          <motion.div
+            className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl flex items-center justify-center"
+            whileHover={{ rotate: 10, scale: 1.1 }}
+            transition={{ type: "spring", stiffness: 300 }}
           >
+            <Settings className="w-8 h-8 text-blue-600" />
+          </motion.div>
+          <div>
+            <h2 className="text-4xl font-bold text-gray-900">{profile.name}</h2>
+            <p className="text-gray-600 text-lg">Update your Details!</p>
+          </div>
+        </div>
+        
+        {!isEditing && (
+          <motion.button
+            onClick={() => setIsEditing(true)}
+            className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl"
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Edit3 className="w-5 h-5" />
             Edit Profile
-          </button>
+          </motion.button>
         )}
-      </div>
+      </motion.div>
 
       {/* Error and Success Messages */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md text-sm">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="mb-4 p-3 bg-green-100 border border-green-300 text-green-700 rounded-md text-sm">
-          {success}
-        </div>
-      )}
+      <AnimatePresence>
+        {error && (
+          <motion.div 
+            className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-3"
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.3 }}
+          >
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            {error}
+          </motion.div>
+        )}
+        {success && (
+          <motion.div 
+            className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm flex items-center gap-3"
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Check className="w-5 h-5 text-green-500" />
+            {success}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Profile Content */}
       <div className="flex flex-col lg:flex-row gap-8">
@@ -410,6 +474,6 @@ export default function SettingsTab({ profile, onProfileUpdate }: SettingsTabPro
           </button>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 } 

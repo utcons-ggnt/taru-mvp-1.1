@@ -76,41 +76,98 @@ export async function POST(request: NextRequest) {
 
     console.log('💬 Calling N8N chat webhook with data:', chatData);
 
+    // Convert data to query parameters for GET request
+    const queryParams = new URLSearchParams({
+      Queries: chatData.Queries,
+      uniqueid: chatData.uniqueid,
+      chapterid: chatData.chapterid
+    });
+    const webhookUrl = `${CHAT_WEBHOOK_URL}?${queryParams.toString()}`;
+
+    console.log('💬 Base webhook URL:', CHAT_WEBHOOK_URL);
+    console.log('💬 Final webhook URL:', webhookUrl);
+
     // Add timeout to prevent hanging requests
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
-    const webhookResponse = await fetch(CHAT_WEBHOOK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify([chatData]),
-      signal: controller.signal
-    });
+    // Retry logic with exponential backoff
+    let webhookResponse: Response | undefined;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        console.log(`💬 Attempt ${retryCount + 1}/${maxRetries} - Calling webhook...`);
+        webhookResponse = await fetch(webhookUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal
+        });
+        break; // Success, exit retry loop
+      } catch (fetchError) {
+        retryCount++;
+        const errorMessage = fetchError instanceof Error ? fetchError.message : 'Unknown error';
+        console.log(`💬 Attempt ${retryCount} failed:`, errorMessage);
+        if (retryCount >= maxRetries) {
+          throw fetchError;
+        }
+        const waitTime = Math.pow(2, retryCount) * 1000; // 2s, 4s, 8s
+        console.log(`💬 Waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+
+    if (!webhookResponse) {
+      throw new Error('Failed to get webhook response after all retries');
+    }
 
     clearTimeout(timeoutId);
 
+    console.log('💬 Webhook response status:', webhookResponse.status);
+    console.log('💬 Webhook response headers:', Object.fromEntries(webhookResponse.headers.entries()));
+
     if (webhookResponse.ok) {
       const responseData = await webhookResponse.json();
+      console.log('💬 Webhook call successful!');
       console.log('💬 Chat response received:', responseData);
+      
+      // Handle simple JSON response format
+      let chatAnswer = '';
+      if (responseData && typeof responseData === 'string') {
+        chatAnswer = responseData;
+      } else if (responseData && responseData.answer) {
+        chatAnswer = responseData.answer;
+      } else if (responseData && responseData.response) {
+        chatAnswer = responseData.response;
+      } else if (Array.isArray(responseData) && responseData.length > 0) {
+        chatAnswer = responseData[0].answer || responseData[0].response || JSON.stringify(responseData[0]);
+      } else {
+        chatAnswer = JSON.stringify(responseData);
+      }
       
       return NextResponse.json({
         success: true,
         message: 'Chat query processed successfully',
-        response: responseData,
+        answer: chatAnswer,
         chapterId: chapterId,
         uniqueId: student.uniqueId,
         query: query
       });
     } else {
+      const errorText = await webhookResponse.text();
       console.error('💬 Failed to process chat query:', webhookResponse.status, webhookResponse.statusText);
+      console.error('💬 Error response body:', errorText);
+      
       return NextResponse.json(
         { 
           success: false,
           error: 'Failed to process chat query',
           status: webhookResponse.status,
           statusText: webhookResponse.statusText,
+          details: errorText,
           chapterId: chapterId,
           uniqueId: student.uniqueId,
           query: query

@@ -74,23 +74,66 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('🧠 Calling N8N MCQ webhook with data:', mcqData);
+    console.log('🧠 Base webhook URL:', MCQ_WEBHOOK_URL);
 
-    // Add timeout to prevent hanging requests
+    // Add timeout to prevent hanging requests (N8N takes ~20 seconds)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
-    const webhookResponse = await fetch(MCQ_WEBHOOK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify([mcqData]),
-      signal: controller.signal
-    });
+    try {
+      // Call the N8N webhook with GET request and query parameters
+      const queryParams = new URLSearchParams({
+        Quetionformate: mcqData.Quetionformate,
+        uniqueid: mcqData.uniqueid,
+        chapterid: mcqData.chapterid
+      });
+      
+      const webhookUrl = `${MCQ_WEBHOOK_URL}?${queryParams.toString()}`;
+      console.log('🧠 Final webhook URL:', webhookUrl);
+      
+      // Add retry logic for network issues
+      let webhookResponse: Response | undefined;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          console.log(`🧠 Attempt ${retryCount + 1}/${maxRetries} - Calling webhook...`);
+          webhookResponse = await fetch(webhookUrl, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            signal: controller.signal
+          });
+          break; // Success, exit retry loop
+        } catch (fetchError) {
+          retryCount++;
+          const errorMessage = fetchError instanceof Error ? fetchError.message : 'Unknown error';
+          console.log(`🧠 Attempt ${retryCount} failed:`, errorMessage);
+          
+          if (retryCount >= maxRetries) {
+            throw fetchError; // Re-throw if all retries exhausted
+          }
+          
+          // Wait before retry (exponential backoff)
+          const waitTime = Math.pow(2, retryCount) * 1000; // 2s, 4s, 8s
+          console.log(`🧠 Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+      }
 
-    clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
+      
+      if (!webhookResponse) {
+        throw new Error('Failed to get webhook response after all retries');
+      }
+      
+      console.log('🧠 Webhook response status:', webhookResponse.status);
+      console.log('🧠 Webhook response headers:', Object.fromEntries(webhookResponse.headers.entries()));
 
-    if (webhookResponse.ok) {
+      if (webhookResponse.ok) {
+        console.log('🧠 Webhook call successful!');
       const responseData = await webhookResponse.json();
       console.log('🧠 MCQ generated successfully:', responseData);
       
@@ -99,14 +142,17 @@ export async function POST(request: NextRequest) {
       try {
         if (responseData && responseData.length > 0 && responseData[0].output) {
           questions = JSON.parse(responseData[0].output);
+          console.log('🧠 Parsed questions:', questions);
         }
       } catch (parseError) {
         console.error('🧠 Error parsing MCQ response:', parseError);
+        console.error('🧠 Raw response data:', responseData);
         return NextResponse.json(
           { 
             success: false,
             error: 'Failed to parse MCQ response',
-            details: 'Invalid JSON format in webhook response'
+            details: 'Invalid JSON format in webhook response',
+            rawResponse: responseData
           },
           { status: 500 }
         );
@@ -119,14 +165,33 @@ export async function POST(request: NextRequest) {
         chapterId: chapterId,
         uniqueId: student.uniqueId
       });
-    } else {
-      console.error('🧠 Failed to generate MCQ:', webhookResponse.status, webhookResponse.statusText);
+      } else {
+        console.error('🧠 Failed to generate MCQ:', webhookResponse.status, webhookResponse.statusText);
+        const errorText = await webhookResponse.text();
+        console.error('🧠 Error response body:', errorText);
+        
+        return NextResponse.json(
+          { 
+            success: false,
+            error: 'Failed to generate MCQ questions',
+            status: webhookResponse.status,
+            statusText: webhookResponse.statusText,
+            errorDetails: errorText,
+            chapterId: chapterId,
+            uniqueId: student.uniqueId
+          },
+          { status: 500 }
+        );
+      }
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      console.error('🧠 Fetch error:', fetchError);
+      
       return NextResponse.json(
         { 
           success: false,
-          error: 'Failed to generate MCQ questions',
-          status: webhookResponse.status,
-          statusText: webhookResponse.statusText,
+          error: 'Network error while calling MCQ webhook',
+          details: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error',
           chapterId: chapterId,
           uniqueId: student.uniqueId
         },

@@ -1,6 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Trophy, 
+  Star, 
+  Award, 
+  Zap, 
+  Target, 
+  CheckCircle, 
+  Lock, 
+  Sparkles, 
+  Crown, 
+  Medal, 
+  Gift, 
+  Flame, 
+  Rocket, 
+  Diamond,
+  Heart,
+  BookOpen,
+  Brain,
+  Lightbulb,
+  Shield,
+  Sword,
+  Wand2,
+  Calendar
+} from 'lucide-react';
 
 interface Badge {
   name: string;
@@ -18,6 +43,9 @@ interface RewardsTabProps {
 
 export default function RewardsTab({ badges, onTabChange }: RewardsTabProps) {
   const [activeCategory, setActiveCategory] = useState('all');
+  const [hoveredBadge, setHoveredBadge] = useState<string | null>(null);
+  const [selectedBadge, setSelectedBadge] = useState<string | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const categories = [
     { id: 'all', label: 'All Badges', icon: '🏆' },
@@ -85,18 +113,47 @@ export default function RewardsTab({ badges, onTabChange }: RewardsTabProps) {
   };
 
   return (
-    <div className="space-y-8">
+    <motion.div 
+      className="space-y-8"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+    >
       {/* Header Section */}
-      <div className="text-center">
-        <div className="flex items-center justify-center gap-4 mb-4">
-          <span className="text-4xl">🌟</span>
-          <h2 className="text-4xl font-bold text-gray-900">My Rewards & Badges</h2>
-          <span className="text-4xl">☁️</span>
+      <motion.div 
+        className="text-center"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.6 }}
+      >
+        <div className="flex items-center justify-center gap-4 mb-6">
+          <motion.div
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <Sparkles className="w-12 h-12 text-yellow-500" />
+          </motion.div>
+          <h2 className="text-5xl font-bold text-gray-900 flex items-center gap-3">
+            <Crown className="w-12 h-12 text-purple-600" />
+            My Rewards & Badges
+            <Crown className="w-12 h-12 text-purple-600" />
+          </h2>
+          <motion.div
+            animate={{ rotate: [0, -10, 10, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          >
+            <Sparkles className="w-12 h-12 text-yellow-500" />
+          </motion.div>
         </div>
-        <p className="text-gray-600 text-lg">
-          You&apos;ve earned <span className="font-semibold text-purple-600">{earnedBadges.length}</span> badges so far!
-        </p>
-      </div>
+        <motion.p 
+          className="text-gray-600 text-xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+        >
+          You&apos;ve earned <span className="font-bold text-purple-600 text-2xl">{earnedBadges.length}</span> badges so far!
+        </motion.p>
+      </motion.div>
 
       {/* Progress Overview */}
       <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl p-6 text-white">
@@ -117,70 +174,128 @@ export default function RewardsTab({ badges, onTabChange }: RewardsTabProps) {
       </div>
 
       {/* Category Filter */}
-      <div className="flex flex-wrap gap-2 justify-center">
-        {categories.map(category => (
-          <button
+      <motion.div 
+        className="flex flex-wrap gap-3 justify-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        {categories.map((category, index) => (
+          <motion.button
             key={category.id}
             onClick={() => setActiveCategory(category.id)}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+            className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
               activeCategory === category.id
-                ? 'bg-purple-600 text-white'
+                ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 + index * 0.1 }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <span>{category.icon}</span>
+            <span className="text-lg">{category.icon}</span>
             <span className="text-sm font-medium">{category.label}</span>
-          </button>
+          </motion.button>
         ))}
-      </div>
+      </motion.div>
 
       {/* Badges Grid */}
       {displayBadges.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
           {displayBadges.map((badge, index) => (
-            <div key={index} className={`relative bg-gray-50 rounded-xl border border-gray-200 transition-all hover:shadow-lg ${
-              badge.isLocked ? 'opacity-75' : ''
-            }`}>
+            <motion.div 
+              key={index} 
+              className={`relative bg-white rounded-2xl border-2 transition-all duration-300 group ${
+                badge.earned
+                  ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-300 shadow-lg hover:shadow-xl'
+                  : 'bg-gray-50 border-gray-200 hover:shadow-md'
+              } ${badge.isLocked ? 'opacity-75' : ''}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 + index * 0.1 }}
+              whileHover={{ scale: 1.05, y: -5 }}
+              onHoverStart={() => setHoveredBadge(badge.name)}
+              onHoverEnd={() => setHoveredBadge(null)}
+            >
               {/* Badge Card */}
               <div className="p-6">
                 {/* Badge Icon */}
-                <div className="text-center mb-4">
+                <div className="text-center mb-6">
                   {badge.isLocked ? (
-                    <div className="relative">
-                      <div className="w-20 h-20 mx-auto bg-gray-200 rounded-full flex items-center justify-center">
-                        <svg className="w-10 h-10 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 2C13.1 2 14 2.9 14 4V6H16C17.1 6 18 6.9 18 8V20C18 21.1 17.1 22 16 22H8C6.9 22 6 21.1 6 20V8C6 6.9 6.9 6 8 6H10V4C10 2.9 10.9 2 12 2M12 4C11.45 4 11 4.45 11 5V6H13V5C13 4.45 12.55 4 12 4M8 8V20H16V8H8Z"/>
-                        </svg>
+                    <motion.div 
+                      className="relative"
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <div className="w-24 h-24 mx-auto bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center shadow-lg">
+                        <Lock className="w-12 h-12 text-gray-500" />
                       </div>
-                    </div>
+                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">!</span>
+                      </div>
+                    </motion.div>
                   ) : (
-                    <div className="w-20 h-20 mx-auto text-6xl flex items-center justify-center">
+                    <motion.div 
+                      className="w-24 h-24 mx-auto text-6xl flex items-center justify-center"
+                      whileHover={{ 
+                        scale: 1.2, 
+                        rotate: [0, -10, 10, 0],
+                        transition: { duration: 0.5 }
+                      }}
+                      animate={badge.earned ? {
+                        scale: [1, 1.1, 1],
+                        transition: { duration: 2, repeat: Infinity }
+                      } : {}}
+                    >
                       {badge.icon}
-                    </div>
+                    </motion.div>
                   )}
                 </div>
 
                 {/* Badge Name */}
-                <h3 className="text-lg font-bold text-center text-gray-900 mb-4">
+                <motion.h3 
+                  className="text-xl font-bold text-center text-gray-900 mb-4"
+                  whileHover={{ scale: 1.05 }}
+                >
                   {badge.name}
-                </h3>
+                </motion.h3>
 
                 {/* Date and XP Row */}
-                <div className="flex items-center justify-between">
+                <motion.div 
+                  className="flex items-center justify-between"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 + index * 0.1 }}
+                >
                   {/* Date */}
-                  <div className="bg-white rounded-full px-3 py-1">
-                    <span className="text-xs text-gray-600 font-medium">
-                      {badge.earned && 'earnedAt' in badge ? formatDate(badge.earnedAt) : '📅 Coming Soon'}
+                  <motion.div 
+                    className="bg-white rounded-full px-4 py-2 shadow-sm"
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <span className="text-xs text-gray-600 font-medium flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {badge.earned && 'earnedAt' in badge ? formatDate(badge.earnedAt) : 'Coming Soon'}
                     </span>
-                  </div>
+                  </motion.div>
                   
                   {/* XP */}
-                  <div className="bg-purple-600 rounded-full px-3 py-1">
-                    <span className="text-xs text-white font-medium">
+                  <motion.div 
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-full px-4 py-2 shadow-sm"
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <span className="text-xs text-white font-medium flex items-center gap-1">
+                      <Zap className="w-3 h-3" />
                       {badge.xp}+ XP
                     </span>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               </div>
 
               {/* Locked Overlay */}
@@ -193,9 +308,9 @@ export default function RewardsTab({ badges, onTabChange }: RewardsTabProps) {
                   </div>
                 </div>
               )}
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       ) : (
         <div className="text-center py-12">
           <div className="text-6xl mb-4">🏆</div>
@@ -244,6 +359,6 @@ export default function RewardsTab({ badges, onTabChange }: RewardsTabProps) {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 } 

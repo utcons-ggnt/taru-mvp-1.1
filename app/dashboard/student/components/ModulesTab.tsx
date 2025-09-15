@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, 
   BookOpen, 
@@ -31,6 +32,7 @@ import {
   Share2,
   Heart,
   Bookmark,
+  BookmarkCheck,
   Download,
   Eye,
   Target,
@@ -40,26 +42,33 @@ import {
   Rocket,
   Globe,
   Lock,
-  Unlock
+  Unlock,
+  ThumbsUp,
+  Share,
+  ExternalLink
 } from 'lucide-react';
 
-interface Module {
-  [key: string]: {
-    videoUrl: string;
+interface Chapter {
+  chapterIndex: number;
+  chapterKey: string;
     videoTitle: string;
-  };
+  videoUrl: string;
 }
 
 interface YoutubeData {
   _id: string;
   uniqueid: string;
-  Module: Module[];
+  chapters: Chapter[];
+  totalChapters: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface MCQQuestion {
   Q: string;
   level: string;
   question: string;
+  options: string[];
   answer: string;
 }
 
@@ -79,6 +88,9 @@ export default function ModulesTab({ user }: ModulesTabProps) {
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const [mcqQuestions, setMcqQuestions] = useState<MCQQuestion[]>([]);
   const [mcqLoading, setMcqLoading] = useState(false);
+  const [mcqAnswers, setMcqAnswers] = useState<Record<string, string>>({});
+  const [mcqSubmitted, setMcqSubmitted] = useState(false);
+  const [mcqScore, setMcqScore] = useState<number | null>(null);
   const [chatQuery, setChatQuery] = useState('');
   const [chatResponse, setChatResponse] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
@@ -94,6 +106,10 @@ export default function ModulesTab({ user }: ModulesTabProps) {
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [completedModules, setCompletedModules] = useState<Set<string>>(new Set());
+  const [hoveredVideo, setHoveredVideo] = useState<string | null>(null);
+  const [bookmarkedVideos, setBookmarkedVideos] = useState<Set<string>>(new Set());
+  const [likedVideos, setLikedVideos] = useState<Set<string>>(new Set());
+  const [showVideoControls, setShowVideoControls] = useState<string | null>(null);
 
   // Fetch YouTube data on component mount
   useEffect(() => {
@@ -109,17 +125,22 @@ export default function ModulesTab({ user }: ModulesTabProps) {
     setError(null);
     
     try {
-      const response = await fetch(`/api/youtube-data?uniqueid=${user.uniqueId}`);
+      const response = await fetch(`/api/youtube-urls?uniqueid=${encodeURIComponent(user.uniqueId)}`);
+      
         if (response.ok) {
-        const data = await response.json();
-        setYoutubeData(data);
-        console.log('✅ YouTube data fetched:', data);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          setYoutubeData(result.data);
+        } else {
+          setError(result.message || 'Failed to fetch modules');
+        }
           } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to fetch modules');
+        setError(errorData.message || `HTTP ${response.status}: Failed to fetch modules`);
         }
       } catch (error) {
-      console.error('❌ Error fetching YouTube data:', error);
+      console.error('Error fetching YouTube data:', error);
       setError('Failed to fetch modules. Please try again.');
       } finally {
         setLoading(false);
@@ -134,18 +155,16 @@ export default function ModulesTab({ user }: ModulesTabProps) {
     setSuccess(null);
     
     try {
-      console.log('🎬 Triggering YouTube scraping for uniqueId:', user.uniqueId);
-      
       const response = await fetch('/api/webhook/trigger-youtube-scraping', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ uniqueid: user.uniqueId })
       });
 
       if (response.ok) {
       const result = await response.json();
-        console.log('✅ YouTube scraping triggered successfully:', result);
         setSuccess('YouTube scraping triggered successfully! Please wait for modules to be processed.');
         
         // Wait a bit then refresh the data
@@ -158,16 +177,19 @@ export default function ModulesTab({ user }: ModulesTabProps) {
         setError(errorData.error || 'Failed to trigger YouTube scraping');
       }
     } catch (error) {
-      console.error('❌ Error triggering YouTube scraping:', error);
+      console.error('Error triggering YouTube scraping:', error);
       setError('Failed to trigger YouTube scraping. Please try again.');
     } finally {
       setScraping(false);
     }
   };
 
-  const generateMCQ = async (chapterId: string) => {
+  const generateMCQ = async (chapterKey: string) => {
     setMcqLoading(true);
     setError(null);
+    setMcqAnswers({});
+    setMcqSubmitted(false);
+    setMcqScore(null);
     
     try {
       const response = await fetch('/api/webhook/generate-mcq', {
@@ -175,7 +197,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ chapterId }),
+        body: JSON.stringify({ chapterId: chapterKey }),
       });
       
       if (response.ok) {
@@ -183,20 +205,45 @@ export default function ModulesTab({ user }: ModulesTabProps) {
         setMcqQuestions(result.questions || []);
         setShowMcq(true);
         setShowChat(false);
-        console.log('✅ MCQ generated successfully:', result);
       } else {
         const errorData = await response.json();
         setError(errorData.error || 'Failed to generate MCQ questions');
       }
     } catch (error) {
-      console.error('❌ Error generating MCQ:', error);
+      console.error('Error generating MCQ:', error);
       setError('Failed to generate MCQ questions. Please try again.');
     } finally {
       setMcqLoading(false);
     }
   };
 
-  const handleChatQuery = async (chapterId: string) => {
+  const handleMCQAnswer = (questionId: string, answer: string) => {
+    setMcqAnswers(prev => ({
+      ...prev,
+      [questionId]: answer
+    }));
+  };
+
+  const submitMCQ = () => {
+    let correctAnswers = 0;
+    mcqQuestions.forEach(question => {
+      if (mcqAnswers[question.Q] === question.answer) {
+        correctAnswers++;
+      }
+    });
+    
+    const score = Math.round((correctAnswers / mcqQuestions.length) * 100);
+    setMcqScore(score);
+    setMcqSubmitted(true);
+  };
+
+  const resetMCQ = () => {
+    setMcqAnswers({});
+    setMcqSubmitted(false);
+    setMcqScore(null);
+  };
+
+  const handleChatQuery = async (chapterKey: string) => {
     if (!chatQuery.trim()) return;
     
     setChatLoading(true);
@@ -210,22 +257,21 @@ export default function ModulesTab({ user }: ModulesTabProps) {
           },
         body: JSON.stringify({ 
           query: chatQuery.trim(), 
-          chapterId 
+          chapterId: chapterKey 
         }),
       });
       
       if (response.ok) {
         const result = await response.json();
-        setChatResponse(JSON.stringify(result.response, null, 2));
+        setChatResponse(result.answer || result.response || 'No response received');
         setShowChat(true);
         setShowMcq(false);
-        console.log('✅ Chat response received:', result);
         } else {
         const errorData = await response.json();
         setError(errorData.error || 'Failed to process chat query');
       }
     } catch (error) {
-      console.error('❌ Error processing chat query:', error);
+      console.error('Error processing chat query:', error);
       setError('Failed to process chat query. Please try again.');
     } finally {
       setChatLoading(false);
@@ -244,40 +290,44 @@ export default function ModulesTab({ user }: ModulesTabProps) {
 
   // Filter and sort modules
   const filteredModules = React.useMemo(() => {
-    if (!youtubeData?.Module) return [];
+    if (!youtubeData?.chapters) return [];
     
-    let modules = youtubeData.Module;
+    let modules = youtubeData.chapters;
     
     // Filter by search query
     if (searchQuery) {
-      modules = modules.filter(module => {
-        const chapterKey = Object.keys(module)[0];
-        const chapterData = module[chapterKey];
-        return chapterData.videoTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-               chapterKey.toLowerCase().includes(searchQuery.toLowerCase());
+      modules = modules.filter(chapter => {
+        return chapter.videoTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+               chapter.chapterKey.toLowerCase().includes(searchQuery.toLowerCase());
       });
     }
     
-    // Filter by level (placeholder - you can implement based on your data structure)
+    // Filter by level
     if (filterLevel !== 'all') {
-      // Add your filtering logic here based on module difficulty
+      modules = modules.filter(chapter => {
+        // Simple level detection based on chapter number
+        const chapterNum = chapter.chapterIndex;
+        if (filterLevel === 'basic') return chapterNum <= 3;
+        if (filterLevel === 'intermediate') return chapterNum > 3 && chapterNum <= 6;
+        if (filterLevel === 'advanced') return chapterNum > 6;
+        return true;
+      });
     }
     
     // Sort modules
-    modules.sort((a, b) => {
-      const aKey = Object.keys(a)[0];
-      const bKey = Object.keys(b)[0];
-      
       switch (sortBy) {
         case 'title':
-          return aKey.localeCompare(bKey);
+        modules.sort((a, b) => a.videoTitle.localeCompare(b.videoTitle));
+        break;
         case 'oldest':
-          return aKey.localeCompare(bKey);
+        modules.sort((a, b) => a.chapterIndex - b.chapterIndex);
+        break;
         case 'newest':
         default:
-          return bKey.localeCompare(aKey);
+        // Sort by chapter index descending (newest first)
+        modules.sort((a, b) => b.chapterIndex - a.chapterIndex);
+        break;
       }
-    });
     
     return modules;
   }, [youtubeData, searchQuery, filterLevel, sortBy]);
@@ -304,6 +354,53 @@ export default function ModulesTab({ user }: ModulesTabProps) {
       }
       return newCompleted;
     });
+  };
+
+  const toggleBookmark = (chapterId: string) => {
+    setBookmarkedVideos(prev => {
+      const newBookmarks = new Set(prev);
+      if (newBookmarks.has(chapterId)) {
+        newBookmarks.delete(chapterId);
+      } else {
+        newBookmarks.add(chapterId);
+      }
+      return newBookmarks;
+    });
+  };
+
+  const toggleLike = (chapterId: string) => {
+    setLikedVideos(prev => {
+      const newLikes = new Set(prev);
+      if (newLikes.has(chapterId)) {
+        newLikes.delete(chapterId);
+      } else {
+        newLikes.add(chapterId);
+      }
+      return newLikes;
+    });
+  };
+
+  const shareVideo = async (videoUrl: string, videoTitle: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: videoTitle,
+          text: `Check out this learning video: ${videoTitle}`,
+          url: videoUrl,
+        });
+      } catch (error) {
+        console.log('Error sharing:', error);
+      }
+    } else {
+      // Fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(`${videoTitle} - ${videoUrl}`);
+        setSuccess('Video link copied to clipboard!');
+        setTimeout(() => setSuccess(null), 3000);
+      } catch (error) {
+        console.log('Error copying to clipboard:', error);
+      }
+    }
   };
 
   return (
@@ -351,7 +448,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                   <Video className="w-6 h-6 text-blue-300" />
                   <span className="text-sm font-medium text-blue-100">Total Modules</span>
                 </div>
-                <div className="text-3xl font-bold">{youtubeData?.Module?.length || 0}</div>
+                <div className="text-3xl font-bold">{youtubeData?.chapters?.length || 0}</div>
               </div>
               
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
@@ -376,7 +473,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                   <span className="text-sm font-medium text-blue-100">Progress</span>
                 </div>
                 <div className="text-3xl font-bold">
-                  {youtubeData?.Module?.length ? Math.round((completedModules.size / youtubeData.Module.length) * 100) : 0}%
+                  {youtubeData?.chapters?.length ? Math.round((completedModules.size / youtubeData.chapters.length) * 100) : 0}%
                 </div>
               </div>
             </div>
@@ -463,7 +560,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
           )}
 
           {/* Search and Filter Controls */}
-          {youtubeData && youtubeData.Module && youtubeData.Module.length > 0 && (
+          {youtubeData && youtubeData.chapters && youtubeData.chapters.length > 0 && (
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-8">
               <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
                 {/* Search */}
@@ -525,32 +622,39 @@ export default function ModulesTab({ user }: ModulesTabProps) {
           )}
 
           {/* Modules Display */}
-          {youtubeData && youtubeData.Module && youtubeData.Module.length > 0 ? (
+          {youtubeData && youtubeData.chapters && youtubeData.chapters.length > 0 ? (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-2xl font-bold text-gray-900">
                   Your Learning Modules
                 </h3>
                 <span className="text-gray-500">
-                  {filteredModules.length} of {youtubeData.Module.length} modules
+                  {filteredModules.length} of {youtubeData.totalChapters} modules
                 </span>
               </div>
               
               {viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                  {filteredModules.map((module, index) => {
-                    const chapterKey = Object.keys(module)[0];
-                    const chapterData = module[chapterKey];
-                    const videoId = getVideoId(chapterData.videoUrl);
-                    const chapterId = getChapterId(chapterKey);
+                  {filteredModules.map((chapter, index) => {
+                    const videoId = getVideoId(chapter.videoUrl);
+                    const chapterId = getChapterId(chapter.chapterKey);
                     const isFavorite = favorites.has(chapterId);
                     const isCompleted = completedModules.has(chapterId);
                     const isPlaying = playingVideo === chapterId;
+                    const isBookmarked = bookmarkedVideos.has(chapterId);
+                    const isLiked = likedVideos.has(chapterId);
+                    const isHovered = hoveredVideo === chapterId;
                     
                     return (
-                      <div 
+                      <motion.div 
                         key={index} 
                         className="group relative bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        whileHover={{ scale: 1.02 }}
+                        onHoverStart={() => setHoveredVideo(chapterId)}
+                        onHoverEnd={() => setHoveredVideo(null)}
                       >
                         {/* Video Section */}
                         <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200">
@@ -558,22 +662,35 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                             <>
                               <iframe
                                 src={`https://www.youtube.com/embed/${videoId}`}
-                                title={chapterData.videoTitle}
+                                title={chapter.videoTitle}
                                 className="w-full h-full"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
                               />
                               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
-                                <button
-                                  onClick={() => setPlayingVideo(isPlaying ? null : chapterId)}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 bg-white/90 rounded-full hover:bg-white hover:scale-110 transform transition-all"
-                                >
-                                  {isPlaying ? (
-                                    <PauseCircle className="w-8 h-8 text-gray-800" />
-                                  ) : (
-                                    <PlayCircle className="w-8 h-8 text-gray-800" />
-                                  )}
-                                </button>
+                                <div className="flex gap-3">
+                                  <motion.button
+                                    onClick={() => setPlayingVideo(isPlaying ? null : chapterId)}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 bg-white/90 rounded-full hover:bg-white hover:scale-110 transform transition-all"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                  >
+                                    {isPlaying ? (
+                                      <PauseCircle className="w-8 h-8 text-gray-800" />
+                                    ) : (
+                                      <PlayCircle className="w-8 h-8 text-gray-800" />
+                                    )}
+                                  </motion.button>
+                                  
+                                  <motion.button
+                                    onClick={() => window.open(chapter.videoUrl, '_blank')}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 bg-white/90 rounded-full hover:bg-white hover:scale-110 transform transition-all"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                  >
+                                    <ExternalLink className="w-6 h-6 text-gray-800" />
+                                  </motion.button>
+                                </div>
                               </div>
                             </>
                           ) : (
@@ -588,7 +705,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                           {/* Overlay Badges */}
                           <div className="absolute top-4 left-4 flex gap-2">
                             <span className="px-3 py-1 bg-black/70 text-white text-xs font-medium rounded-full backdrop-blur-sm">
-                              {chapterKey}
+                              {chapter.chapterKey}
                             </span>
                             {isCompleted && (
                               <span className="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded-full">
@@ -600,33 +717,77 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                           
                           {/* Action Buttons Overlay */}
                           <div className="absolute top-4 right-4 flex gap-2">
-                            <button
+                            <motion.button
+                              onClick={() => toggleBookmark(chapterId)}
+                              className={`p-2 rounded-full backdrop-blur-sm transition-all ${
+                                isBookmarked 
+                                  ? 'bg-yellow-500 text-white' 
+                                  : 'bg-black/70 text-white hover:bg-yellow-500'
+                              }`}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                            >
+                              {isBookmarked ? (
+                                <BookmarkCheck className="w-4 h-4" />
+                              ) : (
+                                <Bookmark className="w-4 h-4" />
+                              )}
+                            </motion.button>
+                            
+                            <motion.button
+                              onClick={() => toggleLike(chapterId)}
+                              className={`p-2 rounded-full backdrop-blur-sm transition-all ${
+                                isLiked 
+                                  ? 'bg-blue-500 text-white' 
+                                  : 'bg-black/70 text-white hover:bg-blue-500'
+                              }`}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                            >
+                              <ThumbsUp className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+                            </motion.button>
+                            
+                            <motion.button
+                              onClick={() => shareVideo(chapter.videoUrl, chapter.videoTitle)}
+                              className="p-2 rounded-full backdrop-blur-sm bg-black/70 text-white hover:bg-purple-500 transition-all"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                            >
+                              <Share className="w-4 h-4" />
+                            </motion.button>
+                            
+                            <motion.button
                               onClick={() => toggleFavorite(chapterId)}
                               className={`p-2 rounded-full backdrop-blur-sm transition-all ${
                                 isFavorite 
                                   ? 'bg-red-500 text-white' 
                                   : 'bg-black/70 text-white hover:bg-red-500'
                               }`}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
                             >
                               <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-                            </button>
-                            <button
+                            </motion.button>
+                            
+                            <motion.button
                               onClick={() => markAsCompleted(chapterId)}
                               className={`p-2 rounded-full backdrop-blur-sm transition-all ${
                                 isCompleted 
                                   ? 'bg-green-500 text-white' 
                                   : 'bg-black/70 text-white hover:bg-green-500'
                               }`}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
                             >
                               <CheckCircle className="w-4 h-4" />
-                            </button>
+                            </motion.button>
                       </div>
                       </div>
           
                         {/* Content Section */}
                         <div className="p-6">
                           <h4 className="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                            {chapterData.videoTitle}
+                            {chapter.videoTitle}
                           </h4>
                           
                           {/* Progress Bar */}
@@ -647,13 +808,13 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                           <div className="flex gap-2">
                 <button
                               onClick={() => {
-                                setSelectedChapter(chapterId);
-                                generateMCQ(chapterId);
+                                setSelectedChapter(chapter.chapterKey);
+                                generateMCQ(chapter.chapterKey);
                               }}
                               disabled={mcqLoading}
                               className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 disabled:opacity-50 font-medium"
                             >
-                              {mcqLoading && selectedChapter === chapterId ? (
+                              {mcqLoading && selectedChapter === chapter.chapterKey ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
                                 <Brain className="w-4 h-4" />
@@ -674,17 +835,15 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                             </button>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })}
                                   </div>
               ) : (
                 <div className="space-y-4">
-                  {filteredModules.map((module, index) => {
-                    const chapterKey = Object.keys(module)[0];
-                    const chapterData = module[chapterKey];
-                    const videoId = getVideoId(chapterData.videoUrl);
-                    const chapterId = getChapterId(chapterKey);
+                  {filteredModules.map((chapter, index) => {
+                    const videoId = getVideoId(chapter.videoUrl);
+                    const chapterId = getChapterId(chapter.chapterKey);
                     const isFavorite = favorites.has(chapterId);
                     const isCompleted = completedModules.has(chapterId);
                     
@@ -699,7 +858,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                             {videoId ? (
                               <img
                                 src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
-                                alt={chapterData.videoTitle}
+                                alt={chapter.videoTitle}
                                 className="w-full h-full object-cover"
                               />
                             ) : (
@@ -716,7 +875,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between mb-2">
                               <h4 className="text-lg font-semibold text-gray-900 line-clamp-1">
-                                {chapterKey}: {chapterData.videoTitle}
+                                {chapter.chapterKey}: {chapter.videoTitle}
                               </h4>
                               <div className="flex items-center gap-2 ml-4">
                                 <button
@@ -777,13 +936,13 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                             <div className="flex gap-3">
             <button
                                 onClick={() => {
-                                  setSelectedChapter(chapterId);
-                                  generateMCQ(chapterId);
+                                  setSelectedChapter(chapter.chapterKey);
+                                  generateMCQ(chapter.chapterKey);
                                 }}
                                 disabled={mcqLoading}
                                 className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
                               >
-                                {mcqLoading && selectedChapter === chapterId ? (
+                                {mcqLoading && selectedChapter === chapter.chapterKey ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
                                   <Brain className="w-4 h-4" />
@@ -894,25 +1053,126 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                         </div>
                       </div>
                       
-                      <div className="mb-4">
-                        <h4 className="text-lg font-semibold text-gray-900 mb-3 leading-relaxed">
+                      <div className="mb-6">
+                        <h4 className="text-lg font-semibold text-gray-900 mb-4 leading-relaxed">
                           {question.question}
                         </h4>
-                      </div>
-                      
-                      <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200">
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 bg-green-100 rounded-lg">
+                        
+                        {/* Options */}
+                        <div className="space-y-3">
+                          {question.options.map((option, optionIndex) => {
+                            const isSelected = mcqAnswers[question.Q] === option;
+                            const isCorrect = option === question.answer;
+                            const isSubmitted = mcqSubmitted;
+                            
+                            return (
+                              <label
+                                key={optionIndex}
+                                className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                                  isSelected
+                                    ? 'border-purple-500 bg-purple-50'
+                                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                } ${
+                                  isSubmitted && isCorrect
+                                    ? 'border-green-500 bg-green-50'
+                                    : isSubmitted && isSelected && !isCorrect
+                                    ? 'border-red-500 bg-red-50'
+                                    : ''
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`question-${question.Q}`}
+                                  value={option}
+                                  checked={isSelected}
+                                  onChange={() => handleMCQAnswer(question.Q, option)}
+                                  disabled={isSubmitted}
+                                  className="sr-only"
+                                />
+                                <div className={`w-5 h-5 rounded-full border-2 mr-4 flex items-center justify-center ${
+                                  isSelected
+                                    ? 'border-purple-500 bg-purple-500'
+                                    : 'border-gray-300'
+                                } ${
+                                  isSubmitted && isCorrect
+                                    ? 'border-green-500 bg-green-500'
+                                    : isSubmitted && isSelected && !isCorrect
+                                    ? 'border-red-500 bg-red-500'
+                                    : ''
+                                }`}>
+                                  {isSelected && (
+                                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                                  )}
+                                </div>
+                                <span className={`flex-1 ${
+                                  isSubmitted && isCorrect
+                                    ? 'text-green-800 font-semibold'
+                                    : isSubmitted && isSelected && !isCorrect
+                                    ? 'text-red-800 font-semibold'
+                                    : 'text-gray-700'
+                                }`}>
+                                  {option}
+                                </span>
+                                {isSubmitted && isCorrect && (
                             <CheckCircle className="w-5 h-5 text-green-600" />
+                                )}
+                                {isSubmitted && isSelected && !isCorrect && (
+                                  <X className="w-5 h-5 text-red-600" />
+                                )}
+                              </label>
+                            );
+                          })}
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-700 mb-1">Answer:</p>
-                            <p className="text-gray-900 leading-relaxed">{question.answer}</p>
                           </div>
+                        </div>
+                  ))}
+                  
+                  {/* Submit Button */}
+                  {!mcqSubmitted && (
+                    <div className="flex justify-center pt-6">
+                      <button
+                        onClick={submitMCQ}
+                        disabled={Object.keys(mcqAnswers).length !== mcqQuestions.length}
+                        className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+                      >
+                        <Brain className="w-5 h-5" />
+                        Submit Quiz
+                        <span className="text-sm opacity-75">
+                          ({Object.keys(mcqAnswers).length}/{mcqQuestions.length} answered)
+                        </span>
+                      </button>
+                      </div>
+                  )}
+                  
+                  {/* Results */}
+                  {mcqSubmitted && mcqScore !== null && (
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-6 border border-green-200">
+                      <div className="text-center">
+                        <div className="w-16 h-16 mx-auto bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mb-4">
+                          <Trophy className="w-8 h-8 text-white" />
+                    </div>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-2">Quiz Completed!</h3>
+                        <div className="text-4xl font-bold text-green-600 mb-2">{mcqScore}%</div>
+                        <p className="text-gray-600 mb-4">
+                          You scored {mcqScore}% on this quiz
+                        </p>
+                        <div className="flex gap-3 justify-center">
+                          <button
+                            onClick={resetMCQ}
+                            className="px-6 py-3 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors border border-gray-300"
+                          >
+                            Retake Quiz
+                          </button>
+                          <button
+                            onClick={() => setShowMcq(false)}
+                            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors"
+                          >
+                            Close
+                          </button>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-12">
@@ -1000,9 +1260,9 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                       <h4 className="text-lg font-semibold text-gray-900">AI Response:</h4>
                     </div>
                     <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200">
-                      <pre className="text-gray-800 whitespace-pre-wrap leading-relaxed font-medium">
+                      <p className="text-gray-800 whitespace-pre-wrap leading-relaxed font-medium">
                         {chatResponse}
-                      </pre>
+                      </p>
                     </div>
                   </div>
                 )}

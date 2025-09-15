@@ -1623,9 +1623,6 @@ export default function StudentDashboard() {
                     onTabChange={setActiveTab}
                     dashboardData={dashboardData}
                     user={user ? { uniqueId: user.uniqueId || undefined } : undefined}
-                    youtubeData={youtubeData}
-                    youtubeLoading={youtubeLoading}
-                    onTriggerYouTubeScrapping={triggerYouTubeScrapping}
                   />
                   </motion.div>
                 </motion.div>
