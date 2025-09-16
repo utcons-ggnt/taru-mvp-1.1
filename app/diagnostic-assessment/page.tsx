@@ -62,6 +62,8 @@ export default function DiagnosticAssessment() {
   const [selectedOption, setSelectedOption] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPreviousLoading, setIsPreviousLoading] = useState(false);
+  const [isSkipLoading, setIsSkipLoading] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [error, setError] = useState('');
@@ -344,7 +346,7 @@ export default function DiagnosticAssessment() {
     if (currentQuestionNumber <= 1) return;
 
     try {
-      setIsSubmitting(true);
+      setIsPreviousLoading(true);
       setError('');
 
       // Save current answer if any
@@ -401,7 +403,7 @@ export default function DiagnosticAssessment() {
       console.error('Error loading previous question:', err);
       setError(err instanceof Error ? err.message : 'Failed to load previous question');
     } finally {
-      setIsSubmitting(false);
+      setIsPreviousLoading(false);
     }
   };
 
@@ -556,7 +558,7 @@ export default function DiagnosticAssessment() {
     if (!currentQuestion) return;
 
     try {
-      setIsSubmitting(true);
+      setIsSkipLoading(true);
       setError('');
 
       // Collect the skipped answer for analytics/N8N, but do not prefill on revisit
@@ -648,7 +650,7 @@ export default function DiagnosticAssessment() {
       console.error('Error skipping question:', err);
       setError(err instanceof Error ? err.message : 'Failed to skip question');
     } finally {
-      setIsSubmitting(false);
+      setIsSkipLoading(false);
     }
   };
 
@@ -953,59 +955,169 @@ export default function DiagnosticAssessment() {
         )}
 
         {/* Result Section */}
-        <div className="flex-1 flex items-center justify-center px-6 py-8">
+        <div className="flex-1 flex items-center justify-center px-6 py-8 relative">
+          {/* Animated Background Elements */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-10 left-10 w-20 h-20 bg-yellow-400/20 rounded-full animate-pulse"></div>
+            <div className="absolute top-32 right-16 w-16 h-16 bg-blue-400/20 rounded-full animate-bounce"></div>
+            <div className="absolute bottom-20 left-20 w-12 h-12 bg-green-400/20 rounded-full animate-ping"></div>
+            <div className="absolute bottom-32 right-10 w-24 h-24 bg-purple-400/20 rounded-full animate-pulse"></div>
+            <div className="absolute top-1/2 left-1/4 w-8 h-8 bg-pink-400/20 rounded-full animate-bounce"></div>
+            <div className="absolute top-1/3 right-1/3 w-14 h-14 bg-indigo-400/20 rounded-full animate-ping"></div>
+          </div>
+
           <motion.div 
-            className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-2xl p-8 text-white text-center max-w-4xl mx-auto relative overflow-hidden"
-            initial={{ scale: 0.9, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
+            className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 rounded-3xl p-8 text-white text-center max-w-5xl mx-auto relative overflow-hidden shadow-2xl border border-purple-400/20"
+            initial={{ scale: 0.9, y: 20, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
           >
+            {/* Decorative Elements */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400"></div>
+            <div className="absolute top-4 left-4 w-8 h-8 border-2 border-white/20 rounded-full"></div>
+            <div className="absolute top-4 right-4 w-6 h-6 border-2 border-white/20 rounded-full"></div>
+            <div className="absolute bottom-4 left-4 w-6 h-6 border-2 border-white/20 rounded-full"></div>
+            <div className="absolute bottom-4 right-4 w-8 h-8 border-2 border-white/20 rounded-full"></div>
             <motion.div
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.5 }}
             >
-              <h1 className="text-4xl font-bold mb-4">
-                🎭 You&apos;re a {result.type}! 🏆
-              </h1>
+              <motion.h1 
+                className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-yellow-300 via-pink-300 to-purple-300 bg-clip-text text-transparent"
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.6, duration: 0.8, type: "spring", stiffness: 200 }}
+              >
+                🎉 Congratulations! 🎉
+              </motion.h1>
+              
+              <motion.div 
+                className="text-3xl md:text-4xl font-bold mb-2 text-white/95"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.8, duration: 0.6 }}
+              >
+                You&apos;re a <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">{result.type}</span>!
+              </motion.div>
+              
+              <motion.div 
+                className="text-6xl mb-6"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 1, duration: 0.5, type: "spring", stiffness: 300 }}
+              >
+                🏆
+              </motion.div>
               
               {/* Student Info */}
               {userProfile && (
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6">
+                <motion.div 
+                  className="bg-gradient-to-r from-white/15 to-white/5 backdrop-blur-md rounded-2xl p-6 mb-8 border border-white/20 shadow-lg"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 1.2, duration: 0.6 }}
+                >
                   <div className="text-center">
-                    <h3 className="text-lg font-semibold mb-2">Personalized Results for</h3>
-                    <p className="text-xl font-bold text-blue-200">
-                      {userProfile.fullName} #{userProfile.uniqueId}
-                    </p>
+                    <h3 className="text-lg font-semibold mb-3 text-white/80">Personalized Results for</h3>
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                        {userProfile.fullName.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-white">
+                          {userProfile.fullName}
+                        </p>
+                        <p className="text-sm text-blue-200 font-mono">
+                          #{userProfile.uniqueId}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               )}
               
                              {/* Assessment Results Display - Enhanced N8N Data Alignment */}
                {result.n8nResults && (
                  <div className="space-y-6 mb-8">
                    {/* Score and Stats Cards */}
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                     <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 backdrop-blur-sm rounded-xl p-6 text-center border border-blue-300/30">
-                       <div className="text-4xl mb-2">📊</div>
-                       <h3 className="text-lg font-semibold mb-2 text-blue-200">Total Questions</h3>
-                       <p className="text-3xl font-bold text-blue-100">
+                   <motion.div 
+                     className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                     initial={{ y: 30, opacity: 0 }}
+                     animate={{ y: 0, opacity: 1 }}
+                     transition={{ delay: 1.4, duration: 0.8 }}
+                   >
+                     <motion.div 
+                       className="bg-gradient-to-br from-blue-500/30 to-blue-600/30 backdrop-blur-md rounded-2xl p-8 text-center border border-blue-300/40 shadow-xl hover:shadow-2xl transition-all duration-300"
+                       whileHover={{ scale: 1.05, y: -5 }}
+                     >
+                       <motion.div 
+                         className="text-5xl mb-4"
+                         animate={{ rotate: [0, 10, -10, 0] }}
+                         transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                       >
+                         📊
+                       </motion.div>
+                       <h3 className="text-xl font-bold mb-3 text-blue-100">Total Questions</h3>
+                       <motion.p 
+                         className="text-4xl font-bold text-blue-50"
+                         initial={{ scale: 0 }}
+                         animate={{ scale: 1 }}
+                         transition={{ delay: 1.8, duration: 0.5, type: "spring" }}
+                       >
                          {result.n8nResults?.['Total Questions'] || result.totalQuestions || 0}
-                       </p>
-                     </div>
+                       </motion.p>
+                     </motion.div>
                      
-                     <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 backdrop-blur-sm rounded-xl p-6 text-center border border-yellow-300/30">
-                       <div className="text-4xl mb-2">🏆</div>
-                       <h3 className="text-lg font-semibold mb-2 text-yellow-200">Your Score</h3>
-                       <p className="text-3xl font-bold text-yellow-100">
+                     <motion.div 
+                       className="bg-gradient-to-br from-yellow-500/30 to-yellow-600/30 backdrop-blur-md rounded-2xl p-8 text-center border border-yellow-300/40 shadow-xl hover:shadow-2xl transition-all duration-300"
+                       whileHover={{ scale: 1.05, y: -5 }}
+                     >
+                       <motion.div 
+                         className="text-5xl mb-4"
+                         animate={{ y: [0, -10, 0] }}
+                         transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}
+                       >
+                         🏆
+                       </motion.div>
+                       <h3 className="text-xl font-bold mb-3 text-yellow-100">Your Score</h3>
+                       <motion.p 
+                         className="text-4xl font-bold text-yellow-50"
+                         initial={{ scale: 0 }}
+                         animate={{ scale: 1 }}
+                         transition={{ delay: 2, duration: 0.5, type: "spring" }}
+                       >
                          {result.n8nResults?.Score || result.score || 0}%
-                       </p>
-                     </div>
+                       </motion.p>
+                       {/* Progress Bar */}
+                       <div className="mt-4 w-full bg-white/20 rounded-full h-2">
+                         <motion.div 
+                           className="bg-gradient-to-r from-yellow-300 to-yellow-500 h-2 rounded-full"
+                           initial={{ width: 0 }}
+                           animate={{ width: `${result.n8nResults?.Score || result.score || 0}%` }}
+                           transition={{ delay: 2.2, duration: 1.5, ease: "easeOut" }}
+                         ></motion.div>
+                       </div>
+                     </motion.div>
                      
-                     <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-sm rounded-xl p-6 text-center border border-green-300/30">
-                       <div className="text-4xl mb-2">⭐</div>
-                       <h3 className="text-lg font-semibold mb-2 text-green-200">Performance</h3>
-                       <p className="text-3xl font-bold text-green-100">
+                     <motion.div 
+                       className="bg-gradient-to-br from-green-500/30 to-green-600/30 backdrop-blur-md rounded-2xl p-8 text-center border border-green-300/40 shadow-xl hover:shadow-2xl transition-all duration-300"
+                       whileHover={{ scale: 1.05, y: -5 }}
+                     >
+                       <motion.div 
+                         className="text-5xl mb-4"
+                         animate={{ rotate: [0, 15, -15, 0] }}
+                         transition={{ duration: 3, repeat: Infinity, repeatDelay: 1 }}
+                       >
+                         ⭐
+                       </motion.div>
+                       <h3 className="text-xl font-bold mb-3 text-green-100">Performance</h3>
+                       <motion.p 
+                         className="text-2xl font-bold text-green-50"
+                         initial={{ scale: 0 }}
+                         animate={{ scale: 1 }}
+                         transition={{ delay: 2.4, duration: 0.5, type: "spring" }}
+                       >
                          {(() => {
                            const scoreStr = String(result.n8nResults?.Score || result.score || 0);
                            const score = parseInt(scoreStr);
@@ -1015,23 +1127,48 @@ export default function DiagnosticAssessment() {
                            if (score >= 60) return 'Fair';
                            return 'Needs Work';
                          })()}
-                       </p>
-                     </div>
-                   </div>
+                       </motion.p>
+                     </motion.div>
+                   </motion.div>
                    
                    {/* Assessment Summary */}
-                   <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 backdrop-blur-sm rounded-xl p-8 border border-purple-300/30">
-                     <div className="text-center mb-6">
-                       <h3 className="text-2xl font-bold text-purple-100 mb-2">🎯 Assessment Summary</h3>
-                       <div className="w-24 h-1 bg-purple-300 mx-auto rounded-full"></div>
+                   <motion.div 
+                     className="bg-gradient-to-br from-purple-500/30 to-purple-600/30 backdrop-blur-md rounded-3xl p-8 border border-purple-300/40 shadow-xl"
+                     initial={{ y: 30, opacity: 0 }}
+                     animate={{ y: 0, opacity: 1 }}
+                     transition={{ delay: 2.6, duration: 0.8 }}
+                   >
+                     <div className="text-center mb-8">
+                       <motion.h3 
+                         className="text-3xl font-bold text-purple-100 mb-4"
+                         initial={{ scale: 0.8 }}
+                         animate={{ scale: 1 }}
+                         transition={{ delay: 2.8, duration: 0.5 }}
+                       >
+                         🎯 Assessment Summary
+                       </motion.h3>
+                       <motion.div 
+                         className="w-32 h-1 bg-gradient-to-r from-purple-300 to-pink-300 mx-auto rounded-full"
+                         initial={{ width: 0 }}
+                         animate={{ width: "8rem" }}
+                         transition={{ delay: 3, duration: 1 }}
+                       ></motion.div>
                      </div>
                      
-                     <div className="bg-white/10 rounded-lg p-6 text-left">
-                       <p className="text-lg leading-relaxed text-white/95 font-medium">
-                         {result.n8nResults?.Summery || result.description || 'Assessment completed successfully.'}
-                       </p>
-                     </div>
-                   </div>
+                     <motion.div 
+                       className="bg-gradient-to-r from-white/15 to-white/5 rounded-2xl p-8 text-left border border-white/20"
+                       initial={{ scale: 0.95, opacity: 0 }}
+                       animate={{ scale: 1, opacity: 1 }}
+                       transition={{ delay: 3.2, duration: 0.6 }}
+                     >
+                       <div className="flex items-start gap-4">
+                         <div className="text-4xl">💡</div>
+                         <p className="text-xl leading-relaxed text-white/95 font-medium">
+                           {result.n8nResults?.Summery || result.description || 'Assessment completed successfully.'}
+                         </p>
+                       </div>
+                     </motion.div>
+                   </motion.div>
                    
                  </div>
                )}
@@ -1048,51 +1185,54 @@ export default function DiagnosticAssessment() {
 
             </motion.div>
 
-                         <motion.div 
-               className="flex flex-col sm:flex-row justify-center gap-4 mb-8"
-               initial={{ y: 20, opacity: 0 }}
-               animate={{ y: 0, opacity: 1 }}
-               transition={{ delay: 0.6, duration: 0.5 }}
-             >
-                               <button 
-                  onClick={resetAssessment}
-                  disabled={isResetting}
-                  className="bg-gradient-to-r from-blue-500/20 to-blue-600/20 backdrop-blur-sm text-white px-8 py-4 rounded-full font-semibold hover:from-blue-500/30 hover:to-blue-600/30 transition-all duration-300 flex items-center gap-3 border border-blue-300/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            <motion.div 
+              className="flex flex-col sm:flex-row justify-center gap-6 mb-8"
+              initial={{ y: 30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 3.4, duration: 0.8 }}
+            >
+              <motion.button 
+                onClick={resetAssessment}
+                disabled={isResetting}
+                className="group bg-gradient-to-r from-blue-500/30 to-blue-600/30 backdrop-blur-md text-white px-10 py-5 rounded-2xl font-bold hover:from-blue-500/40 hover:to-blue-600/40 transition-all duration-300 flex items-center gap-4 border border-blue-300/40 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {isResetting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                    <span className="text-lg">Resetting...</span>
+                  </>
+                ) : (
+                  <>
+                    <motion.span 
+                      className="text-3xl"
+                      animate={{ rotate: [0, 360] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    >
+                      🔄
+                    </motion.span>
+                    <span className="text-lg">Take Assessment Again</span>
+                  </>
+                )}
+              </motion.button>
+              
+              <motion.button
+                onClick={() => router.push('/career-exploration')}
+                className="group bg-gradient-to-r from-yellow-500/30 to-orange-500/30 backdrop-blur-md text-white px-10 py-5 rounded-2xl font-bold hover:from-yellow-500/40 hover:to-orange-500/40 transition-all duration-300 flex items-center gap-4 border border-yellow-300/40 shadow-xl hover:shadow-2xl"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <motion.span 
+                  className="text-3xl"
+                  animate={{ y: [0, -5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  {isResetting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                      <span>Resetting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-2xl">🔄</span>
-                      <span>Take Assessment Again</span>
-                    </>
-                  )}
-                </button>
-               <button
-                 onClick={() => router.push('/career-exploration')}
-                 className="bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 backdrop-blur-sm text-white px-8 py-4 rounded-full font-semibold hover:from-yellow-500/30 hover:to-yellow-600/30 transition-all duration-300 flex items-center gap-3 border border-yellow-300/30"
-               >
-                 <span className="text-2xl">🚀</span>
-                 <span>Get my career path</span>
-               </button>
-               <button
-                 onClick={() => router.push('/dashboard/student')}
-                 className="bg-gradient-to-r from-white to-gray-100 text-purple-600 px-8 py-4 rounded-full font-semibold hover:from-gray-100 hover:to-gray-200 transition-all duration-300 flex items-center gap-3 shadow-lg"
-               >
-                 <span className="text-2xl">🏠</span>
-                 <span>Go to Dashboard</span>
-               </button>
-               <button
-                 onClick={() => router.push('/recommended-modules')}
-                 className="bg-gradient-to-r from-green-500/20 to-green-600/20 backdrop-blur-sm text-white px-8 py-4 rounded-full font-semibold hover:from-green-500/30 hover:to-green-600/30 transition-all duration-300 flex items-center gap-3 border border-green-300/30"
-               >
-                 <span className="text-2xl">📚</span>
-                 <span>Start Learning</span>
-               </button>
-             </motion.div>
+                  🚀
+                </motion.span>
+                <span className="text-lg">Get My Career Path</span>
+              </motion.button>
+            </motion.div>
           </motion.div>
         </div>
         </motion.main>
@@ -1450,10 +1590,10 @@ export default function DiagnosticAssessment() {
                   {/* Previous Button */}
                   <button
                     onClick={goToPreviousQuestion}
-                    disabled={isSubmitting || currentQuestionNumber <= 1}
+                    disabled={isPreviousLoading || isSkipLoading || isSubmitting || currentQuestionNumber <= 1}
                     className="bg-gray-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                   >
-                    {isSubmitting ? (
+                    {isPreviousLoading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                         Loading...
@@ -1468,10 +1608,10 @@ export default function DiagnosticAssessment() {
                   {/* Skip Button */}
                   <button
                     onClick={skipQuestion}
-                    disabled={isSubmitting}
+                    disabled={isSkipLoading || isPreviousLoading || isSubmitting}
                     className="bg-yellow-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                   >
-                    {isSubmitting ? (
+                    {isSkipLoading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                         Skipping...
@@ -1484,7 +1624,7 @@ export default function DiagnosticAssessment() {
                   {/* Next/Complete Button */}
                   <button
                     onClick={submitAnswer}
-                    disabled={isSubmitting || (
+                    disabled={isSubmitting || isPreviousLoading || isSkipLoading || (
                       (currentQuestion.type === 'SINGLE_CHOICE' && selectedOption.length === 0) ||
                       (currentQuestion.type === 'MULTIPLE_CHOICE' && selectedOption.length === 0)
                     )}

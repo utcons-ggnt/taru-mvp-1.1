@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Youtube, BookOpen, Play, Loader2, Clock, Zap } from 'lucide-react';
+import Image from 'next/image';
 
 interface LoadingPageProps {
   type?: 'modules' | 'videos' | 'webhook' | 'general';
@@ -75,10 +76,16 @@ const LoadingPage: React.FC<LoadingPageProps> = ({
       <div className="max-w-md w-full">
         {/* Main Loading Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
-          {/* Icon Section */}
+          {/* Taru Logo Section */}
           <div className="relative mb-6">
-            <div className={`w-20 h-20 ${config.iconBg} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg`}>
-              <Icon className={`w-10 h-10 ${config.iconColor}`} />
+            <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Image 
+                src="/icons/logo.svg" 
+                alt="Taru Logo" 
+                width={40} 
+                height={40} 
+                className="w-10 h-10"
+              />
             </div>
             
             {/* Animated Spinner */}

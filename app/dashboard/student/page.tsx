@@ -7,6 +7,7 @@ import ModulesTab from './components/ModulesTab';
 import ProgressTab from './components/ProgressTab';
 import RewardsTab from './components/RewardsTab';
 import SettingsTab from './components/SettingsTab';
+import LearningPathTab from './components/LearningPathTab';
 import ChatModal from './components/ChatModal';
 import StatsCards from './components/StatsCards';
 import Image from 'next/image';
@@ -56,6 +57,7 @@ interface StudentProfile {
   uniqueId?: string | null; // Added for student unique ID
   fullName?: string; // Added for ModulesTab compatibility
   classGrade?: string; // Added for ModulesTab compatibility
+  schoolName?: string; // Added for school name
 }
 
 interface YouTubeData {
@@ -166,6 +168,7 @@ export default function StudentDashboard() {
   const [isRightPanelHovered, setIsRightPanelHovered] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const notificationRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const logoutTriggered = useRef(false);
   const { width: windowWidth } = useWindowSize();
@@ -589,16 +592,20 @@ export default function StudentDashboard() {
     : [];
 
   // Map real profile data, fallback to minimal
-  const profileData = user && dashboardData
+  const profileData = user
     ? {
-        name: dashboardData.overview.studentName || user.name || '',
+        name: user.name || user.fullName || '',
         email: user.email || '',
-        grade: dashboardData.overview.grade || user.profile?.grade || '',
-        school: dashboardData.overview.school || user.profile?.school || '',
+        grade: user.profile?.grade || user.classGrade || '',
+        school: user.profile?.school || (user as any).schoolName || '',
         language: 'English', // Default language
-        studentKey: dashboardData.overview.studentKey || 'Not available',
+        studentKey: user.uniqueId || 'Not available',
       }
     : { name: '', email: '', grade: '', school: '', language: 'English', studentKey: 'Not available' };
+
+  console.log('🔍 Constructed profileData:', profileData);
+  console.log('🔍 User data:', user);
+  console.log('🔍 Dashboard data:', dashboardData);
 
   // Helper function to get subject icon
   function getSubjectIcon(subject: string): string {
@@ -665,6 +672,23 @@ export default function StudentDashboard() {
       prev.map(n => ({ ...n, read: true }))
     );
   };
+
+  // Handle clicks outside notification dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationOpen(false);
+      }
+    };
+
+    if (isNotificationOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isNotificationOpen]);
 
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
@@ -1024,7 +1048,7 @@ export default function StudentDashboard() {
            
             
              {/* Enhanced Notification Bell */}
-            <div className="relative">
+            <div className="relative" ref={notificationRef}>
                <motion.button 
                 onClick={handleNotificationClick}
                  className="relative text-gray-900 hover:text-purple-600 transition-colors p-2 rounded-full hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 touch-manipulation group"
@@ -1074,8 +1098,15 @@ export default function StudentDashboard() {
                </motion.button>
 
               {/* Notifications Dropdown */}
-              {isNotificationOpen && (
-                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+              <AnimatePresence>
+                {isNotificationOpen && (
+                  <motion.div 
+                    className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-[9999]"
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                  >
                   {/* User Profile Header */}
                   <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-white">
                     <div className="flex items-center gap-3">
@@ -1167,16 +1198,23 @@ export default function StudentDashboard() {
                       </div>
                     </div>
                   )}
-                </div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {/* Overlay to close dropdown */}
-              {isNotificationOpen && (
-                <div 
-                  className="fixed inset-0 z-40" 
-                  onClick={() => setIsNotificationOpen(false)}
-                ></div>
-              )}
+              {/* Enhanced Overlay to close dropdown */}
+              <AnimatePresence>
+                {isNotificationOpen && (
+                  <motion.div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsNotificationOpen(false)}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  ></motion.div>
+                )}
+              </AnimatePresence>
             </div>
             
              {/* Enhanced User Profile Section */}
@@ -1238,144 +1276,6 @@ export default function StudentDashboard() {
           </div>
         </div>
         
-        {/* Debug Info Panel - Development Only */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="fixed top-4 right-4 z-50 bg-black/80 text-white p-4 rounded-lg text-xs font-mono max-w-sm max-h-96 overflow-y-auto">
-            <h3 className="font-bold mb-2 text-green-400">Debug Info v2.1</h3>
-            <div className="space-y-1">
-              <div className="flex justify-between">
-                <span>User:</span>
-                <span className={user ? 'text-green-400' : 'text-yellow-400'}>
-                  {user ? 'Loaded' : 'Loading...'}
-                </span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span>UniqueId:</span>
-                <span className={user?.uniqueId ? 'text-green-400' : 'text-red-400'}>
-                  {user?.uniqueId || 'Not available'}
-                </span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span>User Role:</span>
-                <span>{user?.role || 'Unknown'}</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span>User Email:</span>
-                <span className="text-xs truncate">{user?.email || 'Unknown'}</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span>Processing:</span>
-                <span className={youtubeLoading ? 'text-yellow-400' : 'text-gray-400'}>
-                  {youtubeLoading ? 'Yes' : 'No'}
-                </span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span>Progress:</span>
-                <span>{dashboardData?.overview ? `${dashboardData.overview.completedModules}/${dashboardData.overview.totalModules}` : '0/0'}</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span>Status:</span>
-                <span className={isLoading || dashboardLoading || youtubeLoading ? 'text-yellow-400' : 'text-green-400'}>
-                  {isLoading ? 'Loading' : dashboardLoading ? 'Fetching Data' : youtubeLoading ? 'Loading YouTube' : 'Idle'}
-                </span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span>YouTube Data:</span>
-                <span className={youtubeData ? 'text-green-400' : 'text-red-400'}>
-                  {youtubeData ? `${youtubeData.totalChapters} chapters` : 'Not available'}
-                </span>
-              </div>
-              
-              {user?.uniqueId && (
-                <div className="pt-2 border-t border-gray-600">
-                  <div className="text-xs text-gray-300 mb-1">API Test:</div>
-                  <div className="text-xs break-all">
-                    /api/youtube-data?uniqueid={user.uniqueId}
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {!youtubeData && user?.uniqueId && (
-              <button 
-                onClick={triggerYouTubeScrapping}
-                className="mt-3 w-full px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:bg-gray-600"
-                disabled={youtubeLoading}
-              >
-                {youtubeLoading ? 'Processing...' : 'Trigger YouTube Scrapping'}
-              </button>
-            )}
-            
-            {user?.uniqueId && (
-              <>
-                <button 
-                  onClick={() => fetchYouTubeData(user.uniqueId!)}
-                  className="mt-1 w-full px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:bg-gray-600"
-                  disabled={youtubeLoading}
-                >
-                  {youtubeLoading ? 'Loading...' : 'Retry YouTube Fetch'}
-                </button>
-                
-                <button 
-                  onClick={testApiConnectivity}
-                  className="mt-1 w-full px-2 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700"
-                >
-                  Test API Connectivity
-                </button>
-                
-                <button 
-                  onClick={() => {
-                    console.log('🔄 Force refreshing page to clear cache...');
-                    window.location.reload();
-                  }}
-                  className="mt-1 w-full px-2 py-1 bg-orange-600 text-white rounded text-xs hover:bg-orange-700"
-                >
-                  Force Refresh Page
-                </button>
-                
-                <button 
-                  onClick={async () => {
-                    console.log('🧪 Testing YouTube data structure...');
-                    try {
-                      const response = await fetch('/api/test-youtube-structure');
-                      if (response.ok) {
-                        const result = await response.json();
-                        console.log('✅ Structure test result:', result);
-                        alert(`Structure test ${result.success ? 'PASSED' : 'FAILED'}!\nCheck console for details.`);
-                      } else {
-                        let errorData;
-                        try {
-                          errorData = await response.json();
-                        } catch (jsonError) {
-                          errorData = {
-                            status: response.status,
-                            statusText: response.statusText,
-                            message: 'Failed to parse error response as JSON'
-                          };
-                        }
-                        console.error('❌ Structure test failed:', errorData);
-                        alert(`Structure test failed! Status: ${response.status}\nCheck console for details.`);
-                      }
-                    } catch (error) {
-                      console.error('❌ Structure test failed:', error);
-                      alert('Structure test failed! Check console for details.');
-                    }
-                  }}
-                  className="mt-1 w-full px-2 py-1 bg-cyan-600 text-white rounded text-xs hover:bg-cyan-700"
-                >
-                  Test Data Structure
-                </button>
-              </>
-            )}
-          </div>
-        )}
 
         {/* Main Content with Responsive Layout */}
         <div className="dashboard-content relative">
@@ -1627,6 +1527,7 @@ export default function StudentDashboard() {
                   </motion.div>
                 </motion.div>
               )}
+              {activeTab === 'learning-path' && <LearningPathTab user={user ? { uniqueId: user.uniqueId ?? undefined, name: user.name ?? undefined } : null} onTabChange={setActiveTab} />}
               {activeTab === 'modules' && <ModulesTab user={user} />}
               {activeTab === 'progress' && <ProgressTab progress={progressData} onTabChange={setActiveTab} />}
               {activeTab === 'rewards' && <RewardsTab badges={badgesData} onTabChange={setActiveTab} />}
@@ -1634,6 +1535,7 @@ export default function StudentDashboard() {
               {/* Fallback for unknown tab */}
               {![
                 'overview',
+                'learning-path',
                 'modules',
                 'progress',
                 'rewards',

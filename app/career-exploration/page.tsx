@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import ConsistentLoadingPage from '../components/ConsistentLoadingPage';
 
 interface CareerOption {
@@ -80,31 +81,47 @@ export default function CareerExploration() {
     return (
       <ConsistentLoadingPage
         type="general"
-        title="Loading Career Options"
-        subtitle="Discovering personalized career paths for you..."
+        title="Generating Career Options"
+        subtitle="Our AI is analyzing your assessment results and creating personalized career recommendations..."
         tips={[
+          'Processing your assessment responses',
           'Analyzing your interests and skills',
-          'Matching you with suitable careers',
+          'Matching you with suitable career paths',
+          'Generating detailed career descriptions',
           'Preparing personalized recommendations'
         ]}
+        extendedLoading={true}
       />
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#6D18CE] flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-white text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-white mb-2">Error</h2>
-          <p className="text-white mb-4">{error}</p>
-          <button
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50 flex items-center justify-center">
+        <motion.div 
+          className="text-center bg-white/80 backdrop-blur-sm rounded-3xl p-12 shadow-2xl border border-red-200"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <motion.div 
+            className="text-8xl mb-6"
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            ⚠️
+          </motion.div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Oops! Something went wrong</h2>
+          <p className="text-gray-600 mb-8 text-lg">{error}</p>
+          <motion.button
             onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-white text-[#6D18CE] rounded-lg hover:bg-gray-100 transition-colors"
+            className="px-8 py-4 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-2xl font-semibold hover:from-red-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
             Try Again
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </div>
     );
   }
@@ -138,141 +155,283 @@ export default function CareerExploration() {
   ];
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel - Purple */}
-      <div className="w-[469px] bg-[#6D18CE] rounded-l-[40px] relative overflow-hidden">
-        {/* Background Vectors */}
-        <div className="absolute w-[948.59px] h-[467.12px] left-[311px] top-[-131px] opacity-60">
-          <div className="w-full h-full bg-gradient-to-br from-white/10 to-transparent rounded-full"></div>
-        </div>
-        <div className="absolute w-[948.59px] h-[467.12px] left-[-494px] top-[498.88px] opacity-60">
-          <div className="w-full h-full bg-gradient-to-br from-white/10 to-transparent rounded-full"></div>
-        </div>
-
-        {/* Taru Logo */}
-        <div className="absolute w-[68px] h-[68px] left-[63px] top-[64px] bg-white rounded-full flex items-center justify-center">
-          <span className="text-[#6D18CE] font-bold text-xl">Taru</span>
-        </div>
-
-        {/* Students Details Title */}
-        <div className="absolute left-[63px] top-[184px]">
-          <h1 className="text-[39.375px] font-bold text-white leading-[48px]">
-            Students Details
-          </h1>
-        </div>
-
-        {/* Progress Indicators */}
-        <div className="absolute left-[181px] top-[287px] flex flex-col space-y-[113px]">
-          {/* Step 1 */}
-          <div className="flex items-center">
-            <div className="w-[45.81px] h-[45.81px] bg-white rounded-full flex items-center justify-center">
-              <span className="text-[24.7297px] font-bold text-[#5B10B1]">1</span>
-            </div>
-            <div className="w-[222.53px] h-[2px] bg-white ml-4"></div>
-          </div>
-          
-          {/* Step 2 */}
-          <div className="flex items-center">
-            <div className="w-[45.81px] h-[45.81px] bg-white rounded-full flex items-center justify-center">
-              <span className="text-[24.7297px] font-bold text-[#5B10B1]">2</span>
-            </div>
-            <div className="w-[222.53px] h-[2px] bg-white ml-4"></div>
-          </div>
-          
-          {/* Step 3 */}
-          <div className="flex items-center">
-            <div className="w-[45.81px] h-[45.81px] bg-white rounded-full flex items-center justify-center">
-              <span className="text-[24.7297px] font-bold text-[#5B10B1]">3</span>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <motion.div
+          className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70"
+          animate={{
+            scale: [1, 1.2, 1],
+            rotate: [0, 180, 360],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
+        <motion.div
+          className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-70"
+          animate={{
+            scale: [1.2, 1, 1.2],
+            rotate: [360, 180, 0],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
+        <motion.div
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-50"
+          animate={{
+            scale: [1, 1.3, 1],
+            x: [0, 100, 0],
+            y: [0, -50, 0],
+          }}
+          transition={{
+            duration: 30,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
       </div>
 
-      {/* Right Panel - White */}
-      <div className="flex-1 bg-white rounded-r-[40px] relative shadow-[-21px_0px_144px_#5B10B1]">
-        {/* Language Selector */}
-        <div className="absolute right-[53px] top-[85px] flex items-center space-x-2">
-          <span className="text-[15.9955px] font-semibold text-black">English (USA)</span>
-          <div className="w-[26.6px] h-[26.6px] flex items-center justify-center">
-            <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
-              <path d="M1 1L6 6L11 1" stroke="#8E8E8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+      {/* Main Container */}
+      <div className="relative z-10 min-h-screen flex flex-col">
+        {/* Enhanced Header */}
+        <motion.header 
+          className="bg-white/90 backdrop-blur-2xl border-b border-purple-200/50 sticky top-0 z-50 shadow-lg"
+          initial={{ y: -100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-center items-center h-20">
+
+              {/* Progress Steps with Labels */}
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl px-6 py-3 border border-purple-200/50">
+                  {[
+                    { step: 1, label: "Assessment", completed: true },
+                    { step: 2, label: "Career Exploration", completed: true, current: true },
+                    { step: 3, label: "Learning Path", completed: false }
+                  ].map((item, index) => (
+                    <motion.div
+                      key={item.step}
+                      className="flex items-center space-x-3"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.2 }}
+                    >
+                      <motion.div 
+                        className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
+                          item.current
+                            ? 'bg-gradient-to-r from-purple-500 to-blue-500' 
+                            : item.completed
+                            ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                            : 'bg-gradient-to-r from-purple-300 to-blue-300'
+                        }`}
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                      >
+                        {item.completed && !item.current ? (
+                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <span className="text-white font-bold text-sm">{item.step}</span>
+                        )}
+                      </motion.div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-700">{item.label}</span>
+                        <span className="text-xs text-gray-500">
+                          {item.current ? 'Current Step' : item.completed ? 'Completed' : 'Upcoming'}
+                        </span>
+                      </div>
+                      {index < 2 && (
+                        <motion.div 
+                          className="w-8 h-0.5 bg-gradient-to-r from-purple-300 to-blue-300"
+                          initial={{ scaleX: 0 }}
+                          animate={{ scaleX: 1 }}
+                          transition={{ delay: 0.5 + index * 0.2, duration: 0.5 }}
+                        />
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </motion.header>
 
         {/* Main Content */}
-        <div className="px-[53px] pt-[78px]">
-          {/* Main Title */}
-          <h1 className="text-[34px] font-bold text-black leading-[41px] mb-[21px]">
-            Your Future, Imagined!
-          </h1>
+        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* Hero Section */}
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+          >
+            <motion.div
+              className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 rounded-3xl mb-8 shadow-2xl"
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <span className="text-4xl">🚀</span>
+            </motion.div>
+            
+            <motion.h1 
+              className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+            >
+              Your Future, Imagined!
+            </motion.h1>
+            
+            <motion.p 
+              className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.7, duration: 0.8 }}
+            >
+              Discover personalized career paths tailored just for you. 
+              <span className="text-purple-600 font-semibold"> Let's explore what the future holds!</span>
+            </motion.p>
+          </motion.div>
 
-          {/* Subtitle */}
-          <h2 className="text-[24.7297px] font-bold text-[#6D18CE] leading-[30px] mb-[55px]">
-            Suggested Career Paths
-          </h2>
+          {/* Career Paths Section */}
+          <motion.div
+            className="mb-16"
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.9, duration: 0.8 }}
+          >
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Suggested Career Paths
+              </h2>
+              <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto rounded-full"></div>
+            </div>
 
-          {/* Career Path Cards Grid */}
-          <div className="grid grid-cols-2 gap-[11px] mb-[53px]">
-            {(careerOptions.length > 0 ? careerOptions.slice(0, 4) : defaultCareerPaths).map((path, index) => {
-              const isApiData = 'career' in path;
-              const title = isApiData ? path.career : path.title;
-              const description = isApiData ? path.description : path.description;
-              const icon = isApiData ? '🎯' : path.icon;
-              const hasLearnMore = isApiData ? true : path.hasLearnMore;
-              
-              return (
-                <div key={index} className="w-[299px] h-[185px] bg-[#F5F5F5] rounded-[14px] p-[27px] relative">
-                  {/* Icon */}
-                  <div className="w-[27px] h-[27px] mb-[11px] flex items-center justify-center">
-                    <span className="text-[#6D18CE] text-xl">{icon}</span>
-                  </div>
+            {/* Career Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+              {(careerOptions.length > 0 ? careerOptions.slice(0, 4) : defaultCareerPaths).map((path, index) => {
+                const isApiData = 'career' in path;
+                const title = isApiData ? path.career : path.title;
+                const description = isApiData ? path.description : path.description;
+                const icon = isApiData ? '🎯' : path.icon;
+                const hasLearnMore = isApiData ? true : path.hasLearnMore;
+                
+                return (
+                  <motion.div
+                    key={index}
+                    className="group relative bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 border border-purple-100/50 hover:border-purple-200/50"
+                    initial={{ y: 30, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 1.1 + index * 0.1, duration: 0.6 }}
+                    whileHover={{ y: -5, scale: 1.02 }}
+                  >
+                    {/* Decorative Background */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-blue-50/50 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    
+                    {/* Content */}
+                    <div className="relative z-10">
+                      {/* Icon */}
+                      <motion.div 
+                        className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg"
+                        whileHover={{ rotate: 10, scale: 1.1 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                      >
+                        <span className="text-3xl">{icon}</span>
+                      </motion.div>
 
-                  {/* Title */}
-                  <h3 className="text-[18px] font-bold text-black leading-[22px] mb-[6px]">
-                    {title}
-                  </h3>
+                      {/* Title */}
+                      <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-purple-600 transition-colors duration-300">
+                        {title}
+                      </h3>
 
-                  {/* Description */}
-                  <p className="text-[14px] text-[#878787] leading-[17px] mb-[26px]">
-                    {description}
-                  </p>
+                      {/* Description */}
+                      <p className="text-gray-600 leading-relaxed mb-8 text-lg">
+                        {description}
+                      </p>
 
-                  {/* Learn More Button */}
-                  {hasLearnMore && (
-                    <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleLearnMore(title, description);
-                      }}
-                      disabled={isNavigating}
-                      className={`absolute bottom-[27px] left-[27px] w-[73.78px] h-[23.93px] rounded-[27.9506px] flex items-center justify-center transition-colors ${
-                        isNavigating 
-                          ? 'bg-gray-400 cursor-not-allowed' 
-                          : 'bg-[#6D18CE] hover:bg-[#5B10B1] cursor-pointer'
-                      }`}
-                    >
-                      <span className="text-[8.38492px] font-medium text-white">
-                        {isNavigating ? 'Loading...' : 'Learn more'}
-                      </span>
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                      {/* Learn More Button */}
+                      {hasLearnMore && (
+                        <motion.button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleLearnMore(title, description);
+                          }}
+                          disabled={isNavigating}
+                          className={`group/btn relative w-full py-4 px-6 rounded-2xl font-semibold text-white transition-all duration-300 ${
+                            isNavigating 
+                              ? 'bg-gray-400 cursor-not-allowed' 
+                              : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 cursor-pointer shadow-lg hover:shadow-xl'
+                          }`}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <span className="flex items-center justify-center gap-2">
+                            {isNavigating ? (
+                              <>
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                Loading...
+                              </>
+                            ) : (
+                              <>
+                                Learn More
+                                <svg className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                              </>
+                            )}
+                          </span>
+                        </motion.button>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
 
           {/* Done Button */}
-          <div className="flex justify-center">
-            <button
+          <motion.div 
+            className="text-center"
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 1.5, duration: 0.8 }}
+          >
+            <motion.button
               onClick={handleDone}
-              className="w-[514px] h-[69px] bg-[#6D18CE] rounded-[90px] flex items-center justify-center hover:bg-[#5B10B1] transition-colors"
+              className="group relative inline-flex items-center justify-center px-12 py-6 text-xl font-bold text-white bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-300 overflow-hidden"
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <span className="text-[16.0016px] font-semibold text-white">Done! Let's Begin the Journey</span>
-            </button>
-          </div>
-        </div>
+              {/* Animated background */}
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-700 via-blue-700 to-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              
+              {/* Content */}
+              <span className="relative z-10 flex items-center gap-3">
+                <span>Done! Let's Begin the Journey</span>
+                <motion.svg 
+                  className="w-6 h-6 group-hover:translate-x-1 transition-transform duration-200" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </motion.svg>
+              </span>
+            </motion.button>
+          </motion.div>
+        </main>
       </div>
     </div>
   );

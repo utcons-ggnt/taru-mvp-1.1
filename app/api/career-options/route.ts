@@ -89,21 +89,16 @@ export async function GET(request: NextRequest) {
       uniqueId: student.uniqueId
     });
 
-    // Add timeout to prevent hanging requests
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
+    // Wait for N8N response without timeout
     let n8nOutput: any;
     try {
+      console.log('🔍 Waiting for N8N response...');
       const response = await fetch(`${N8N_CAREER_OPTIONS_WEBHOOK_URL}?${params}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-        },
-        signal: controller.signal
+        }
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         console.error('🔍 N8N career options webhook request failed:', response.status, response.statusText);
@@ -127,12 +122,7 @@ export async function GET(request: NextRequest) {
       n8nOutput = JSON.parse(responseText);
       console.log('🔍 Parsed N8N career options response:', n8nOutput);
     } catch (fetchError) {
-      clearTimeout(timeoutId);
-      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        console.error('🔍 N8N career options webhook request timed out after 15 seconds');
-      } else {
-        console.error('🔍 N8N career options webhook request failed:', fetchError);
-      }
+      console.error('🔍 N8N career options webhook request failed:', fetchError);
       
       // Return fallback result with dummy data instead of failing
       return NextResponse.json({
@@ -221,22 +211,17 @@ export async function POST(request: NextRequest) {
       ...body
     };
 
-    // Add timeout to prevent hanging requests
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
+    // Wait for N8N response without timeout
     let n8nOutput: any;
     try {
+      console.log('🔍 Waiting for N8N response...');
       const response = await fetch(N8N_CAREER_OPTIONS_WEBHOOK_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal
+        body: JSON.stringify(requestBody)
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         console.error('🔍 N8N career options webhook request failed:', response.status, response.statusText);
@@ -260,12 +245,7 @@ export async function POST(request: NextRequest) {
       n8nOutput = JSON.parse(responseText);
       console.log('🔍 Parsed N8N career options response:', n8nOutput);
     } catch (fetchError) {
-      clearTimeout(timeoutId);
-      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        console.error('🔍 N8N career options webhook request timed out after 15 seconds');
-      } else {
-        console.error('🔍 N8N career options webhook request failed:', fetchError);
-      }
+      console.error('🔍 N8N career options webhook request failed:', fetchError);
       
       // Return fallback result with dummy data instead of failing
       return NextResponse.json({

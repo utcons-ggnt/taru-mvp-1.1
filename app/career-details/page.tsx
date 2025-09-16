@@ -35,6 +35,12 @@ interface CareerDetails {
     focusAreas: string[];
     learningPath: LearningModule[];
     finalTip: string;
+    // Possible student name fields from N8N API
+    studentName?: string;
+    student_name?: string;
+    name?: string;
+    userName?: string;
+    user_name?: string;
   };
 }
 
@@ -42,12 +48,15 @@ function CareerDetailsContent() {
   const [careerDetails, setCareerDetails] = useState<CareerDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
   const [userInfo, setUserInfo] = useState<{
     name: string;
     id: string;
     avatar: string;
   } | null>(null);
+  const [userInfoLoading, setUserInfoLoading] = useState(true);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [hasFetchedCareerDetails, setHasFetchedCareerDetails] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -79,83 +88,177 @@ function CareerDetailsContent() {
     setExpandedModules(newExpanded);
   };
 
+  // Save learning path function
   const saveLearningPath = async () => {
-    if (!careerDetails || !careerPath) {
-      setSaveError('No career details or path to save');
-      return;
-    }
-
-    setIsSaving(true);
-    setSaveError(null);
-
+    if (!careerDetails?.output || !userInfo?.id) return;
+    
     try {
+      setIsSaving(true);
       const response = await fetch('/api/learning-paths/save', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
         body: JSON.stringify({
-          careerDetails: careerDetails,
-          careerPath: careerPath
-        })
+          studentId: userInfo.id,
+          careerPath: searchParams.get('careerPath') || 'Unknown Career',
+          description: careerDetails.output.overview?.join(' ') || 'Career learning path',
+          learningModules: careerDetails.output.learningPath || [],
+          timeRequired: careerDetails.output.timeRequired || 'Not specified',
+          focusAreas: careerDetails.output.focusAreas || []
+        }),
       });
 
-      const result = await response.json();
-
-      if (result.success) {
-        console.log('✅ Learning path saved successfully:', result.pathId);
+      if (response.ok) {
+        const data = await response.json();
         setIsSaved(true);
-        setSavedPathId(result.pathId);
+        setSavedPathId(data.learningPath?._id || 'unknown');
         
-        // Show success message for 3 seconds before navigating
+        // Redirect to dashboard after 2 seconds
         setTimeout(() => {
           router.push('/dashboard/student');
-        }, 3000);
+        }, 2000);
       } else {
-        console.error('❌ Failed to save learning path:', result.error);
-        setSaveError(result.error || 'Failed to save learning path');
+        const errorData = await response.json().catch(() => ({}));
+        setSaveError(errorData.error || 'Failed to save learning path');
       }
-    } catch (error) {
-      console.error('❌ Error saving learning path:', error);
-      setSaveError('Network error while saving learning path');
+    } catch (err) {
+      console.error('Error saving learning path:', err);
+      setSaveError('Failed to save learning path');
     } finally {
       setIsSaving(false);
     }
   };
 
   const fetchUserInfo = async () => {
+    setUserInfoLoading(true);
     try {
+      console.log('🔍 Fetching user info...', { sessionData: sessionData?.student });
+      
       // First try to get user info from session data
       if (sessionData?.student) {
         const student = sessionData.student;
+        const userName = student.name || student.firstName || student.fullName || 'Student';
+        const userId = student.studentId || student.uniqueId || student.id || '0000';
+        const userAvatar = userName.charAt(0).toUpperCase();
+        
+        console.log('🔍 Using session data:', { userName, userId, userAvatar });
+        
         setUserInfo({
-          name: student.name || student.firstName || 'Student',
-          id: student.studentId || student.uniqueId || '0000',
-          avatar: student.name?.charAt(0) || student.firstName?.charAt(0) || 'S'
+          name: userName,
+          id: userId,
+          avatar: userAvatar
         });
+        setUserInfoLoading(false);
         return;
       }
 
       // If no session data, try API call
+      console.log('🔍 No session data, trying API call...');
       const response = await fetch('/api/auth/me', {
         method: 'GET',
         credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
       });
+      
+      console.log('🔍 API response status:', response.status, response.statusText);
       
       if (response.ok) {
         const userData = await response.json();
+        console.log('🔍 Full API response:', JSON.stringify(userData, null, 2));
+        
         if (userData.success && userData.user) {
+          const user = userData.user;
+          const userName = user.name || user.firstName || user.fullName || 'User';
+          const userId = user.studentId || user.id || user.uniqueId || '0000';
+          const userAvatar = user.avatar || user.profilePicture || userName.charAt(0).toUpperCase();
+          
+          console.log('🔍 Using API data:', { userName, userId, userAvatar });
+          
           setUserInfo({
-            name: userData.user.name || userData.user.firstName || 'User',
-            id: userData.user.studentId || userData.user.id || '0000',
-            avatar: userData.user.avatar || userData.user.profilePicture || userData.user.name?.charAt(0) || 'U'
+            name: userName,
+            id: userId,
+            avatar: userAvatar
           });
+        } else {
+          console.log('🔍 API call succeeded but no user data, trying localStorage fallback');
+          await tryLocalStorageFallback();
         }
+      } else {
+        console.log('🔍 API call failed, trying localStorage fallback');
+        await tryLocalStorageFallback();
       }
     } catch (error) {
       console.error('Error fetching user info:', error);
-      // Set fallback user info
+      await tryLocalStorageFallback();
+    } finally {
+      setUserInfoLoading(false);
+    }
+  };
+
+  const tryLocalStorageFallback = async () => {
+    try {
+      console.log('🔍 Trying localStorage fallback...');
+      
+      // Check for registration data first
+      const registrationData = localStorage.getItem('registrationData');
+      if (registrationData) {
+        const parsed = JSON.parse(registrationData);
+        if (parsed.fullName && parsed.fullName !== 'Student') {
+          console.log('🔍 Found student name in registration data:', parsed.fullName);
+          setUserInfo({
+            name: parsed.fullName,
+            id: parsed.email || '0000',
+            avatar: parsed.fullName.charAt(0).toUpperCase()
+          });
+          return;
+        }
+      }
+
+      // Check for other possible localStorage keys
+      const possibleKeys = ['userName', 'studentName', 'userData', 'studentData', 'userInfo'];
+      for (const key of possibleKeys) {
+        const data = localStorage.getItem(key);
+        if (data) {
+          try {
+            const parsed = JSON.parse(data);
+            const name = parsed.name || parsed.fullName || parsed.firstName;
+            if (name && name !== 'Student') {
+              console.log(`🔍 Found student name in ${key}:`, name);
+              setUserInfo({
+                name: name,
+                id: parsed.id || parsed.studentId || '0000',
+                avatar: name.charAt(0).toUpperCase()
+              });
+              return;
+            }
+          } catch (e) {
+            // If it's not JSON, try as plain string
+            if (data && data !== 'Student') {
+              console.log(`🔍 Found student name as string in ${key}:`, data);
+              setUserInfo({
+                name: data,
+                id: '0000',
+                avatar: data.charAt(0).toUpperCase()
+              });
+              return;
+            }
+          }
+        }
+      }
+
+      // If no name found anywhere, use generic fallback
+      console.log('🔍 No student name found, using generic fallback');
+      setUserInfo({
+        name: 'Student',
+        id: '0000',
+        avatar: 'S'
+      });
+    } catch (error) {
+      console.error('🔍 Error in localStorage fallback:', error);
       setUserInfo({
         name: 'Student',
         id: '0000',
@@ -313,12 +416,127 @@ function CareerDetailsContent() {
     setHasFetchedCareerDetails(false);
   }, [careerPath]);
 
-  // Fetch user info when session data changes
+  // Fetch user info when session data changes or on initial load
   useEffect(() => {
-    if (sessionData?.student && !userInfo) {
+    if (sessionData?.student && !userInfo && !userInfoLoading) {
+      fetchUserInfo();
+    } else if (!sessionData?.student && !userInfo && !userInfoLoading) {
+      // If no session data, still try to fetch user info
       fetchUserInfo();
     }
-  }, [sessionData, userInfo]);
+  }, [sessionData, userInfo, userInfoLoading]);
+
+  // Also fetch user info on component mount if not already loaded
+  useEffect(() => {
+    if (!userInfo && !userInfoLoading) {
+      fetchUserInfo();
+    }
+  }, []);
+
+  // Try to extract student name from career details if user info is not available
+  useEffect(() => {
+    if (!userInfo && careerDetails && !userInfoLoading) {
+      console.log('🔍 Trying to extract student name from career details...', careerDetails);
+      
+      // Check if career details contain student information
+      const careerData = careerDetails.output;
+      if (careerData) {
+        // Look for student name in various possible fields
+        const possibleNameFields = [
+          careerData.studentName,
+          careerData.student_name,
+          careerData.name,
+          careerData.userName,
+          careerData.user_name
+        ];
+        
+        const studentName = possibleNameFields.find(name => name && typeof name === 'string' && name.trim().length > 0);
+        
+        if (studentName) {
+          console.log('🔍 Found student name in career details:', studentName);
+          setUserInfo({
+            name: studentName.trim(),
+            id: careerDetails.uniqueid || '0000',
+            avatar: studentName.trim().charAt(0).toUpperCase()
+          });
+        } else {
+          // Try to extract name from greeting text
+          if (careerData.greeting) {
+            const greetingMatch = careerData.greeting.match(/Hi\s+([^!]+)!/i);
+            if (greetingMatch && greetingMatch[1]) {
+              const extractedName = greetingMatch[1].trim();
+              if (extractedName && extractedName !== 'Student') {
+                console.log('🔍 Extracted student name from greeting:', extractedName);
+                setUserInfo({
+                  name: extractedName,
+                  id: careerDetails.uniqueid || '0000',
+                  avatar: extractedName.charAt(0).toUpperCase()
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+  }, [careerDetails, userInfo, userInfoLoading]);
+
+  // Try to get student name from localStorage as final fallback
+  useEffect(() => {
+    if (!userInfo && !userInfoLoading) {
+      console.log('🔍 Trying to get student name from localStorage...');
+      
+      try {
+        // Check for registration data
+        const registrationData = localStorage.getItem('registrationData');
+        if (registrationData) {
+          const parsed = JSON.parse(registrationData);
+          if (parsed.fullName && parsed.fullName !== 'Student') {
+            console.log('🔍 Found student name in registration data:', parsed.fullName);
+            setUserInfo({
+              name: parsed.fullName,
+              id: parsed.email || '0000',
+              avatar: parsed.fullName.charAt(0).toUpperCase()
+            });
+            return;
+          }
+        }
+
+        // Check for other possible localStorage keys
+        const possibleKeys = ['userName', 'studentName', 'userData', 'studentData'];
+        for (const key of possibleKeys) {
+          const data = localStorage.getItem(key);
+          if (data) {
+            try {
+              const parsed = JSON.parse(data);
+              const name = parsed.name || parsed.fullName || parsed.firstName;
+              if (name && name !== 'Student') {
+                console.log(`🔍 Found student name in ${key}:`, name);
+                setUserInfo({
+                  name: name,
+                  id: parsed.id || parsed.studentId || '0000',
+                  avatar: name.charAt(0).toUpperCase()
+                });
+                return;
+              }
+            } catch (e) {
+              // If it's not JSON, try as plain string
+              if (data && data !== 'Student') {
+                console.log(`🔍 Found student name as string in ${key}:`, data);
+                setUserInfo({
+                  name: data,
+                  id: '0000',
+                  avatar: data.charAt(0).toUpperCase()
+                });
+                return;
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('🔍 Error checking localStorage:', error);
+      }
+    }
+  }, [userInfo, userInfoLoading]);
 
   if (loading) {
     return (
@@ -529,102 +747,251 @@ function CareerDetailsContent() {
             );
           })}
         </div>
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
+      {/* Enhanced Header */}
+      <motion.header 
+        className="bg-white/90 backdrop-blur-2xl border-b border-purple-200/50 sticky top-0 z-50 shadow-lg"
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">N</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">Career Explorer</span>
-            </div>
+          <div className="flex justify-center items-center h-20">
 
-            {/* Navigation */}
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigateWithState('/career-exploration', { careerDetails })}
-                className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors duration-200"
-              >
-                ← Back to Options
-              </button>
-              
-              {/* User Profile */}
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold">
-                    {userInfo?.avatar || (userInfo === null ? '...' : 'U')}
-                  </span>
-                </div>
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900">
-                    {userInfo?.name || (userInfo === null ? 'Loading...' : 'Student')}
-                  </div>
-                  <div className="text-gray-500">
-                    #{userInfo?.id || (userInfo === null ? '...' : '0000')}
-                  </div>
-                </div>
+            {/* Progress Steps with Labels */}
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl px-6 py-3 border border-purple-200/50">
+                {[
+                  { step: 1, label: "Assessment", completed: true },
+                  { step: 2, label: "Career Exploration", completed: true },
+                  { step: 3, label: "Learning Path", completed: true, current: true }
+                ].map((item, index) => (
+                  <motion.div
+                    key={item.step}
+                    className="flex items-center space-x-3"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.2 }}
+                  >
+                    <motion.div 
+                      className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
+                        item.current
+                          ? 'bg-gradient-to-r from-purple-500 to-blue-500' 
+                          : item.completed
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                          : 'bg-gradient-to-r from-purple-300 to-blue-300'
+                      }`}
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      {item.completed && !item.current ? (
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <span className="text-white font-bold text-sm">{item.step}</span>
+                      )}
+                    </motion.div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-gray-700">{item.label}</span>
+                      <span className="text-xs text-gray-500">
+                        {item.current ? 'Current Step' : item.completed ? 'Completed' : 'Upcoming'}
+                      </span>
+                    </div>
+                    {index < 2 && (
+                      <motion.div 
+                        className="w-8 h-0.5 bg-gradient-to-r from-purple-300 to-blue-300"
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ delay: 0.5 + index * 0.2, duration: 0.5 }}
+                      />
+                    )}
+                  </motion.div>
+                ))}
               </div>
             </div>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl mb-6">
-            <span className="text-3xl">🧑🏻‍🎓</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+        {/* Enhanced Hero Section */}
+        <motion.div 
+          className="text-center mb-16"
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.8 }}
+        >
+          <motion.div 
+            className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 rounded-3xl mb-8 shadow-2xl"
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <span className="text-4xl">🧑🏻‍🎓</span>
+          </motion.div>
+          
+          <motion.h1 
+            className="text-5xl md:text-6xl font-bold mb-6"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+          >
+            <span className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
             {careerPath || 'Career Explorer'}
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            {userInfo?.name ? `Hi ${userInfo.name}! ` : ''}{output.greeting}
-          </p>
+            </span>
+          </motion.h1>
+          
+          <motion.p 
+            className="text-xl md:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed mb-8"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.7, duration: 0.6 }}
+          >
+            {userInfoLoading ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-32 h-6 bg-gray-200 rounded animate-pulse"></div>
+                <span>{output.greeting}</span>
+              </div>
+            ) : userInfo?.name && userInfo.name !== 'Student' ? (
+              <>
+                <span className="text-purple-600 font-semibold">Hi {userInfo.name}!</span>{' '}
+                {output.greeting}
+              </>
+            ) : (
+              output.greeting
+            )}
+          </motion.p>
+
+          {/* Status Indicators */}
+          <motion.div 
+            className="flex flex-wrap justify-center gap-4 mb-8"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.9, duration: 0.6 }}
+          >
+            <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium border border-blue-200">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              Personalized Learning Path
+            </div>
+            <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full text-sm font-medium border border-green-200">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              AI-Powered Insights
+            </div>
+            <div className="flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full text-sm font-medium border border-purple-200">
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+              Interactive Timeline
+            </div>
+          </motion.div>
+
           {isSaved && (
-            <div className="mt-4 inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <motion.div 
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 px-6 py-3 rounded-2xl text-sm font-semibold border border-green-200 shadow-lg"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               Learning path saved successfully!
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
         {/* Why This Career Fits You */}
-        <section className="mb-16">
-          <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+        <motion.section 
+          className="mb-16"
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.8 }}
+        >
+          <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 border border-gray-100 overflow-hidden relative">
+            {/* Decorative background elements */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full -translate-y-16 translate-x-16"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-100 to-purple-100 rounded-full translate-y-12 -translate-x-12"></div>
+            
+            <motion.h2 
+              className="text-4xl font-bold text-gray-900 mb-12 text-center relative z-10"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+            >
+              <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               Why this career fits you
-            </h2>
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="space-y-6">
+              </span>
+            </motion.h2>
+            
+            <div className="grid md:grid-cols-2 gap-12 relative z-10">
+              <motion.div 
+                className="space-y-8"
+                initial={{ x: -30, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.8, duration: 0.6 }}
+              >
               {output.overview && output.overview.length > 0 ? (
                 output.overview.map((item, index) => (
-                  <div key={index} className="flex items-start space-x-4">
-                    <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                    <motion.div 
+                      key={index} 
+                      className="flex items-start space-x-6 group"
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: 1 + (index * 0.1), duration: 0.5 }}
+                    >
+                      <motion.div 
+                        className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-lg group-hover:scale-110 transition-transform duration-200"
+                        whileHover={{ rotate: 360 }}
+                        transition={{ duration: 0.6 }}
+                      >
                       <span className="text-white text-sm font-bold">{index + 1}</span>
-                    </div>
-                    <p className="text-gray-700 leading-relaxed">{item}</p>
-                  </div>
+                      </motion.div>
+                      <p className="text-gray-700 leading-relaxed text-lg group-hover:text-gray-900 transition-colors duration-200">
+                        {item}
+                      </p>
+                    </motion.div>
                 ))
               ) : (
-                <div className="text-gray-500 italic">No overview data available</div>
-              )}
-              </div>
-              <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6">
+                  <div className="text-gray-500 italic text-center py-8">No overview data available</div>
+                )}
+              </motion.div>
+              
+              <motion.div 
+                className="bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 rounded-2xl p-8 border border-purple-100 shadow-lg"
+                initial={{ x: 30, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 1, duration: 0.6 }}
+                whileHover={{ scale: 1.02 }}
+              >
                 <div className="text-center">
-                  <div className="text-4xl mb-4">⏱️</div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Time to Master</h3>
-                  <p className="text-2xl font-bold text-purple-600">{output.timeRequired}</p>
+                  <motion.div 
+                    className="text-6xl mb-6"
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                  >
+                    ⏱️
+                  </motion.div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4">Time to Master</h3>
+                  <motion.p 
+                    className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent"
+                    initial={{ scale: 0.8 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 1.2, duration: 0.5, type: "spring" }}
+                  >
+                    {output.timeRequired}
+                  </motion.p>
+                  <div className="mt-6 w-full bg-gray-200 rounded-full h-2">
+                    <motion.div 
+                      className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: "75%" }}
+                      transition={{ delay: 1.4, duration: 1.5, ease: "easeOut" }}
+                    ></motion.div>
                 </div>
+                  <p className="text-sm text-gray-600 mt-2">Learning Progress</p>
               </div>
+              </motion.div>
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-2 gap-8 mb-16">
@@ -900,16 +1267,6 @@ function CareerDetailsContent() {
         </div>
       )}
 
-      {/* Debug Info - Development only */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed top-4 right-4 bg-black/80 text-white p-3 rounded-lg text-xs max-w-xs z-50">
-          <div><strong>Career Data Status:</strong></div>
-          <div>📊 Overview: {output.overview?.length || 0} items</div>
-          <div>🎯 Focus Areas: {output.focusAreas?.length || 0} items</div>
-          <div>📚 Learning Path: {output.learningPath?.length || 0} modules</div>
-          <div>🔄 Source: {careerDetails?.output ? 'N8N API' : 'Fallback'}</div>
-        </div>
-      )}
       </motion.div>
     </>
   );
@@ -918,18 +1275,16 @@ function CareerDetailsContent() {
 export default function CareerDetailsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-6"></div>
-            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-r-purple-400 rounded-full animate-spin mx-auto" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
-          </div>
-          <h3 className="text-2xl font-bold text-gray-800 mb-3">Loading Career Details</h3>
-          <p className="text-gray-600 max-w-md mx-auto leading-relaxed">
-            Please wait while we load your personalized career exploration guide...
-          </p>
-        </div>
-      </div>
+      <ConsistentLoadingPage
+        type="webhook"
+        title="Loading Career Details"
+        subtitle="Please wait while we load your personalized career exploration guide..."
+        tips={[
+          'Fetching your career information',
+          'Preparing detailed learning paths',
+          'Setting up your exploration guide'
+        ]}
+      />
     }>
       <CareerDetailsContent />
     </Suspense>

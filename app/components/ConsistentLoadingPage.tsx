@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, BookOpen, Youtube, Zap, Trophy, Sparkles, Clock, Loader2 } from 'lucide-react';
+import Image from 'next/image';
 
 interface ConsistentLoadingPageProps {
   type?: 'dashboard' | 'modules' | 'videos' | 'assessment' | 'general' | 'auth' | 'webhook';
@@ -13,6 +14,7 @@ interface ConsistentLoadingPageProps {
   tips?: string[];
   estimatedTime?: string;
   className?: string;
+  extendedLoading?: boolean;
 }
 
 const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
@@ -23,19 +25,20 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
   showProgress = false,
   tips = [],
   estimatedTime,
-  className = ''
+  className = '',
+  extendedLoading = false
 }) => {
   const [currentTipIndex, setCurrentTipIndex] = React.useState(0);
 
-  // Rotate tips every 3 seconds
+  // Rotate tips every 3 seconds (or 5 seconds for extended loading)
   React.useEffect(() => {
     if (tips.length > 1) {
       const interval = setInterval(() => {
         setCurrentTipIndex((prev) => (prev + 1) % tips.length);
-      }, 3000);
+      }, extendedLoading ? 5000 : 3000);
       return () => clearInterval(interval);
     }
-  }, [tips.length]);
+  }, [tips.length, extendedLoading]);
 
   const getLoadingConfig = () => {
     switch (type) {
@@ -210,10 +213,10 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
-          {/* Icon Section */}
+          {/* Taru Logo Section */}
           <div className="relative mb-6">
             <motion.div
-              className={`w-20 h-20 ${config.iconBg} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg border border-white/30`}
+              className="w-20 h-20 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg border border-white/30"
               animate={{
                 y: [0, -8, 0],
                 rotate: [0, 3, -3, 0],
@@ -223,8 +226,15 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
+              whileHover={{ scale: 1.1, rotate: 360 }}
             >
-              <Icon className={`w-10 h-10 ${config.iconColor}`} />
+              <Image 
+                src="/icons/logo.svg" 
+                alt="Taru Logo" 
+                width={40} 
+                height={40} 
+                className="w-10 h-10"
+              />
             </motion.div>
             
             {/* Animated Spinner Ring */}
@@ -340,6 +350,24 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
             >
               <Clock className="w-4 h-4" />
               <span>Estimated time: {estimatedTime}</span>
+            </motion.div>
+          )}
+
+          {/* Extended Loading Message */}
+          {extendedLoading && (
+            <motion.div
+              className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200 mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7, duration: 0.6 }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-4 h-4 text-amber-600" />
+                <span className="text-sm font-medium text-amber-700">AI Processing</span>
+              </div>
+              <p className="text-sm text-amber-600">
+                This may take a few minutes as our AI analyzes your responses and generates personalized career recommendations. Please be patient!
+              </p>
             </motion.div>
           )}
 

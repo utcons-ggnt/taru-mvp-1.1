@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
-import Student from '@/models/Student';
-import { processLearningPathData, saveLearningPathToDatabase, createLearningPathResponse, saveN8NLearningPathResponse } from '@/lib/utils/learningPathUtils';
+import User from '@/models/User';
+import LearningPath from '@/models/LearningPath';
+import LearningPathResponse from '@/models/LearningPathResponse';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -36,95 +37,100 @@ export async function POST(request: NextRequest) {
     // Connect to database
     await connectDB();
 
-    // Get student profile
-    const student = await Student.findOne({ 
-      userId: decoded.userId,
-      onboardingCompleted: true 
+    // Get user
+    const user = await User.findById(decoded.userId);
+    if (!user || user.role !== 'student') {
+      return NextResponse.json(
+        { error: 'Only students can save learning paths' },
+        { status: 403 }
+      );
+    }
+
+    // Get request body
+    const body = await request.json();
+    const { 
+      studentId, 
+      careerPath, 
+      description, 
+      learningModules, 
+      timeRequired, 
+      focusAreas 
+    } = body;
+
+    // Validate required fields
+    if (!careerPath || !description || !learningModules || !Array.isArray(learningModules)) {
+      return NextResponse.json(
+        { error: 'Missing required fields: careerPath, description, learningModules' },
+        { status: 400 }
+      );
+    }
+
+    // Check if a learning path for this career already exists for this student in learning-path-responses
+    const existingResponse = await LearningPathResponse.findOne({
+      uniqueid: studentId || user.uniqueId,
+      'output.greeting': { $regex: new RegExp(careerPath, 'i') }
     });
 
-    if (!student) {
-      return NextResponse.json(
-        { error: 'Student not found' },
-        { status: 404 }
-      );
-    }
-
-    // Get career details from request body
-    const { careerDetails, careerPath } = await request.json();
-
-    if (!careerDetails || !careerPath) {
-      return NextResponse.json(
-        { error: 'Career details and career path are required' },
-        { status: 400 }
-      );
-    }
-
-    if (!careerDetails.output?.learningPath || careerDetails.output.learningPath.length === 0) {
-      return NextResponse.json(
-        { error: 'No learning path data to save' },
-        { status: 400 }
-      );
-    }
-
-    console.log('💾 Saving learning path for career:', careerPath, 'student:', student.uniqueId);
-
-    // Save N8N output directly in the exact database format
-    const responseResult = await saveN8NLearningPathResponse(
-      careerDetails.output,
-      student.uniqueId
-    );
-
-    // Create the learning path response for API response
-    const learningPathResponse = createLearningPathResponse(
-      careerDetails.output,
-      student.uniqueId
-    );
-
-    // Process the raw learning path data for database storage
-    const processedData = processLearningPathData(
-      careerDetails.output,
-      student,
-      careerPath,
-      'n8n'
-    );
-
-    // Save to database with validation
-    const result = await saveLearningPathToDatabase(processedData);
-    
-    if (result.success && responseResult.success) {
-      console.log('✅ Learning path and response saved successfully:', result.pathId, responseResult.id);
+    if (existingResponse) {
+      // Update existing response
+      existingResponse.output.overview = description.split('. ').filter((s: string) => s.trim());
+      existingResponse.output.learningPath = learningModules;
+      existingResponse.output.timeRequired = timeRequired || 'Not specified';
+      existingResponse.output.focusAreas = focusAreas || [];
+      existingResponse.updatedAt = new Date();
+      
+      await existingResponse.save();
+      
       return NextResponse.json({
-        success: true,
-        message: 'Learning path saved successfully',
-        pathId: result.pathId,
-        responseId: responseResult.id,
-        learningPathResponse: learningPathResponse
+        message: 'Learning path updated successfully',
+        learningPath: {
+          _id: existingResponse._id,
+          studentId: existingResponse.uniqueid,
+          careerPath: careerPath,
+          description: description,
+          learningModules: learningModules,
+          timeRequired: timeRequired || 'Not specified',
+          focusAreas: focusAreas || [],
+          createdAt: existingResponse.createdAt,
+          updatedAt: existingResponse.updatedAt
+        }
       });
     } else {
-      const errors = [];
-      if (!result.success) errors.push(result.error);
-      if (!responseResult.success) errors.push(responseResult.error);
-      
-      console.error('❌ Failed to save learning path:', errors);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Failed to save learning path',
-          details: errors.join('; ')
-        },
-        { status: 500 }
-      );
+      // Create new learning path response
+      const newLearningPathResponse = new LearningPathResponse({
+        uniqueid: studentId || user.uniqueId,
+        output: {
+          greeting: `Hi Student! Welcome to your ${careerPath} learning journey!`,
+          overview: description.split('. ').filter((s: string) => s.trim()),
+          timeRequired: timeRequired || 'Not specified',
+          focusAreas: focusAreas || [],
+          learningPath: learningModules,
+          finalTip: `Keep exploring and learning in ${careerPath}!`
+        }
+      });
+
+      await newLearningPathResponse.save();
+
+      return NextResponse.json({
+        message: 'Learning path saved successfully',
+        learningPath: {
+          _id: newLearningPathResponse._id,
+          studentId: newLearningPathResponse.uniqueid,
+          careerPath: careerPath,
+          description: description,
+          learningModules: learningModules,
+          timeRequired: timeRequired || 'Not specified',
+          focusAreas: focusAreas || [],
+          createdAt: newLearningPathResponse.createdAt,
+          updatedAt: newLearningPathResponse.updatedAt
+        }
+      });
     }
 
   } catch (error) {
-    console.error('Learning path save error:', error);
-    return NextResponse.json(
-      { 
-        success: false,
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    console.error('Save learning path error:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error' 
+    }, { status: 500 });
   }
 }

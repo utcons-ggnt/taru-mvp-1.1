@@ -47,6 +47,7 @@ import {
   Share,
   ExternalLink
 } from 'lucide-react';
+import N8NLoadingIndicator from '@/app/components/N8NLoadingIndicator';
 
 interface Chapter {
   chapterIndex: number;
@@ -110,6 +111,12 @@ export default function ModulesTab({ user }: ModulesTabProps) {
   const [bookmarkedVideos, setBookmarkedVideos] = useState<Set<string>>(new Set());
   const [likedVideos, setLikedVideos] = useState<Set<string>>(new Set());
   const [showVideoControls, setShowVideoControls] = useState<string | null>(null);
+  
+  // N8N Loading Indicator states
+  const [n8nStatus, setN8nStatus] = useState<'idle' | 'triggering' | 'processing' | 'completed' | 'error'>('idle');
+  const [n8nProgress, setN8nProgress] = useState(0);
+  const [n8nMessage, setN8nMessage] = useState('');
+  const [showN8nIndicator, setShowN8nIndicator] = useState(false);
 
   // Fetch YouTube data on component mount
   useEffect(() => {
@@ -118,11 +125,22 @@ export default function ModulesTab({ user }: ModulesTabProps) {
     }
   }, [user?.uniqueId]);
 
-  const fetchYouTubeData = async () => {
+  // Cleanup effect for N8N polling
+  useEffect(() => {
+    return () => {
+      // Cleanup any ongoing polling when component unmounts
+      setShowN8nIndicator(false);
+      setN8nStatus('idle');
+    };
+  }, []);
+
+  const fetchYouTubeData = async (isPolling = false) => {
     if (!user?.uniqueId) return;
     
-    setLoading(true);
-    setError(null);
+    if (!isPolling) {
+      setLoading(true);
+      setError(null);
+    }
     
     try {
       const response = await fetch(`/api/youtube-urls?uniqueid=${encodeURIComponent(user.uniqueId)}`);
@@ -132,18 +150,38 @@ export default function ModulesTab({ user }: ModulesTabProps) {
         
         if (result.success && result.data) {
           setYoutubeData(result.data);
+          
+          // If we're polling and got real data (not fallback), update N8N status
+          if (isPolling && !result.isFallback) {
+            setN8nProgress(100);
+            setN8nStatus('completed');
+            setN8nMessage('YouTube videos are ready for you to explore!');
+            
+            // Hide indicator after 2 minutes
+            setTimeout(() => {
+              setShowN8nIndicator(false);
+            }, 120000);
+          }
         } else {
-          setError(result.message || 'Failed to fetch modules');
+          if (!isPolling) {
+            setError(result.message || 'Failed to fetch modules');
+          }
         }
           } else {
         const errorData = await response.json();
-        setError(errorData.message || `HTTP ${response.status}: Failed to fetch modules`);
+        if (!isPolling) {
+          setError(errorData.message || `HTTP ${response.status}: Failed to fetch modules`);
+        }
         }
       } catch (error) {
       console.error('Error fetching YouTube data:', error);
-      setError('Failed to fetch modules. Please try again.');
+      if (!isPolling) {
+        setError('Failed to fetch modules. Please try again.');
+      }
       } finally {
-        setLoading(false);
+        if (!isPolling) {
+          setLoading(false);
+        }
       }
     };
 
@@ -153,6 +191,12 @@ export default function ModulesTab({ user }: ModulesTabProps) {
     setScraping(true);
     setError(null);
     setSuccess(null);
+    
+    // Show N8N indicator
+    setShowN8nIndicator(true);
+    setN8nStatus('triggering');
+    setN8nMessage('Starting YouTube content generation...');
+    setN8nProgress(0);
     
     try {
       const response = await fetch('/api/webhook/trigger-youtube-scraping', {
@@ -164,21 +208,65 @@ export default function ModulesTab({ user }: ModulesTabProps) {
       });
 
       if (response.ok) {
-      const result = await response.json();
-        setSuccess('YouTube scraping triggered successfully! Please wait for modules to be processed.');
+        const result = await response.json();
+        setSuccess(result.message || 'YouTube scraping initiated! Please wait for modules to be processed.');
         
-        // Wait a bit then refresh the data
-        setTimeout(() => {
-          fetchYouTubeData();
-        }, 10000); // Wait 10 seconds before checking for new data
+        // Update N8N status to processing
+        setN8nStatus('processing');
+        setN8nMessage('N8N is generating YouTube videos for you...');
+        
+        // Simulate progress updates
+        const progressInterval = setInterval(() => {
+          setN8nProgress(prev => {
+            if (prev >= 90) {
+              clearInterval(progressInterval);
+              return prev;
+            }
+            return prev + Math.random() * 15;
+          });
+        }, 2000);
+        
+        // Start polling for results
+        const pollForResults = async () => {
+          try {
+            await fetchYouTubeData(true); // Use polling mode
+            
+            // Continue polling if status is still processing
+            if (n8nStatus === 'processing') {
+              setTimeout(pollForResults, 5000);
+            }
+          } catch (pollError) {
+            console.error('Error polling for results:', pollError);
+            clearInterval(progressInterval);
+            setN8nStatus('error');
+            setN8nMessage('Failed to check for results. Please try refreshing.');
+          }
+        };
+        
+        // Start polling after a short delay
+        setTimeout(pollForResults, 5000);
         
         } else {
         const errorData = await response.json();
         setError(errorData.error || 'Failed to trigger YouTube scraping');
+        setN8nStatus('error');
+        setN8nMessage('Failed to trigger YouTube scraping. Please try again.');
+        
+        // Hide indicator after showing error
+        setTimeout(() => {
+          setShowN8nIndicator(false);
+        }, 5000);
       }
     } catch (error) {
       console.error('Error triggering YouTube scraping:', error);
       setError('Failed to trigger YouTube scraping. Please try again.');
+      setN8nStatus('error');
+      setN8nMessage('Failed to trigger YouTube scraping. Please try again.');
+      
+      // Hide indicator after showing error
+      setTimeout(() => {
+        setShowN8nIndicator(false);
+      }, 120000);
     } finally {
       setScraping(false);
     }
@@ -431,7 +519,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
               
               <div className="flex items-center gap-3">
                 <button
-                  onClick={fetchYouTubeData}
+                  onClick={() => fetchYouTubeData()}
                   disabled={loading}
                   className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl backdrop-blur-sm transition-all duration-200 disabled:opacity-50"
                 >
@@ -509,7 +597,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
               </button>
 
               <button
-                onClick={fetchYouTubeData}
+                onClick={() => fetchYouTubeData()}
                 disabled={loading || !user?.uniqueId}
                 className="group relative overflow-hidden bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white rounded-2xl p-8 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl hover:shadow-violet-500/25"
               >
@@ -660,38 +748,65 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                         <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200">
                           {videoId ? (
                             <>
-                              <iframe
-                                src={`https://www.youtube.com/embed/${videoId}`}
-                                title={chapter.videoTitle}
-                                className="w-full h-full"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                              />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
-                                <div className="flex gap-3">
-                                  <motion.button
-                                    onClick={() => setPlayingVideo(isPlaying ? null : chapterId)}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 bg-white/90 rounded-full hover:bg-white hover:scale-110 transform transition-all"
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                  >
-                                    {isPlaying ? (
-                                      <PauseCircle className="w-8 h-8 text-gray-800" />
-                                    ) : (
-                                      <PlayCircle className="w-8 h-8 text-gray-800" />
-                                    )}
-                                  </motion.button>
-                                  
-                                  <motion.button
-                                    onClick={() => window.open(chapter.videoUrl, '_blank')}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 bg-white/90 rounded-full hover:bg-white hover:scale-110 transform transition-all"
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                  >
-                                    <ExternalLink className="w-6 h-6 text-gray-800" />
-                                  </motion.button>
+                              {isPlaying ? (
+                                <iframe
+                                  key={`playing-${chapterId}`}
+                                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
+                                  title={chapter.videoTitle}
+                                  className="w-full h-full"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center relative">
+                                  {/* Video Thumbnail */}
+                                  <img
+                                    src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
+                                    alt={chapter.videoTitle}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                                    }}
+                                  />
+                                  {/* Play Overlay */}
+                                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                    <motion.button
+                                      onClick={() => setPlayingVideo(chapterId)}
+                                      className="p-6 bg-red-600 hover:bg-red-700 rounded-full shadow-2xl transform transition-all duration-300 hover:scale-110"
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                    >
+                                      <Play className="w-12 h-12 text-white" />
+                                    </motion.button>
+                                  </div>
                                 </div>
-                              </div>
+                              )}
+                              
+                              {/* Control Overlay */}
+                              {isPlaying && (
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+                                  <div className="flex gap-3">
+                                    <motion.button
+                                      onClick={() => setPlayingVideo(null)}
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 bg-white/90 rounded-full hover:bg-white hover:scale-110 transform transition-all"
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                    >
+                                      <PauseCircle className="w-8 h-8 text-gray-800" />
+                                    </motion.button>
+                                    
+                                    <motion.button
+                                      onClick={() => window.open(chapter.videoUrl, '_blank')}
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 bg-white/90 rounded-full hover:bg-white hover:scale-110 transform transition-all"
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                    >
+                                      <ExternalLink className="w-6 h-6 text-gray-800" />
+                                    </motion.button>
+                                  </div>
+                                </div>
+                              )}
                             </>
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-500">
@@ -1292,6 +1407,14 @@ export default function ModulesTab({ user }: ModulesTabProps) {
             </div>
           </div>
         )}
+
+      {/* N8N Loading Indicator */}
+      <N8NLoadingIndicator
+        isVisible={showN8nIndicator}
+        status={n8nStatus}
+        message={n8nMessage}
+        progress={n8nProgress}
+      />
     </div>
   );
 } 

@@ -38,14 +38,17 @@ interface SettingsTabProps {
 }
 
 export default function SettingsTab({ profile, onProfileUpdate }: SettingsTabProps) {
+  // Debug: Log the profile data to see what's being passed
+  console.log('🔍 SettingsTab received profile data:', profile);
+  
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState<ProfileData>({
-    name: profile.name,
-    email: profile.email,
-    grade: profile.grade,
-    school: profile.school,
-    language: profile.language,
-    studentKey: profile.studentKey,
+    name: profile.name || '',
+    email: profile.email || '',
+    grade: profile.grade || '',
+    school: profile.school || '',
+    language: profile.language || 'English',
+    studentKey: profile.studentKey || '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -208,7 +211,7 @@ export default function SettingsTab({ profile, onProfileUpdate }: SettingsTabPro
           {/* Student Key Display */}
           <div className="bg-purple-50 rounded-lg p-4 mb-4">
             <p className="text-sm font-medium text-gray-700 mb-2">Student ID</p>
-            <p className="font-mono text-purple-700 text-lg font-bold">{profile.studentKey}</p>
+            <p className="font-mono text-purple-700 text-lg font-bold">{profile.studentKey || 'Not available'}</p>
             <p className="text-xs text-gray-500 mt-1">This ID is unique and cannot be changed</p>
           </div>
         </div>
@@ -233,7 +236,7 @@ export default function SettingsTab({ profile, onProfileUpdate }: SettingsTabPro
                   />
                 ) : (
                   <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-                    {profile.name}
+                    {profile.name || 'Not provided'}
                   </div>
                 )}
               </div>
@@ -373,7 +376,7 @@ export default function SettingsTab({ profile, onProfileUpdate }: SettingsTabPro
                   </div>
                 ) : (
                   <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-                    {profile.language || 'Select Language'}
+                    {profile.language || 'Not provided'}
                   </div>
                 )}
               </div>
@@ -412,7 +415,7 @@ export default function SettingsTab({ profile, onProfileUpdate }: SettingsTabPro
                   </div>
                 ) : (
                   <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-                    {profile.grade || 'Select Grade'}
+                    {profile.grade || 'Not provided'}
                   </div>
                 )}
               </div>
@@ -432,7 +435,7 @@ export default function SettingsTab({ profile, onProfileUpdate }: SettingsTabPro
                   />
                 ) : (
                   <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-                    {profile.school || 'Enter your school name'}
+                    {profile.school || 'Not provided'}
                   </div>
                 )}
               </div>
@@ -445,7 +448,7 @@ export default function SettingsTab({ profile, onProfileUpdate }: SettingsTabPro
               Email Address
             </label>
             <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-              {profile.email}
+              {profile.email || 'Not provided'}
             </div>
             <p className="text-xs text-gray-500 mt-1">Email address cannot be changed</p>
           </div>
