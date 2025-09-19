@@ -111,6 +111,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
   const [bookmarkedVideos, setBookmarkedVideos] = useState<Set<string>>(new Set());
   const [likedVideos, setLikedVideos] = useState<Set<string>>(new Set());
   const [showVideoControls, setShowVideoControls] = useState<string | null>(null);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
   
   // N8N Loading Indicator states
   const [n8nStatus, setN8nStatus] = useState<'idle' | 'triggering' | 'processing' | 'completed' | 'error'>('idle');
@@ -146,6 +147,45 @@ export default function ModulesTab({ user }: ModulesTabProps) {
       // Cleanup any ongoing polling when component unmounts
       setShowN8nIndicator(false);
       setN8nStatus('idle');
+    };
+  }, []);
+
+  // Effect to lock background scrolling when modals are open
+  useEffect(() => {
+    const lockScroll = () => {
+      // Store original overflow value
+      const originalOverflow = document.body.style.overflow;
+      const originalPaddingRight = document.body.style.paddingRight;
+      
+      // Lock background scrolling
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = '0px';
+      
+      // Store original values for cleanup
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.paddingRight = originalPaddingRight;
+      };
+    };
+
+    if (showChat || showMcq) {
+      const cleanup = lockScroll();
+      
+      // Cleanup function
+      return cleanup;
+    } else {
+      // Restore scrolling when modals are closed
+      document.body.style.overflow = 'unset';
+      document.body.style.paddingRight = '0px';
+    }
+  }, [showChat, showMcq]);
+
+  // Additional cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      // Ensure scrolling is restored when component unmounts
+      document.body.style.overflow = 'unset';
+      document.body.style.paddingRight = '0px';
     };
   }, []);
 
@@ -440,7 +480,20 @@ export default function ModulesTab({ user }: ModulesTabProps) {
       
       if (response.ok) {
         const result = await response.json();
-        setChatResponse(result.answer || result.response || 'No response received');
+        // Handle both string response and array response with HTML content
+        let responseContent = '';
+        if (Array.isArray(result.answer || result.response)) {
+          // Extract HTML content from array format
+          const htmlData = result.answer || result.response;
+          if (htmlData.length > 0 && htmlData[0].text) {
+            responseContent = htmlData[0].text;
+          } else {
+            responseContent = 'No response received';
+          }
+        } else {
+          responseContent = result.answer || result.response || 'No response received';
+        }
+        setChatResponse(responseContent);
         setShowChat(true);
         setShowMcq(false);
         } else {
@@ -578,6 +631,179 @@ export default function ModulesTab({ user }: ModulesTabProps) {
         console.log('Error copying to clipboard:', error);
       }
     }
+  };
+
+  // Function to parse HTML content and extract structured data
+  const parseHtmlResponse = (htmlContent: string) => {
+    try {
+      // Create a temporary DOM parser
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlContent, 'text/html');
+      
+      // Extract content from different sections - handle both old and new formats
+      const title = doc.querySelector('title')?.textContent || '';
+      
+      // Try different selectors for header
+      const header = doc.querySelector('header h1')?.textContent || 
+                    doc.querySelector('h1')?.textContent || 
+                    doc.querySelector('h2')?.textContent || '';
+      
+      // Try different selectors for main content
+      const article = doc.querySelector('article p')?.textContent || 
+                     doc.querySelector('p')?.textContent || '';
+      
+      // Try different selectors for footer/source acknowledgment
+      const footer = doc.querySelector('footer h2')?.textContent || 
+                    doc.querySelector('h2:nth-of-type(2)')?.textContent || '';
+      const footerText = doc.querySelector('footer p')?.textContent || 
+                        doc.querySelector('h2:nth-of-type(2) + p')?.textContent || '';
+      
+      // Try different selectors for follow-up questions section
+      const sectionTitle = doc.querySelector('section h3')?.textContent || 
+                          doc.querySelector('h2:nth-of-type(3)')?.textContent || '';
+      const followUpQuestions = Array.from(doc.querySelectorAll('section ul li, ul li')).map(li => li.textContent || '');
+      
+      return {
+        title,
+        header,
+        article,
+        footer,
+        footerText,
+        sectionTitle,
+        followUpQuestions
+      };
+    } catch (error) {
+      console.error('Error parsing HTML:', error);
+      return {
+        title: '',
+        header: '',
+        article: htmlContent, // Fallback to original content
+        footer: '',
+        footerText: '',
+        sectionTitle: '',
+        followUpQuestions: []
+      };
+    }
+  };
+
+  // Test function to demonstrate HTML parsing with sample data
+  const testHtmlParsing = () => {
+    const sampleHtml = `<!DOCTYPE html>
+<html>
+<head>
+    <title>Security Systems</title>
+</head>
+<body>
+<h2>Answer Summary</h2>
+<p>
+<b>Antivirus software</b> scans your computer for known malware using special signatures and removes harmful files.<br> 
+<b>Intrusion Detection Systems (IDS)</b> watch network data (NIDS) or computer logs/files (HIDS) to find unusual or suspicious activities and send alerts.<br> 
+<b>Amazon GuardDuty</b> constantly checks AWS accounts using machine learning and data like network logs and activity records to spot threats automatically.<br> 
+When any threat is found, these tools give details so you can quickly fix the problem and keep your system safe.
+</p>
+
+<h2>Source Acknowledgment</h2>
+<p>✅ This is explained in the video you watched.</p>
+
+<h2>Always Ask 3 Smart Follow-Up Questions</h2>
+<ul>
+<li>Want to learn how machine learning helps detect threats in GuardDuty?</li>
+<li>Curious about the difference between network-based and host-based IDS?</li>
+<li>Interested in how antivirus keeps up with new types of malware?</li>
+</ul>
+
+</body>
+</html>`;
+    
+    const parsed = parseHtmlResponse(sampleHtml);
+    console.log('Parsed HTML content:', parsed);
+    return parsed;
+  };
+
+  // Function to render parsed HTML content
+  const renderHtmlContent = (htmlContent: string) => {
+    const parsed = parseHtmlResponse(htmlContent);
+    
+    return (
+      <div className="space-y-4">
+        {/* Header Section */}
+        {parsed.header && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 bg-blue-100 rounded-md flex items-center justify-center flex-shrink-0">
+                <BookOpen className="w-3 h-3 text-blue-600" />
+              </div>
+              <h2 className="text-lg font-bold text-blue-900">{parsed.header}</h2>
+            </div>
+          </div>
+        )}
+        
+        {/* Main Article Content */}
+        {parsed.article && (
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-green-100 rounded-md flex items-center justify-center flex-shrink-0 mt-1">
+                <Lightbulb className="w-3 h-3 text-green-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-semibold text-gray-800 mb-2">Key Concepts</h3>
+                <div 
+                  className="text-gray-800 leading-relaxed text-sm [&_b]:font-bold [&_b]:text-gray-900 [&_br]:block [&_br]:mb-2 [&_b]:text-blue-700"
+                  dangerouslySetInnerHTML={{ 
+                    __html: parsed.article.replace(/\n/g, '<br>') 
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Footer Section */}
+        {parsed.footer && (
+          <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg p-4 border border-gray-200">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-6 h-6 bg-gray-100 rounded-md flex items-center justify-center flex-shrink-0">
+                <FileText className="w-3 h-3 text-gray-600" />
+              </div>
+              <h3 className="text-base font-semibold text-gray-800">{parsed.footer}</h3>
+            </div>
+            {parsed.footerText && (
+              <div 
+                className="text-gray-600 text-xs bg-white/60 rounded-md p-2 border border-gray-200 [&_b]:font-bold [&_b]:text-gray-800 [&_br]:block [&_br]:mb-1"
+                dangerouslySetInnerHTML={{ 
+                  __html: parsed.footerText.replace(/\n/g, '<br>') 
+                }}
+              />
+            )}
+          </div>
+        )}
+        
+        {/* Follow-up Questions Section */}
+        {parsed.sectionTitle && parsed.followUpQuestions.length > 0 && (
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-6 h-6 bg-purple-100 rounded-md flex items-center justify-center flex-shrink-0">
+                <MessageCircle className="w-3 h-3 text-purple-600" />
+              </div>
+              <h3 className="text-base font-semibold text-purple-900">{parsed.sectionTitle}</h3>
+            </div>
+            <div className="space-y-2">
+              {parsed.followUpQuestions.map((question, index) => (
+                <div key={index} className="flex items-start gap-2 group">
+                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0 group-hover:bg-purple-600 transition-colors"></div>
+                  <button
+                    onClick={() => setChatQuery(question)}
+                    className="text-left text-purple-800 hover:text-purple-900 hover:bg-purple-100 rounded-md p-2 transition-all duration-200 text-xs font-medium w-full border border-transparent hover:border-purple-200 hover:shadow-sm"
+                  >
+                    {question}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -1211,7 +1437,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
 
       {/* MCQ Modal */}
       {showMcq && selectedChapter && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-hidden">
           <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl">
             {/* Header */}
             <div className="relative bg-gradient-to-r from-purple-600 to-blue-600 text-white p-8 flex-shrink-0">
@@ -1272,7 +1498,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                             return (
                               <label
                                 key={optionIndex}
-                                className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                                className={`relative flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
                                   isSelected
                                     ? 'border-purple-500 bg-purple-50'
                                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -1291,12 +1517,19 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                                   checked={isSelected}
                                   onChange={() => handleMCQAnswer(question.Q, option)}
                                   disabled={isSubmitted}
-                                  className="sr-only"
+                                  className="absolute opacity-0 w-0 h-0 pointer-events-none -z-10"
+                                  style={{ 
+                                    position: 'absolute', 
+                                    left: '-9999px',
+                                    appearance: 'none',
+                                    WebkitAppearance: 'none',
+                                    MozAppearance: 'none'
+                                  }}
                                 />
-                                <div className={`w-5 h-5 rounded-full border-2 mr-4 flex items-center justify-center ${
+                                <div className={`w-5 h-5 rounded-full border-2 mr-4 flex items-center justify-center flex-shrink-0 ${
                                   isSelected
                                     ? 'border-purple-500 bg-purple-500'
-                                    : 'border-gray-300'
+                                    : 'border-gray-300 bg-white'
                                 } ${
                                   isSubmitted && isCorrect
                                     ? 'border-green-500 bg-green-500'
@@ -1394,7 +1627,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
 
       {/* Chat Modal */}
       {showChat && selectedChapter && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-hidden">
           <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl">
             {/* Header */}
             <div className="relative bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-8 flex-shrink-0">
@@ -1456,17 +1689,117 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                 
                 {/* Chat Response */}
                 {chatResponse && (
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-gray-200">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Lightbulb className="w-5 h-5 text-blue-600" />
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-gray-200 shadow-lg">
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white/50 backdrop-blur-sm rounded-t-2xl">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Lightbulb className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">AI Response</h4>
+                          <p className="text-sm text-gray-500">Generated for Chapter {selectedChapter}</p>
+                        </div>
                       </div>
-                      <h4 className="text-lg font-semibold text-gray-900">AI Response:</h4>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setChatResponse('')}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Clear response"
+                        >
+                          <X className="w-4 h-4 text-gray-500" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(chatResponse);
+                            setSuccess('Response copied to clipboard!');
+                            setTimeout(() => setSuccess(null), 3000);
+                          }}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Copy response"
+                        >
+                          <Download className="w-4 h-4 text-gray-500" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200">
-                      <p className="text-gray-800 whitespace-pre-wrap leading-relaxed font-medium">
-                        {chatResponse}
-                      </p>
+                    
+                    {/* Scrollable Content */}
+                    <div className="relative">
+                      <div 
+                        className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full scrollbar-track-rounded-full"
+                        onScroll={(e) => {
+                          const target = e.target as HTMLDivElement;
+                          setShowScrollToTop(target.scrollTop > 100);
+                        }}
+                      >
+                        <div className="p-6">
+                        {chatLoading ? (
+                          <div className="flex items-center justify-center py-12">
+                            <div className="flex flex-col items-center gap-4">
+                              <div className="relative">
+                                <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <Brain className="w-5 h-5 text-blue-600" />
+                                </div>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-gray-600 font-medium">AI is thinking...</p>
+                                <p className="text-sm text-gray-500">Generating response for Chapter {selectedChapter}</p>
+                                <div className="flex items-center gap-1 mt-3">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                            renderHtmlContent(chatResponse)
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Fade overlay at bottom */}
+                      <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-blue-50 to-transparent pointer-events-none"></div>
+                      
+                      {/* Scroll to Top Button */}
+                      {showScrollToTop && (
+                        <button
+                          onClick={(e) => {
+                            const scrollContainer = (e.target as HTMLElement).closest('.overflow-y-auto') as HTMLDivElement;
+                            scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="absolute bottom-4 right-4 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110 z-10"
+                          title="Scroll to top"
+                        >
+                          <ChevronRight className="w-4 h-4 rotate-[-90deg]" />
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Footer */}
+                    <div className="px-6 py-3 bg-white/30 backdrop-blur-sm border-t border-gray-200 rounded-b-2xl">
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span>AI Generated Response</span>
+                          {chatResponse && (
+                            <span className="text-gray-400">
+                              • {chatResponse.length} characters • {chatResponse.split(' ').length} words
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            Just now
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Brain className="w-3 h-3" />
+                            Chapter {selectedChapter}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
