@@ -30,6 +30,10 @@ interface ProfileData {
   school: string;
   language: string;
   studentKey: string;
+  nickname?: string;
+  learningModePreference?: string;
+  interestsOutsideClass?: string[];
+  preferredCareerDomains?: string[];
 }
 
 interface SettingsTabProps {
@@ -40,6 +44,11 @@ interface SettingsTabProps {
 export default function SettingsTab({ profile, onProfileUpdate }: SettingsTabProps) {
   // Debug: Log the profile data to see what's being passed
   console.log('🔍 SettingsTab received profile data:', profile);
+  console.log('🔍 Profile name:', profile.name);
+  console.log('🔍 Profile grade:', profile.grade);
+  console.log('🔍 Profile school:', profile.school);
+  console.log('🔍 Profile language:', profile.language);
+  console.log('🔍 Profile studentKey:', profile.studentKey);
   
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState<ProfileData>({
@@ -125,6 +134,25 @@ export default function SettingsTab({ profile, onProfileUpdate }: SettingsTabPro
     setError(null);
     setSuccess(null);
   };
+
+  // Show loading state if profile data is not loaded
+  if (!profile.name && !profile.email) {
+    return (
+      <motion.div 
+        className="bg-white rounded-2xl shadow-xl p-8 max-w-6xl mx-auto"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading profile data...</p>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div 
@@ -214,6 +242,51 @@ export default function SettingsTab({ profile, onProfileUpdate }: SettingsTabPro
             <p className="font-mono text-purple-700 text-lg font-bold">{profile.studentKey || 'Not available'}</p>
             <p className="text-xs text-gray-500 mt-1">This ID is unique and cannot be changed</p>
           </div>
+
+          {/* Additional Student Information */}
+          {(profile.nickname || profile.learningModePreference || profile.interestsOutsideClass || profile.preferredCareerDomains) && (
+            <div className="space-y-3">
+              {profile.nickname && (
+                <div className="bg-blue-50 rounded-lg p-3">
+                  <p className="text-sm font-medium text-gray-700 mb-1">Nickname</p>
+                  <p className="text-blue-700 font-medium">{profile.nickname}</p>
+                </div>
+              )}
+              
+              {profile.learningModePreference && (
+                <div className="bg-green-50 rounded-lg p-3">
+                  <p className="text-sm font-medium text-gray-700 mb-1">Learning Mode</p>
+                  <p className="text-green-700 font-medium">{profile.learningModePreference}</p>
+                </div>
+              )}
+              
+              {profile.interestsOutsideClass && profile.interestsOutsideClass.length > 0 && (
+                <div className="bg-orange-50 rounded-lg p-3">
+                  <p className="text-sm font-medium text-gray-700 mb-1">Interests</p>
+                  <div className="flex flex-wrap gap-1">
+                    {profile.interestsOutsideClass.map((interest, index) => (
+                      <span key={index} className="px-2 py-1 bg-orange-200 text-orange-800 text-xs rounded-full">
+                        {interest}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {profile.preferredCareerDomains && profile.preferredCareerDomains.length > 0 && (
+                <div className="bg-indigo-50 rounded-lg p-3">
+                  <p className="text-sm font-medium text-gray-700 mb-1">Career Interests</p>
+                  <div className="flex flex-wrap gap-1">
+                    {profile.preferredCareerDomains.map((domain, index) => (
+                      <span key={index} className="px-2 py-1 bg-indigo-200 text-indigo-800 text-xs rounded-full">
+                        {domain}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right Column - Form Fields */}

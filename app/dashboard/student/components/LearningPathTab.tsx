@@ -70,6 +70,8 @@ export default function LearningPathTab({ user, onTabChange }: LearningPathTabPr
   const [success, setSuccess] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingPath, setEditingPath] = useState<LearningPath | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pathToDelete, setPathToDelete] = useState<LearningPath | null>(null);
   const router = useRouter();
 
   // Fetch saved learning paths
@@ -154,10 +156,18 @@ export default function LearningPathTab({ user, onTabChange }: LearningPathTabPr
     }
   };
 
-  // Delete learning path
-  const deleteLearningPath = async (pathId: string) => {
+  // Show delete confirmation dialog
+  const confirmDelete = (path: LearningPath) => {
+    setPathToDelete(path);
+    setShowDeleteConfirm(true);
+  };
+
+  // Delete learning path after confirmation
+  const deleteLearningPath = async () => {
+    if (!pathToDelete) return;
+    
     try {
-      const response = await fetch(`/api/learning-paths/${pathId}`, {
+      const response = await fetch(`/api/learning-paths/${pathToDelete._id}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: {
@@ -170,7 +180,7 @@ export default function LearningPathTab({ user, onTabChange }: LearningPathTabPr
         await fetchLearningPaths(); // Refresh the list
         
         // If we deleted the current path, select another one
-        if (currentPath?._id === pathId) {
+        if (currentPath?._id === pathToDelete._id) {
           setCurrentPath(learningPaths.length > 1 ? learningPaths[1] : null);
         }
         
@@ -181,7 +191,16 @@ export default function LearningPathTab({ user, onTabChange }: LearningPathTabPr
     } catch (err) {
       console.error('Error deleting learning path:', err);
       setError('Failed to delete learning path');
+    } finally {
+      setShowDeleteConfirm(false);
+      setPathToDelete(null);
     }
+  };
+
+  // Cancel delete
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setPathToDelete(null);
   };
 
   // Set active learning path
@@ -245,7 +264,7 @@ export default function LearningPathTab({ user, onTabChange }: LearningPathTabPr
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 relative overflow-hidden">
+    <div className="bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 relative">
       {/* Background Elements */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-purple-200/20 rounded-full blur-3xl"></div>
@@ -254,7 +273,7 @@ export default function LearningPathTab({ user, onTabChange }: LearningPathTabPr
       </div>
 
       <motion.div 
-        className="relative bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8 max-w-7xl mx-auto m-8 border border-white/20"
+        className="relative bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8 max-w-7xl mx-auto border border-white/20"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -480,7 +499,7 @@ export default function LearningPathTab({ user, onTabChange }: LearningPathTabPr
                         </motion.button>
                       )}
                       <motion.button
-                        onClick={() => deleteLearningPath(path._id)}
+                        onClick={() => confirmDelete(path)}
                         className="group p-3 text-red-600 hover:bg-red-100 rounded-xl transition-all duration-300 border border-red-200 hover:border-red-300"
                         whileHover={{ scale: 1.1, rotate: -5 }}
                         whileTap={{ scale: 0.9 }}
@@ -628,6 +647,57 @@ export default function LearningPathTab({ user, onTabChange }: LearningPathTabPr
           </motion.div>
         )}
       </motion.div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && pathToDelete && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={cancelDelete}
+          >
+            <motion.div
+              className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertCircle className="w-8 h-8 text-red-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Learning Path</h3>
+                <p className="text-gray-600 mb-6">
+                  Are you sure you want to delete <strong>"{pathToDelete.careerPath}"</strong>? 
+                  This action cannot be undone.
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <motion.button
+                    onClick={cancelDelete}
+                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    onClick={deleteLearningPath}
+                    className="px-6 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors flex items-center gap-2"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

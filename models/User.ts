@@ -9,6 +9,7 @@ export interface IUser extends mongoose.Document {
   password: string;
   role: UserRole;
   profile: Record<string, any>;
+  avatar?: string;
   firstTimeLogin: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -67,6 +68,10 @@ const userSchema = new mongoose.Schema<IUser>({
   profile: {
     type: profileSchema,
     default: {},
+  },
+  avatar: {
+    type: String,
+    default: '/avatars/Group.svg',
   },
   firstTimeLogin: {
     type: Boolean,

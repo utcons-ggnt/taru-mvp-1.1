@@ -19,6 +19,7 @@ interface N8NLoadingIndicatorProps {
   message?: string;
   progress?: number;
   className?: string;
+  startTime?: number | null;
 }
 
 const N8NLoadingIndicator: React.FC<N8NLoadingIndicatorProps> = ({
@@ -26,7 +27,8 @@ const N8NLoadingIndicator: React.FC<N8NLoadingIndicatorProps> = ({
   status,
   message,
   progress = 0,
-  className = ''
+  className = '',
+  startTime = null
 }) => {
   const getStatusConfig = () => {
     switch (status) {
@@ -84,6 +86,15 @@ const N8NLoadingIndicator: React.FC<N8NLoadingIndicatorProps> = ({
   };
 
   const config = getStatusConfig();
+  
+  // Calculate elapsed time
+  const getElapsedTime = () => {
+    if (!startTime) return null;
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   return (
     <AnimatePresence>
@@ -191,6 +202,13 @@ const N8NLoadingIndicator: React.FC<N8NLoadingIndicatorProps> = ({
                   <div className="flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-purple-500 animate-pulse" />
                     <span className="text-gray-600">AI Working</span>
+                  </div>
+                )}
+                
+                {startTime && (status === 'processing' || status === 'triggering') && (
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-gray-500" />
+                    <span className="text-gray-600">{getElapsedTime()}</span>
                   </div>
                 )}
               </div>

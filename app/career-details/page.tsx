@@ -114,10 +114,6 @@ function CareerDetailsContent() {
         setIsSaved(true);
         setSavedPathId(data.learningPath?._id || 'unknown');
         
-        // Redirect to dashboard after 2 seconds
-        setTimeout(() => {
-          router.push('/dashboard/student');
-        }, 2000);
       } else {
         const errorData = await response.json().catch(() => ({}));
         setSaveError(errorData.error || 'Failed to save learning path');
@@ -1243,21 +1239,12 @@ function CareerDetailsContent() {
             <div className="bg-gray-50 rounded-lg p-3 mb-4">
               <p className="text-sm text-gray-500">Path ID: {savedPathId}</p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex justify-center">
               <button
                 onClick={() => router.push('/dashboard/student')}
                 className="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
               >
                 Go to Dashboard Now
-              </button>
-              <button
-                onClick={() => {
-                  setIsSaved(false);
-                  setSavedPathId(null);
-                }}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-              >
-                Continue Exploring
               </button>
             </div>
             <p className="text-xs text-gray-400 mt-3">

@@ -3,6 +3,7 @@
 import React from 'react';
 import { Youtube, BookOpen, Play, Loader2, Clock, Zap } from 'lucide-react';
 import Image from 'next/image';
+import VantaBackground from './VantaBackground';
 
 interface LoadingPageProps {
   type?: 'modules' | 'videos' | 'webhook' | 'general';
@@ -72,8 +73,24 @@ const LoadingPage: React.FC<LoadingPageProps> = ({
   const Icon = config.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
+    <VantaBackground
+      className="min-h-screen flex items-center justify-center p-4"
+      color="#8b5cf6"
+      backgroundColor="#1e1b4b"
+      maxDistance={25}
+      spacing={18}
+      showDots={true}
+      showLines={true}
+      mouseControls={true}
+      touchControls={true}
+      gyroControls={false}
+      minHeight={200}
+      minWidth={200}
+      scale={1}
+      scaleMobile={1}
+    >
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="max-w-md w-full">
         {/* Main Loading Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
           {/* Taru Logo Section */}
@@ -160,8 +177,9 @@ const LoadingPage: React.FC<LoadingPageProps> = ({
             </div>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </VantaBackground>
   );
 };
 

@@ -20,6 +20,38 @@ import { ScrollFade, ScrollCounter, ParallaxScroll, ScrollProgress } from '../..
 import { FloatingParticles, MorphingBlob } from '../../components/FloatingElements';
 import ConsistentLoadingPage from '../../components/ConsistentLoadingPage';
 
+// Avatar utility functions
+const AVAILABLE_AVATARS = [
+  '/avatars/Group.svg',
+  '/avatars/Group-1.svg',
+  '/avatars/Group-2.svg',
+  '/avatars/Group-3.svg',
+  '/avatars/Group-4.svg',
+  '/avatars/Group-5.svg',
+  '/avatars/Group-6.svg',
+  '/avatars/Group-7.svg',
+  '/avatars/Group-8.svg'
+];
+
+function getRandomAvatar(userId?: string): string {
+  // Use user ID to ensure consistent avatar selection for the same user
+  if (userId) {
+    // Create a simple hash from user ID to get consistent index
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      const char = userId.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    const index = Math.abs(hash) % AVAILABLE_AVATARS.length;
+    return AVAILABLE_AVATARS[index];
+  }
+  
+  // If no user ID, use a random selection
+  const randomIndex = Math.floor(Math.random() * AVAILABLE_AVATARS.length);
+  return AVAILABLE_AVATARS[randomIndex];
+}
+
 // Add custom hook for responsive behavior
 function useWindowSize() {
   const [windowSize, setWindowSize] = useState({
@@ -58,6 +90,12 @@ interface StudentProfile {
   fullName?: string; // Added for ModulesTab compatibility
   classGrade?: string; // Added for ModulesTab compatibility
   schoolName?: string; // Added for school name
+  languagePreference?: string; // Added for language preference
+  nickname?: string; // Added for nickname
+  learningModePreference?: string; // Added for learning mode
+  interestsOutsideClass?: string[]; // Added for interests
+  preferredCareerDomains?: string[]; // Added for career domains
+  avatar?: string; // Added for avatar
 }
 
 interface YouTubeData {
@@ -161,6 +199,8 @@ export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [youtubeData, setYoutubeData] = useState<YouTubeData | null>(null);
   const [youtubeLoading, setYoutubeLoading] = useState(false);
+  const [userAvatar, setUserAvatar] = useState<string>('/avatars/Group.svg');
+  const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
 
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -318,10 +358,25 @@ export default function StudentDashboard() {
                 uniqueId: studentData.uniqueId,
                 fullName: studentData.fullName,
                 classGrade: studentData.classGrade,
-                schoolName: studentData.schoolName
+                schoolName: studentData.schoolName,
+                languagePreference: studentData.languagePreference,
+                nickname: studentData.nickname,
+                learningModePreference: studentData.learningModePreference,
+                interestsOutsideClass: studentData.interestsOutsideClass,
+                preferredCareerDomains: studentData.preferredCareerDomains
               };
               
+              console.log('🔍 User with profile data:', userWithProfile);
+              
               setUser(userWithProfile);
+              
+              // Set user avatar - try to load saved avatar first, fallback to random
+              const savedAvatar = userData.user.avatar || studentData.avatar;
+              if (savedAvatar) {
+                setUserAvatar(savedAvatar);
+              } else {
+                setUserAvatar(getRandomAvatar(userData.user._id));
+              }
               
               // If we have a uniqueId, fetch YouTube data
               if (studentData.uniqueId) {
@@ -344,6 +399,14 @@ export default function StudentDashboard() {
                 ...userData.user,
                 uniqueId: null // Explicitly set to null so components know it's missing
               });
+              
+              // Set user avatar - try to load saved avatar first, fallback to random
+              const savedAvatar = userData.user.avatar;
+              if (savedAvatar) {
+                setUserAvatar(savedAvatar);
+              } else {
+                setUserAvatar(getRandomAvatar(userData.user._id));
+              }
             }
           } catch (error) {
             console.error('❌ Error fetching student profile:', error);
@@ -352,6 +415,14 @@ export default function StudentDashboard() {
               ...userData.user,
               uniqueId: null // Explicitly set to null so components know it's missing
             });
+            
+            // Set user avatar - try to load saved avatar first, fallback to random
+            const savedAvatar = userData.user.avatar;
+            if (savedAvatar) {
+              setUserAvatar(savedAvatar);
+            } else {
+              setUserAvatar(getRandomAvatar(userData.user._id));
+            }
           }
         } else {
           router.push('/login');
@@ -596,16 +667,23 @@ export default function StudentDashboard() {
     ? {
         name: user.name || user.fullName || '',
         email: user.email || '',
-        grade: user.profile?.grade || user.classGrade || '',
-        school: user.profile?.school || (user as any).schoolName || '',
-        language: 'English', // Default language
+        grade: user.classGrade || user.profile?.grade || '',
+        school: user.schoolName || user.profile?.school || '',
+        language: user.languagePreference || 'English',
         studentKey: user.uniqueId || 'Not available',
+        nickname: user.nickname,
+        learningModePreference: user.learningModePreference,
+        interestsOutsideClass: user.interestsOutsideClass,
+        preferredCareerDomains: user.preferredCareerDomains
       }
     : { name: '', email: '', grade: '', school: '', language: 'English', studentKey: 'Not available' };
 
   console.log('🔍 Constructed profileData:', profileData);
   console.log('🔍 User data:', user);
   console.log('🔍 Dashboard data:', dashboardData);
+  console.log('🔍 User classGrade:', user?.classGrade);
+  console.log('🔍 User schoolName:', user?.schoolName);
+  console.log('🔍 User languagePreference:', user?.languagePreference);
 
   // Helper function to get subject icon
   function getSubjectIcon(subject: string): string {
@@ -657,6 +735,33 @@ export default function StudentDashboard() {
   
   const handleNotificationClick = () => {
     setIsNotificationOpen(!isNotificationOpen);
+  };
+
+  const handleAvatarSelect = async (avatarPath: string) => {
+    setUserAvatar(avatarPath);
+    setIsAvatarSelectorOpen(false);
+    
+    // Save avatar selection to backend
+    try {
+      const response = await fetch('/api/student/update-avatar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          avatar: avatarPath
+        }),
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        console.log('✅ Avatar saved successfully');
+      } else {
+        console.error('❌ Failed to save avatar:', response.statusText);
+      }
+    } catch (error) {
+      console.error('❌ Error saving avatar:', error);
+    }
   };
 
   const markNotificationAsRead = (notificationId: string) => {
@@ -951,16 +1056,18 @@ export default function StudentDashboard() {
       />
       
       {/* Responsive Sidebar */}
-      <Sidebar 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab}
-        isOpen={isSidebarOpen}
-        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-        role="student"
-      />
+      <div className={`transition-all duration-300 ${isNotificationOpen ? 'blur-sm pointer-events-none' : ''}`}>
+        <Sidebar 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab}
+          isOpen={isSidebarOpen}
+          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+          role="student"
+        />
+      </div>
       
       {/* Main Content Area */}
-         <div className="dashboard-main bg-gradient-to-br from-gray-50 via-purple-50/30 to-blue-50/30 relative overflow-hidden">
+         <div className="dashboard-main bg-gradient-to-br from-gray-50 via-purple-50/30 to-blue-50/30 relative">
            {/* Background Pattern */}
            <div className="absolute inset-0 opacity-5">
              <div className="absolute inset-0" style={{
@@ -996,7 +1103,7 @@ export default function StudentDashboard() {
              ))}
            </div>
         {/* Enhanced Top Bar */}
-        <div className="flex items-center justify-between w-full px-4 sm:px-6 py-3 sm:py-4 bg-white/80 backdrop-blur-md border-b border-gray-200/50 relative shadow-sm">
+        <div className={`flex items-center justify-between w-full px-4 sm:px-6 py-3 sm:py-4 bg-white/80 backdrop-blur-md border-b border-gray-200/50 relative shadow-sm transition-all duration-300 ${isNotificationOpen ? 'blur-sm pointer-events-none' : ''}`}>
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none" />
           
@@ -1097,124 +1204,6 @@ export default function StudentDashboard() {
                  )}
                </motion.button>
 
-              {/* Notifications Dropdown */}
-              <AnimatePresence>
-                {isNotificationOpen && (
-                  <motion.div 
-                    className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-[9999]"
-                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                  >
-                  {/* User Profile Header */}
-                  <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-white">
-                    <div className="flex items-center gap-3">
-                      {/* Purple Notification Bell */}
-                      <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                        <svg width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <rect width="30.24" height="30.24" transform="translate(0.899902 1.38086)" fill="#F5F5F5"/>
-                          <path d="M16.0204 3.90039C13.6812 3.90039 11.4378 4.82964 9.7837 6.48371C8.12963 8.13778 7.20039 10.3812 7.20039 12.7204V17.1657C7.20057 17.3611 7.15527 17.554 7.06809 17.7289L4.90467 22.0545C4.79899 22.2658 4.74908 22.5006 4.7597 22.7367C4.77032 22.9727 4.8411 23.2021 4.96533 23.4031C5.08956 23.6041 5.2631 23.77 5.46948 23.885C5.67586 24.0001 5.90823 24.0604 6.14451 24.0604H25.8963C26.1325 24.0604 26.3649 24.0001 26.5713 23.885C26.7777 23.77 26.9512 23.6041 27.0754 23.4031C27.1997 23.2021 27.2705 22.9727 27.2811 22.7367C27.2917 22.5006 27.2418 22.2658 27.1361 22.0545L24.9739 17.7289C24.8863 17.5541 24.8406 17.3612 24.8404 17.1657V12.7204C24.8404 10.3812 23.9111 8.13778 22.2571 6.48371C20.603 4.82964 18.3596 3.90039 16.0204 3.90039ZM16.0204 27.8404C15.2384 27.8408 14.4755 27.5987 13.8368 27.1473C13.1982 26.696 12.7153 26.0577 12.4546 25.3204H19.5862C19.3255 26.0577 18.8426 26.696 18.2039 27.1473C17.5653 27.5987 16.8024 27.8408 16.0204 27.8404Z" fill="#A5A5A5"/>
-                          <circle cx="23.58" cy="6.27336" r="5.78118" fill="#FDBB30"/>
-                          <path d="M21.8094 7.82227V7.15526L23.579 5.42054C23.7482 5.24964 23.8893 5.09782 24.0021 4.96508C24.1149 4.83234 24.1995 4.70375 24.2559 4.57931C24.3124 4.45487 24.3406 4.32213 24.3406 4.1811C24.3406 4.02015 24.3041 3.88244 24.2311 3.76795C24.158 3.6518 24.0577 3.56221 23.9299 3.49916C23.8021 3.43611 23.657 3.40458 23.4944 3.40458C23.3268 3.40458 23.1799 3.43942 23.0538 3.50911C22.9277 3.57714 22.8298 3.6742 22.7601 3.80031C22.6921 3.92641 22.6581 4.07657 22.6581 4.25078H21.7795C21.7795 3.92724 21.8534 3.646 22.0011 3.40707C22.1487 3.16814 22.352 2.98314 22.6108 2.85206C22.8713 2.72098 23.17 2.65544 23.5068 2.65544C23.8486 2.65544 24.1489 2.71932 24.4078 2.84708C24.6666 2.97484 24.8674 3.14989 25.0101 3.37223C25.1544 3.59456 25.2266 3.84842 25.2266 4.13381C25.2266 4.32462 25.1901 4.51211 25.1171 4.69629C25.0441 4.88046 24.9155 5.08454 24.7313 5.30854C24.5488 5.53254 24.2924 5.80382 23.9623 6.12239L23.0837 7.01588V7.05073H25.3037V7.82227H21.8094Z" fill="white"/>
-                        </svg>
-                      </div>
-                      
-                      {/* User Avatar and Info */}
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                          <Image src="/studentDashboard/avatar.png" alt="User Avatar" width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-gray-900 text-sm">
-                            {user.name}
-                          </span>
-                          <span className="text-xs text-gray-600">
-                            #{user._id?.toString().slice(-4) || '0000'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Notifications List */}
-                  <div className="max-h-80 overflow-y-auto bg-gray-50">
-                    {notifications.length > 0 ? (
-                      notifications.map((notification, index) => (
-                        <div
-                          key={notification.id}
-                          className="bg-white mx-3 my-2 rounded-lg shadow-sm border border-gray-100 p-3 cursor-pointer hover:shadow-md transition-all duration-200"
-                          onClick={() => markNotificationAsRead(notification.id)}
-                        >
-                          <div className="flex items-start gap-3">
-                            {/* Purple Circle Icon */}
-                            <div className="w-3 h-3 bg-purple-600 rounded-full flex-shrink-0 mt-1"></div>
-                            
-                            <div className="flex-1 min-w-0">
-                              {/* Notification Header */}
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium text-gray-900">
-                                    {notification.title}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    {formatNotificationTime(notification.date)}
-                                  </span>
-                                </div>
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                                </svg>
-                              </div>
-                              
-                              {/* Notification Content */}
-                              <div className="text-sm text-gray-700">
-                                <span className="font-medium">Hi {user.name}!</span> {notification.message}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-4 py-8 text-center text-gray-500">
-                        <svg className="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        <p className="text-sm">No notifications yet</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Action Buttons */}
-                  {notifications.length > 0 && (
-                    <div className="px-4 py-3 border-t border-gray-200 bg-white">
-                      <div className="flex items-center justify-between">
-                        <button className="text-sm text-purple-600 hover:text-purple-700 font-medium">
-                          Share
-                        </button>
-                        <div className="w-px h-4 bg-gray-300"></div>
-                        <button className="text-sm text-red-600 hover:text-red-700 font-medium">
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Enhanced Overlay to close dropdown */}
-              <AnimatePresence>
-                {isNotificationOpen && (
-                  <motion.div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsNotificationOpen(false)}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  ></motion.div>
-                )}
-              </AnimatePresence>
             </div>
             
              {/* Enhanced User Profile Section */}
@@ -1224,12 +1213,15 @@ export default function StudentDashboard() {
                whileTap={{ scale: 0.98 }}
              >
                {/* Enhanced Circular Avatar */}
-               <motion.div 
-                 className="relative w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg group-hover:shadow-purple-500/25 transition-all duration-300"
+               <motion.button 
+                 className="relative w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg group-hover:shadow-purple-500/25 transition-all duration-300 cursor-pointer"
                  whileHover={{ rotate: 360 }}
+                 whileTap={{ scale: 0.95 }}
                  transition={{ duration: 0.6 }}
+                 onClick={() => setIsAvatarSelectorOpen(true)}
+                 title="Change Avatar"
                >
-                <Image src="/studentDashboard/avatar.png" alt="User Avatar" width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
+                <Image src={userAvatar} alt="User Avatar" width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
                  
                  {/* Online Status Indicator */}
                  <motion.div
@@ -1244,7 +1236,7 @@ export default function StudentDashboard() {
                    animate={{ rotate: 360 }}
                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                  />
-               </motion.div>
+               </motion.button>
                
                {/* Enhanced User Info */}
               <div className="flex flex-col">
@@ -1258,15 +1250,16 @@ export default function StudentDashboard() {
                    className="text-xs text-gray-600 group-hover:text-purple-500 transition-colors duration-300"
                    whileHover={{ x: 2 }}
                  >
-                  #{user._id?.toString().slice(-4) || '0000'}
+                  #{user.uniqueId?.toString().slice(-4) || '0000'}
                  </motion.span>
               </div>
                
                {/* Hover Arrow */}
                <motion.div
-                 className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                 className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
                  animate={{ x: [0, 3, 0] }}
                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                 onClick={() => setActiveTab('settings')}
                >
                  <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -1278,7 +1271,7 @@ export default function StudentDashboard() {
         
 
         {/* Main Content with Responsive Layout */}
-        <div className="dashboard-content relative">
+        <div className={`dashboard-content relative transition-all duration-300 ${isNotificationOpen ? 'blur-sm pointer-events-none' : ''}`}>
           {/* Content Background Effects */}
           <div className="absolute inset-0 pointer-events-none">
             {/* Gradient Orbs */}
@@ -1346,7 +1339,7 @@ export default function StudentDashboard() {
             })}
           </div>
           {/* Main Panel */}
-          <main className="flex-1">
+          <main className="flex-1 p-6">
             {/* Tab Content */}
             <AnimatePresence mode="wait">
               <motion.div 
@@ -1379,13 +1372,16 @@ export default function StudentDashboard() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.2, duration: 0.6 }}
                       >
-                        <motion.div 
+                        <motion.button 
                           className="relative w-16 h-16 sm:w-20 sm:h-20"
                           whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                           transition={{ duration: 0.2 }}
+                          onClick={() => setIsAvatarSelectorOpen(true)}
+                          title="Change Avatar"
                         >
-                          <Image src="/studentDashboard/avatar.png" alt="Student Avatar" fill className="rounded-full object-cover shadow-lg hover-bounce" />
-                        </motion.div>
+                          <Image src={userAvatar} alt="Student Avatar" fill className="rounded-full object-cover shadow-lg hover-bounce" />
+                        </motion.button>
                         <div>
                           <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -1654,6 +1650,233 @@ export default function StudentDashboard() {
           
         </div>
       </div>
+
+      {/* Notification Overlay - Outside blurred content */}
+      <AnimatePresence>
+        {isNotificationOpen && (
+          <motion.div
+            className="fixed inset-0 bg-black/20 z-[10000]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setIsNotificationOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Notifications Dropdown - Outside blurred content */}
+      <AnimatePresence>
+        {isNotificationOpen && (
+          <motion.div 
+            className="fixed right-4 top-20 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-[10001]"
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            {/* User Profile Header */}
+            <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-white">
+              <div className="flex items-center gap-3">
+                {/* Purple Notification Bell */}
+                <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                  <svg width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="30.24" height="30.24" transform="translate(0.899902 1.38086)" fill="#F5F5F5"/>
+                    <path d="M16.0204 3.90039C13.6812 3.90039 11.4378 4.82964 9.7837 6.48371C8.12963 8.13778 7.20039 10.3812 7.20039 12.7204V17.1657C7.20057 17.3611 7.15527 17.554 7.06809 17.7289L4.90467 22.0545C4.79899 22.2658 4.74908 22.5006 4.7597 22.7367C4.77032 22.9727 4.8411 23.2021 4.96533 23.4031C5.08956 23.6041 5.2631 23.77 5.46948 23.885C5.67586 24.0001 5.90823 24.0604 6.14451 24.0604H25.8963C26.1325 24.0604 26.3649 24.0001 26.5713 23.885C26.7777 23.77 26.9512 23.6041 27.0754 23.4031C27.1997 23.2021 27.2705 22.9727 27.2811 22.7367C27.2917 22.5006 27.2418 22.2658 27.1361 22.0545L24.9739 17.7289C24.8863 17.5541 24.8406 17.3612 24.8404 17.1657V12.7204C24.8404 10.3812 23.9111 8.13778 22.2571 6.48371C20.603 4.82964 18.3596 3.90039 16.0204 3.90039ZM16.0204 27.8404C15.2384 27.8408 14.4755 27.5987 13.8368 27.1473C13.1982 26.696 12.7153 26.0577 12.4546 25.3204H19.5862C19.3255 26.0577 18.8426 26.696 18.2039 27.1473C17.5653 27.5987 16.8024 27.8408 16.0204 27.8404Z" fill="#A5A5A5"/>
+                    <circle cx="23.58" cy="6.27336" r="5.78118" fill="#FDBB30"/>
+                    <path d="M21.8094 7.82227V7.15526L23.579 5.42054C23.7482 5.24964 23.8893 5.09782 24.0021 4.96508C24.1149 4.83234 24.1995 4.70375 24.2559 4.57931C24.3124 4.45487 24.3406 4.32213 24.3406 4.1811C24.3406 4.02015 24.3041 3.88244 24.2311 3.76795C24.158 3.6518 24.0577 3.56221 23.9299 3.49916C23.8021 3.43611 23.657 3.40458 23.4944 3.40458C23.3268 3.40458 23.1799 3.43942 23.0538 3.50911C22.9277 3.57714 22.8298 3.6742 22.7601 3.80031C22.6921 3.92641 22.6581 4.07657 22.6581 4.25078H21.7795C21.7795 3.92724 21.8534 3.646 22.0011 3.40707C22.1487 3.16814 22.352 2.98314 22.6108 2.85206C22.8713 2.72098 23.17 2.65544 23.5068 2.65544C23.8486 2.65544 24.1489 2.71932 24.4078 2.84708C24.6666 2.97484 24.8674 3.14989 25.0101 3.37223C25.1544 3.59456 25.2266 3.84842 25.2266 4.13381C25.2266 4.32462 25.1901 4.51211 25.1171 4.69629C25.0441 4.88046 24.9155 5.08454 24.7313 5.30854C24.5488 5.53254 24.2924 5.80382 23.9623 6.12239L23.0837 7.01588V7.05073H25.3037V7.82227H21.8094Z" fill="white"/>
+                  </svg>
+                </div>
+                
+                      {/* User Avatar and Info */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                          <Image src={userAvatar} alt="User Avatar" width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
+                        </div>
+                  <div className="flex flex-col">
+                    <span className="font-bold text-gray-900 text-sm">
+                      {user.name}
+                    </span>
+                    <span className="text-xs text-gray-600">
+                      #{user.uniqueId?.toString() || '0000'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Notifications List */}
+            <div className="max-h-80 overflow-y-auto bg-gray-50">
+              {notifications.length > 0 ? (
+                notifications.map((notification, index) => (
+                  <div
+                    key={notification.id}
+                    className="bg-white mx-3 my-2 rounded-lg shadow-sm border border-gray-100 p-3 cursor-pointer hover:shadow-md transition-all duration-200"
+                    onClick={() => markNotificationAsRead(notification.id)}
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Purple Circle Icon */}
+                      <div className="w-3 h-3 bg-purple-600 rounded-full flex-shrink-0 mt-1"></div>
+                      
+                      <div className="flex-1 min-w-0">
+                        {/* Notification Header */}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-900">
+                              {notification.title}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {formatNotificationTime(notification.date)}
+                            </span>
+                          </div>
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                        </div>
+                        
+                        {/* Notification Content */}
+                        <div className="text-sm text-gray-700">
+                          <span className="font-medium">Hi {user.name}!</span> {notification.message}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="px-4 py-8 text-center text-gray-500">
+                  <svg className="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-sm">No notifications yet</p>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            {notifications.length > 0 && (
+              <div className="px-4 py-3 border-t border-gray-200 bg-white">
+                <div className="flex items-center justify-between">
+                  <button className="text-sm text-purple-600 hover:text-purple-700 font-medium">
+                    Share
+                  </button>
+                  <div className="w-px h-4 bg-gray-300"></div>
+                  <button className="text-sm text-red-600 hover:text-red-700 font-medium">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Avatar Selector Modal */}
+      <AnimatePresence>
+        {isAvatarSelectorOpen && (
+          <>
+            {/* Dark Overlay */}
+            <motion.div
+              className="fixed inset-0 bg-black/50 z-[10002]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setIsAvatarSelectorOpen(false)}
+            />
+            
+            {/* Avatar Selector Modal */}
+            <motion.div 
+              className="fixed inset-0 flex items-center justify-center z-[10003] p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <motion.div 
+                className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-md w-full max-h-[80vh] overflow-hidden"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              >
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-gray-900">Choose Your Avatar</h3>
+                    <button
+                      onClick={() => setIsAvatarSelectorOpen(false)}
+                      className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                    >
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">Select an avatar that represents you</p>
+                </div>
+
+                {/* Avatar Grid */}
+                <div className="p-6">
+                  <div className="grid grid-cols-3 gap-4">
+                    {AVAILABLE_AVATARS.map((avatar, index) => (
+                      <motion.button
+                        key={avatar}
+                        className={`relative p-3 rounded-xl border-2 transition-all duration-200 ${
+                          userAvatar === avatar 
+                            ? 'border-purple-500 bg-purple-50 shadow-lg' 
+                            : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                        }`}
+                        onClick={() => handleAvatarSelect(avatar)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <div className="w-16 h-16 mx-auto relative">
+                          <Image 
+                            src={avatar} 
+                            alt={`Avatar ${index + 1}`} 
+                            fill 
+                            className="rounded-full object-cover" 
+                          />
+                        </div>
+                        
+                        {/* Selected Indicator */}
+                        {userAvatar === avatar && (
+                          <motion.div
+                            className="absolute -top-1 -right-1 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </motion.div>
+                        )}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-600">
+                      Click on any avatar to select it
+                    </p>
+                    <button
+                      onClick={() => setIsAvatarSelectorOpen(false)}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Chat Modal */}
       {user && (

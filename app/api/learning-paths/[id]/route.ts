@@ -52,6 +52,17 @@ export async function DELETE(
       );
     }
 
+    // Get student profile to get uniqueId
+    const Student = (await import('@/models/Student')).default;
+    const student = await Student.findOne({ userId: decoded.userId });
+    
+    if (!student) {
+      return NextResponse.json(
+        { error: 'Student profile not found' },
+        { status: 404 }
+      );
+    }
+
     // Find and delete the learning path response
     const learningPathResponse = await LearningPathResponse.findById(id);
     
@@ -63,7 +74,12 @@ export async function DELETE(
     }
 
     // Check if the learning path belongs to the current user
-    if (learningPathResponse.uniqueid !== user.uniqueId) {
+    console.log('🔍 Learning path uniqueid:', learningPathResponse.uniqueid);
+    console.log('🔍 Student uniqueId:', student.uniqueId);
+    console.log('🔍 User ID:', decoded.userId);
+    
+    if (learningPathResponse.uniqueid !== student.uniqueId) {
+      console.log('❌ Access denied: Learning path does not belong to user');
       return NextResponse.json(
         { error: 'You can only delete your own learning paths' },
         { status: 403 }

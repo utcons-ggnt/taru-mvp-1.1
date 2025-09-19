@@ -117,6 +117,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
   const [n8nProgress, setN8nProgress] = useState(0);
   const [n8nMessage, setN8nMessage] = useState('');
   const [showN8nIndicator, setShowN8nIndicator] = useState(false);
+  const [n8nStartTime, setN8nStartTime] = useState<number | null>(null);
 
   // Fetch YouTube data on component mount
   useEffect(() => {
@@ -124,6 +125,20 @@ export default function ModulesTab({ user }: ModulesTabProps) {
       fetchYouTubeData();
     }
   }, [user?.uniqueId]);
+
+  // Status validation function
+  const validateN8nStatus = (currentStatus: string, startTime: number | null) => {
+    if (currentStatus === 'processing' && startTime) {
+      const elapsed = Date.now() - startTime;
+      const maxProcessingTime = 2 * 60 * 1000; // 2 minutes
+      
+      if (elapsed > maxProcessingTime) {
+        console.warn('⏰ N8N processing exceeded maximum time, marking as error');
+        return 'error';
+      }
+    }
+    return currentStatus;
+  };
 
   // Cleanup effect for N8N polling
   useEffect(() => {
@@ -145,7 +160,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
     try {
       const response = await fetch(`/api/youtube-urls?uniqueid=${encodeURIComponent(user.uniqueId)}`);
       
-        if (response.ok) {
+      if (response.ok) {
         const result = await response.json();
         
         if (result.success && result.data) {
@@ -153,6 +168,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
           
           // If we're polling and got real data (not fallback), update N8N status
           if (isPolling && !result.isFallback) {
+            console.log('✅ N8N processing completed successfully');
             setN8nProgress(100);
             setN8nStatus('completed');
             setN8nMessage('YouTube videos are ready for you to explore!');
@@ -161,29 +177,42 @@ export default function ModulesTab({ user }: ModulesTabProps) {
             setTimeout(() => {
               setShowN8nIndicator(false);
             }, 120000);
+          } else if (isPolling && result.isFallback) {
+            console.log('⏳ N8N still processing, using fallback data');
+            // Keep processing status if we're still getting fallback data
           }
         } else {
           if (!isPolling) {
             setError(result.message || 'Failed to fetch modules');
+          } else {
+            console.log('⏳ N8N still processing, no data available yet');
           }
         }
-          } else {
+      } else {
         const errorData = await response.json();
+        const errorMessage = errorData.message || `HTTP ${response.status}: Failed to fetch modules`;
+        
         if (!isPolling) {
-          setError(errorData.message || `HTTP ${response.status}: Failed to fetch modules`);
+          setError(errorMessage);
+        } else {
+          console.warn('⚠️ Error during polling:', errorMessage);
+          // Don't immediately fail during polling, let the timeout handle it
         }
-        }
-      } catch (error) {
+      }
+    } catch (error) {
       console.error('Error fetching YouTube data:', error);
       if (!isPolling) {
         setError('Failed to fetch modules. Please try again.');
+      } else {
+        console.warn('⚠️ Network error during polling:', error);
+        // Don't immediately fail during polling, let the timeout handle it
       }
-      } finally {
-        if (!isPolling) {
-          setLoading(false);
-        }
+    } finally {
+      if (!isPolling) {
+        setLoading(false);
       }
-    };
+    }
+  };
 
   const triggerYouTubeScraping = async () => {
     if (!user?.uniqueId) return;
@@ -197,6 +226,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
     setN8nStatus('triggering');
     setN8nMessage('Starting YouTube content generation...');
     setN8nProgress(0);
+    setN8nStartTime(Date.now());
     
     try {
       const response = await fetch('/api/webhook/trigger-youtube-scraping', {
@@ -215,6 +245,11 @@ export default function ModulesTab({ user }: ModulesTabProps) {
         setN8nStatus('processing');
         setN8nMessage('N8N is generating YouTube videos for you...');
         
+        console.log('🚀 N8N workflow triggered successfully:', {
+          webhookSuccess: result.webhookSuccess,
+          message: result.message
+        });
+        
         // Simulate progress updates
         const progressInterval = setInterval(() => {
           setN8nProgress(prev => {
@@ -227,19 +262,55 @@ export default function ModulesTab({ user }: ModulesTabProps) {
         }, 2000);
         
         // Start polling for results
+        let pollCount = 0;
+        const maxPolls = 24; // Maximum 2 minutes of polling (24 * 5 seconds)
+        
         const pollForResults = async () => {
           try {
+            pollCount++;
+            console.log(`🔄 Polling attempt ${pollCount}/${maxPolls} for N8N results`);
+            
             await fetchYouTubeData(true); // Use polling mode
             
-            // Continue polling if status is still processing
-            if (n8nStatus === 'processing') {
-              setTimeout(pollForResults, 5000);
-            }
+            // Check current status using a ref or state callback to get fresh value
+            setN8nStatus(currentStatus => {
+              // Validate status based on timing
+              const validatedStatus = validateN8nStatus(currentStatus, n8nStartTime);
+              
+              if (validatedStatus === 'error') {
+                console.warn('⏰ N8N processing exceeded maximum time, stopping');
+                clearInterval(progressInterval);
+                setTimeout(() => {
+                  setShowN8nIndicator(false);
+                }, 3000);
+                return 'error';
+              }
+              
+              // Continue polling if status is still processing and we haven't exceeded max polls
+              if (currentStatus === 'processing' && pollCount < maxPolls) {
+                setTimeout(pollForResults, 5000);
+                return currentStatus; // Keep current status
+              } else if (pollCount >= maxPolls) {
+                // Timeout after max polls
+                console.warn('⏰ N8N polling timeout reached, stopping');
+                clearInterval(progressInterval);
+                setTimeout(() => {
+                  setShowN8nIndicator(false);
+                }, 3000);
+                return 'error';
+              }
+              return currentStatus;
+            });
           } catch (pollError) {
             console.error('Error polling for results:', pollError);
             clearInterval(progressInterval);
             setN8nStatus('error');
             setN8nMessage('Failed to check for results. Please try refreshing.');
+            
+            // Hide indicator after error
+            setTimeout(() => {
+              setShowN8nIndicator(false);
+            }, 5000);
           }
         };
         
@@ -248,9 +319,17 @@ export default function ModulesTab({ user }: ModulesTabProps) {
         
         } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to trigger YouTube scraping');
+        const errorMessage = errorData.error || `HTTP ${response.status}: Failed to trigger YouTube scraping`;
+        
+        console.error('❌ N8N trigger failed:', {
+          status: response.status,
+          error: errorMessage,
+          details: errorData.details
+        });
+        
+        setError(errorMessage);
         setN8nStatus('error');
-        setN8nMessage('Failed to trigger YouTube scraping. Please try again.');
+        setN8nMessage(`Failed to trigger YouTube scraping: ${errorMessage}`);
         
         // Hide indicator after showing error
         setTimeout(() => {
@@ -258,15 +337,25 @@ export default function ModulesTab({ user }: ModulesTabProps) {
         }, 5000);
       }
     } catch (error) {
-      console.error('Error triggering YouTube scraping:', error);
-      setError('Failed to trigger YouTube scraping. Please try again.');
+      console.error('❌ Error triggering YouTube scraping:', error);
+      
+      let errorMessage = 'Failed to trigger YouTube scraping. Please try again.';
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timed out. Please check your connection and try again.';
+        } else if (error.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        }
+      }
+      
+      setError(errorMessage);
       setN8nStatus('error');
-      setN8nMessage('Failed to trigger YouTube scraping. Please try again.');
+      setN8nMessage(errorMessage);
       
       // Hide indicator after showing error
       setTimeout(() => {
         setShowN8nIndicator(false);
-      }, 120000);
+      }, 5000);
     } finally {
       setScraping(false);
     }
@@ -1123,9 +1212,9 @@ export default function ModulesTab({ user }: ModulesTabProps) {
       {/* MCQ Modal */}
       {showMcq && selectedChapter && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl">
             {/* Header */}
-            <div className="relative bg-gradient-to-r from-purple-600 to-blue-600 text-white p-8">
+            <div className="relative bg-gradient-to-r from-purple-600 to-blue-600 text-white p-8 flex-shrink-0">
               <div className="absolute inset-0 bg-black/10"></div>
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -1147,7 +1236,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
             </div>
             
             {/* Content */}
-            <div className="p-8 max-h-[60vh] overflow-y-auto">
+            <div className="p-8 flex-1 overflow-y-auto">
               {mcqQuestions.length > 0 ? (
                 <div className="space-y-6">
                   {mcqQuestions.map((question, index) => (
@@ -1306,9 +1395,9 @@ export default function ModulesTab({ user }: ModulesTabProps) {
       {/* Chat Modal */}
       {showChat && selectedChapter && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl">
             {/* Header */}
-            <div className="relative bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-8">
+            <div className="relative bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-8 flex-shrink-0">
               <div className="absolute inset-0 bg-black/10"></div>
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -1409,12 +1498,13 @@ export default function ModulesTab({ user }: ModulesTabProps) {
         )}
 
       {/* N8N Loading Indicator */}
-      <N8NLoadingIndicator
-        isVisible={showN8nIndicator}
-        status={n8nStatus}
-        message={n8nMessage}
-        progress={n8nProgress}
-      />
+        <N8NLoadingIndicator
+          isVisible={showN8nIndicator}
+          status={n8nStatus}
+          message={n8nMessage}
+          progress={n8nProgress}
+          startTime={n8nStartTime}
+        />
     </div>
   );
 } 

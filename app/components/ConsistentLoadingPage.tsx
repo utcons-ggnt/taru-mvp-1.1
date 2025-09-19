@@ -4,9 +4,10 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, BookOpen, Youtube, Zap, Trophy, Sparkles, Clock, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import VantaBackground from './VantaBackground';
 
 interface ConsistentLoadingPageProps {
-  type?: 'dashboard' | 'modules' | 'videos' | 'assessment' | 'general' | 'auth' | 'webhook';
+  type?: 'dashboard' | 'modules' | 'videos' | 'assessment' | 'general' | 'auth' | 'webhook' | 'onboarding' | 'registration' | 'interest-assessment' | 'skill-assessment' | 'diagnostic-assessment' | 'career-exploration' | 'result-summary';
   title?: string;
   subtitle?: string;
   progress?: number; // 0-100
@@ -15,6 +16,7 @@ interface ConsistentLoadingPageProps {
   estimatedTime?: string;
   className?: string;
   extendedLoading?: boolean;
+  pageContext?: string; // Additional context for more specific tips
 }
 
 const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
@@ -26,7 +28,8 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
   tips = [],
   estimatedTime,
   className = '',
-  extendedLoading = false
+  extendedLoading = false,
+  pageContext
 }) => {
   const [currentTipIndex, setCurrentTipIndex] = React.useState(0);
 
@@ -54,9 +57,10 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
           spinnerColor: 'text-purple-500',
           accentColor: 'purple-500',
           tips: tips.length > 0 ? tips : [
-            'Loading your progress and achievements',
-            'Preparing personalized recommendations',
-            'Setting up your learning environment'
+            'Analyzing your learning progress and achievements',
+            'Generating personalized module recommendations',
+            'Setting up your interactive learning dashboard',
+            'Preparing your next learning goals'
           ]
         };
       case 'modules':
@@ -71,9 +75,10 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
           spinnerColor: 'text-purple-500',
           accentColor: 'purple-500',
           tips: tips.length > 0 ? tips : [
-            'AI is analyzing your learning preferences',
-            'Customizing content difficulty for you',
-            'Loading interactive elements and quizzes'
+            'AI is analyzing your learning preferences and grade level',
+            'Customizing content difficulty based on your skills',
+            'Loading interactive elements, videos, and quizzes',
+            'Preparing personalized learning paths for you'
           ]
         };
       case 'videos':
@@ -88,9 +93,10 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
           spinnerColor: 'text-red-500',
           accentColor: 'red-500',
           tips: tips.length > 0 ? tips : [
-            'Connecting to YouTube educational channels',
-            'Filtering content for your grade level',
-            'Organizing videos by subject and topic'
+            'Connecting to verified educational YouTube channels',
+            'Filtering content for your grade level and interests',
+            'Organizing videos by subject, topic, and difficulty',
+            'Preparing interactive video learning experience'
           ]
         };
       case 'assessment':
@@ -105,9 +111,10 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
           spinnerColor: 'text-emerald-500',
           accentColor: 'emerald-500',
           tips: tips.length > 0 ? tips : [
-            'Preparing personalized questions for you',
-            'Calibrating difficulty to your level',
-            'Setting up adaptive assessment engine'
+            'Preparing personalized questions based on your profile',
+            'Calibrating difficulty to match your learning level',
+            'Setting up adaptive assessment engine for optimal experience',
+            'Loading progress tracking and analytics system'
           ]
         };
       case 'auth':
@@ -144,6 +151,132 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
             'Optimizing content for your preferences'
           ]
         };
+      case 'onboarding':
+        return {
+          icon: Sparkles,
+          primaryColor: 'purple',
+          title: title || 'Setting Up Your Profile',
+          subtitle: subtitle || 'Personalizing your learning experience...',
+          bgGradient: 'from-purple-600 via-purple-700 to-indigo-800',
+          iconBg: 'bg-gradient-to-br from-purple-100 to-purple-200',
+          iconColor: 'text-purple-600',
+          spinnerColor: 'text-purple-500',
+          accentColor: 'purple-500',
+          tips: tips.length > 0 ? tips : [
+            'Creating your personalized student profile',
+            'Setting up your learning preferences',
+            'Preparing your unique student ID',
+            'Configuring your guardian information'
+          ]
+        };
+      case 'registration':
+        return {
+          icon: Sparkles,
+          primaryColor: 'purple',
+          title: title || 'Creating Your Account',
+          subtitle: subtitle || 'Setting up your personalized learning journey...',
+          bgGradient: 'from-purple-600 via-purple-700 to-indigo-800',
+          iconBg: 'bg-gradient-to-br from-purple-100 to-purple-200',
+          iconColor: 'text-purple-600',
+          spinnerColor: 'text-purple-500',
+          accentColor: 'purple-500',
+          tips: tips.length > 0 ? tips : [
+            'Verifying your account credentials',
+            'Setting up your role-based profile',
+            'Preparing your personalized dashboard',
+            'Almost ready to start learning!'
+          ]
+        };
+      case 'interest-assessment':
+        return {
+          icon: Trophy,
+          primaryColor: 'emerald',
+          title: title || 'Loading Interest Assessment',
+          subtitle: subtitle || 'Preparing questions to discover your interests...',
+          bgGradient: 'from-emerald-600 via-green-700 to-teal-800',
+          iconBg: 'bg-gradient-to-br from-emerald-100 to-emerald-200',
+          iconColor: 'text-emerald-600',
+          spinnerColor: 'text-emerald-500',
+          accentColor: 'emerald-500',
+          tips: tips.length > 0 ? tips : [
+            'Preparing personalized interest questions',
+            'Setting up interactive assessment interface',
+            'Loading your progress tracking system',
+            'Ready to discover your passions!'
+          ]
+        };
+      case 'skill-assessment':
+        return {
+          icon: Trophy,
+          primaryColor: 'blue',
+          title: title || 'Loading Skill Assessment',
+          subtitle: subtitle || 'Preparing tests to evaluate your skills...',
+          bgGradient: 'from-blue-600 via-blue-700 to-cyan-800',
+          iconBg: 'bg-gradient-to-br from-blue-100 to-blue-200',
+          iconColor: 'text-blue-600',
+          spinnerColor: 'text-blue-500',
+          accentColor: 'blue-500',
+          tips: tips.length > 0 ? tips : [
+            'Preparing skill-based test questions',
+            'Setting up adaptive assessment engine',
+            'Loading your performance analytics',
+            'Ready to test your abilities!'
+          ]
+        };
+      case 'diagnostic-assessment':
+        return {
+          icon: Trophy,
+          primaryColor: 'orange',
+          title: title || 'Loading Diagnostic Assessment',
+          subtitle: subtitle || 'Preparing comprehensive learning evaluation...',
+          bgGradient: 'from-orange-600 via-red-700 to-pink-800',
+          iconBg: 'bg-gradient-to-br from-orange-100 to-orange-200',
+          iconColor: 'text-orange-600',
+          spinnerColor: 'text-orange-500',
+          accentColor: 'orange-500',
+          tips: tips.length > 0 ? tips : [
+            'Preparing comprehensive diagnostic questions',
+            'Setting up multi-subject assessment',
+            'Loading adaptive difficulty system',
+            'Ready to evaluate your learning level!'
+          ]
+        };
+      case 'career-exploration':
+        return {
+          icon: Brain,
+          primaryColor: 'indigo',
+          title: title || 'Loading Career Explorer',
+          subtitle: subtitle || 'Preparing career insights and recommendations...',
+          bgGradient: 'from-indigo-600 via-purple-700 to-pink-800',
+          iconBg: 'bg-gradient-to-br from-indigo-100 to-indigo-200',
+          iconColor: 'text-indigo-600',
+          spinnerColor: 'text-indigo-500',
+          accentColor: 'indigo-500',
+          tips: tips.length > 0 ? tips : [
+            'Analyzing your interests and skills',
+            'Generating career recommendations',
+            'Loading industry insights and trends',
+            'Preparing your career roadmap!'
+          ]
+        };
+      case 'result-summary':
+        return {
+          icon: Trophy,
+          primaryColor: 'green',
+          title: title || 'Generating Results',
+          subtitle: subtitle || 'Analyzing your responses and creating insights...',
+          bgGradient: 'from-green-600 via-emerald-700 to-teal-800',
+          iconBg: 'bg-gradient-to-br from-green-100 to-green-200',
+          iconColor: 'text-green-600',
+          spinnerColor: 'text-green-500',
+          accentColor: 'green-500',
+          tips: tips.length > 0 ? tips : [
+            'Analyzing your assessment responses',
+            'Generating personalized insights',
+            'Creating your learning recommendations',
+            'Preparing your detailed results!'
+          ]
+        };
       default:
         return {
           icon: Sparkles,
@@ -168,43 +301,28 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
   const Icon = config.icon;
 
   return (
-    <motion.main 
-      className={`min-h-screen flex items-center justify-center bg-gradient-to-br ${config.bgGradient} p-4 relative overflow-hidden ${className}`}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.6 }}
+    <VantaBackground
+      className={`min-h-screen flex items-center justify-center p-4 relative overflow-hidden ${className}`}
+      color="#8b5cf6"
+      backgroundColor="#1e1b4b"
+      maxDistance={25}
+      spacing={18}
+      showDots={true}
+      showLines={true}
+      mouseControls={true}
+      touchControls={true}
+      gyroControls={false}
+      minHeight={200}
+      minWidth={200}
+      scale={1}
+      scaleMobile={1}
     >
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        {[...Array(15)].map((_, i) => {
-          // Use deterministic positioning based on index to avoid hydration mismatch
-          const baseX = (i * 73) % 1200; // Deterministic x position
-          const baseY = (i * 97) % 800;  // Deterministic y position
-          const targetX = ((i * 149) % 1200); // Deterministic target x
-          const targetY = ((i * 167) % 800);  // Deterministic target y
-          const duration = 15 + (i % 10); // Deterministic duration
-          
-          return (
-            <motion.div
-              key={i}
-              className="absolute w-2 h-2 bg-white/20 rounded-full"
-              initial={{
-                x: baseX,
-                y: baseY,
-              }}
-              animate={{
-                y: [null, targetY],
-                x: [null, targetX],
-              }}
-              transition={{
-                duration: duration,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-            />
-          );
-        })}
-      </div>
+      <motion.main 
+        className="w-full h-full flex items-center justify-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+      >
 
       <div className="max-w-md w-full relative z-10">
         <motion.div
@@ -371,24 +489,20 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
             </motion.div>
           )}
 
-          {/* Loading Steps */}
+          {/* Loading Steps - Dynamic based on page type */}
           <motion.div
             className="space-y-3 mb-6"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.6 }}
           >
-            {[
-              { text: 'Loading your progress', delay: 0 },
-              { text: 'Preparing recommendations', delay: 1 },
-              { text: 'Setting up dashboard', delay: 2 }
-            ].map((step, index) => (
+            {config.tips.slice(0, 3).map((tip, index) => (
               <motion.div
                 key={index}
                 className="flex items-center gap-3"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: step.delay, duration: 0.5 }}
+                transition={{ delay: index * 0.5, duration: 0.5 }}
               >
                 <motion.div
                   className={`w-2 h-2 bg-${config.accentColor} rounded-full`}
@@ -399,10 +513,10 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
                   transition={{
                     duration: 1.5,
                     repeat: Infinity,
-                    delay: step.delay,
+                    delay: index * 0.5,
                   }}
                 />
-                <span className="text-sm text-gray-600">{step.text}</span>
+                <span className="text-sm text-gray-600">{tip}</span>
               </motion.div>
             ))}
           </motion.div>
@@ -433,7 +547,8 @@ const ConsistentLoadingPage: React.FC<ConsistentLoadingPageProps> = ({
           </motion.div>
         </motion.div>
       </div>
-    </motion.main>
+      </motion.main>
+    </VantaBackground>
   );
 };
 

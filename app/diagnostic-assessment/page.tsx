@@ -909,25 +909,6 @@ export default function DiagnosticAssessment() {
           </div>
         </header>
 
-        {/* Progress Steps */}
-        <div className="bg-white px-6 py-4">
-          <div className="flex justify-center items-center gap-4 max-w-4xl mx-auto">
-            {Array.from({ length: 6 }, (_, i) => (
-              <div key={i} className="flex items-center">
-                <div className="flex flex-col items-center">
-                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm">
-                    ✓
-                  </div>
-                  <div className="text-xs text-green-600 mt-1">
-                    Step {i + 1} of 6
-                  </div>
-                  <div className="text-xs text-green-600">Completed</div>
-                </div>
-                {i < 5 && <div className="w-16 h-0.5 bg-green-500 mx-2"></div>}
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Special notice for users coming from interest assessment */}
         {result && result.type === 'Assessment Completed' && result.description.includes('already completed') && (
@@ -1089,15 +1070,6 @@ export default function DiagnosticAssessment() {
                        >
                          {result.n8nResults?.Score || result.score || 0}%
                        </motion.p>
-                       {/* Progress Bar */}
-                       <div className="mt-4 w-full bg-white/20 rounded-full h-2">
-                         <motion.div 
-                           className="bg-gradient-to-r from-yellow-300 to-yellow-500 h-2 rounded-full"
-                           initial={{ width: 0 }}
-                           animate={{ width: `${result.n8nResults?.Score || result.score || 0}%` }}
-                           transition={{ delay: 2.2, duration: 1.5, ease: "easeOut" }}
-                         ></motion.div>
-                       </div>
                      </motion.div>
                      
                      <motion.div 
@@ -1186,37 +1158,11 @@ export default function DiagnosticAssessment() {
             </motion.div>
 
             <motion.div 
-              className="flex flex-col sm:flex-row justify-center gap-6 mb-8"
+              className="flex justify-center mb-8"
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 3.4, duration: 0.8 }}
             >
-              <motion.button 
-                onClick={resetAssessment}
-                disabled={isResetting}
-                className="group bg-gradient-to-r from-blue-500/30 to-blue-600/30 backdrop-blur-md text-white px-10 py-5 rounded-2xl font-bold hover:from-blue-500/40 hover:to-blue-600/40 transition-all duration-300 flex items-center gap-4 border border-blue-300/40 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {isResetting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                    <span className="text-lg">Resetting...</span>
-                  </>
-                ) : (
-                  <>
-                    <motion.span 
-                      className="text-3xl"
-                      animate={{ rotate: [0, 360] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    >
-                      🔄
-                    </motion.span>
-                    <span className="text-lg">Take Assessment Again</span>
-                  </>
-                )}
-              </motion.button>
-              
               <motion.button
                 onClick={() => router.push('/career-exploration')}
                 className="group bg-gradient-to-r from-yellow-500/30 to-orange-500/30 backdrop-blur-md text-white px-10 py-5 rounded-2xl font-bold hover:from-yellow-500/40 hover:to-orange-500/40 transition-all duration-300 flex items-center gap-4 border border-yellow-300/40 shadow-xl hover:shadow-2xl"
@@ -1248,15 +1194,6 @@ export default function DiagnosticAssessment() {
             setShowResultModal(false);
             router.push('/career-exploration');
           }}
-          onPrevious={() => setShowResultModal(false)}
-          onSubmit={() => setShowResultModal(false)}
-          currentQuestion="Assessment completed successfully"
-          questionLevel="Completed"
-          questionNumber={totalQuestions}
-          progress={Array.from({ length: totalQuestions }, (_, i) => ({
-            questionNumber: i + 1,
-            status: 'completed' as const
-          }))}
         />
       </>
     );
@@ -1346,89 +1283,6 @@ export default function DiagnosticAssessment() {
         </div>
       </header>
 
-          {/* Progress Bar */}
-      <div className="bg-white px-6 py-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Progress Steps Container */}
-          <div className="relative">
-            {/* Connecting Lines */}
-            <div className="absolute top-5 left-0 right-0 h-1 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 z-0"></div>
-            
-            {/* Progress Steps */}
-            <div className="relative flex items-start justify-between w-full z-10 px-4">
-              {Array.from({ length: Math.min(totalQuestions, 10) }, (_, index) => {
-                const stepNumber = index + 1;
-                const isCompleted = stepNumber < currentQuestionNumber;
-                const isCurrent = stepNumber === currentQuestionNumber;
-                const isPending = stepNumber > currentQuestionNumber;
-                
-                return (
-                  <div key={stepNumber} className="flex flex-col items-center relative flex-1 max-w-32">
-                    {/* Step Circle */}
-                    <div className="relative mb-6">
-                      {isCompleted ? (
-                        // Completed step
-                        <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center shadow-lg border-2 border-purple-700">
-                          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                          </svg>
-          </div>
-                      ) : isCurrent ? (
-                        // Current step
-                        <div className="relative">
-                          <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center shadow-xl border-2 border-purple-700">
-                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                            </svg>
-            </div>
-                          <div className="absolute -inset-3 bg-purple-100 rounded-full -z-10 animate-pulse"></div>
-                        </div>
-                      ) : stepNumber === totalQuestions ? (
-                        // Final step with grid icon
-                        <div className="w-10 h-10 border-3 border-gray-400 rounded-full flex items-center justify-center bg-white shadow-sm">
-                          <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                          </svg>
-                        </div>
-                      ) : (
-                        // Pending step with lock icon
-                        <div className="w-10 h-10 border-3 border-gray-400 rounded-full flex items-center justify-center bg-white shadow-sm">
-                          <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Step Label */}
-                    <div className="text-center w-full">
-                      <div className="text-xs text-gray-500 font-normal mb-2 leading-tight">
-                        {stepNumber === totalQuestions ? 'Final Question' : `Question ${stepNumber} of ${totalQuestions}`}
-                      </div>
-                      <div className={`inline-block px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap shadow-sm ${
-                        isCompleted 
-                          ? 'bg-gradient-to-r from-green-100 to-green-50 text-green-700 border border-green-300' 
-                          : isCurrent 
-                            ? 'bg-gradient-to-r from-purple-100 to-purple-50 text-purple-700 border border-purple-300 shadow-md' 
-                            : 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-600 border border-gray-300'
-                      }`}>
-                        {isCompleted ? 'Completed' : isCurrent ? 'In Progress' : 'Pending'}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          
-          {/* Progress Percentage */}
-          <div className="flex justify-center mt-8 pt-4 border-t border-gray-100">
-            <div className="bg-purple-50 px-4 py-2 rounded-full">
-              <span className="text-sm font-semibold text-purple-700">{progress}% Complete</span>
-            </div>
-          </div>
-          </div>
-          </div>
 
       {/* Question Content */}
       <div className="flex-1 px-6 py-8">
@@ -1479,27 +1333,29 @@ export default function DiagnosticAssessment() {
                               isSelected ? 'transform scale-105' : 'hover:scale-102'
                             }`}
                           >
-                            <input
-                              type="radio"
-                              name="single-choice-option"
-                              value={option}
-                              checked={isSelected}
-                              onChange={(e) => setSelectedOption([e.target.value])}
-                              className="sr-only"
-                              aria-describedby={`option-${index}-description`}
-                            />
                             <div className={`bg-white rounded-xl p-6 border-2 transition-all duration-200 ${
                               isSelected 
                                 ? 'border-purple-500 shadow-lg shadow-purple-100' 
                                 : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
                             }`}>
                               <div className="flex items-start gap-4">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                                  isSelected 
-                                    ? 'bg-purple-500 text-white' 
-                                    : 'bg-gray-100 text-gray-600'
-                                }`}>
-                                  {letter}
+                                {/* Radio button indicator */}
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="radio"
+                                    name="single-choice-option"
+                                    value={option}
+                                    checked={isSelected}
+                                    onChange={(e) => setSelectedOption([e.target.value])}
+                                    className="w-4 h-4 border-gray-300 focus:ring-purple-500 bg-white"
+                                  />
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                    isSelected 
+                                      ? 'bg-purple-500 text-white' 
+                                      : 'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    {letter}
+                                  </div>
                                 </div>
                                 <span 
                                   id={`option-${index}-description`}
@@ -1531,33 +1387,35 @@ export default function DiagnosticAssessment() {
                               isSelected ? 'transform scale-105' : 'hover:scale-102'
                             }`}
                           >
-                            <input
-                              type="checkbox"
-                              name="multiple-choice-option"
-                              value={option}
-                              checked={isSelected}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedOption([...selectedOption, option]);
-                                } else {
-                                  setSelectedOption(selectedOption.filter(item => item !== option));
-                                }
-                              }}
-                              className="sr-only"
-                              aria-describedby={`option-${index}-description`}
-                            />
                             <div className={`bg-white rounded-xl p-6 border-2 transition-all duration-200 ${
                               isSelected 
                                 ? 'border-purple-500 shadow-lg shadow-purple-100' 
                                 : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
                             }`}>
                               <div className="flex items-start gap-4">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                                  isSelected 
-                                    ? 'bg-purple-500 text-white' 
-                                    : 'bg-gray-100 text-gray-600'
-                                }`}>
-                                  {letter}
+                                {/* Checkbox indicator */}
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="checkbox"
+                                    name="multiple-choice-option"
+                                    value={option}
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedOption([...selectedOption, option]);
+                                      } else {
+                                        setSelectedOption(selectedOption.filter(item => item !== option));
+                                      }
+                                    }}
+                                    className="w-4 h-4 border-gray-300 rounded focus:ring-purple-500 bg-white"
+                                  />
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                    isSelected 
+                                      ? 'bg-purple-500 text-white' 
+                                      : 'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    {letter}
+                                  </div>
                                 </div>
                                 <span 
                                   id={`option-${index}-description`}

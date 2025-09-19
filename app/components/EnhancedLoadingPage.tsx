@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Youtube, BookOpen, Play, Loader2, Clock, Zap, Sparkles, Brain, Trophy } from 'lucide-react';
+import VantaBackground from './VantaBackground';
 
 interface EnhancedLoadingPageProps {
   type?: 'modules' | 'videos' | 'webhook' | 'general' | 'dashboard' | 'assessment';
@@ -146,57 +147,23 @@ const EnhancedLoadingPage: React.FC<EnhancedLoadingPageProps> = ({
   const Icon = config.icon;
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${config.bgGradient} flex items-center justify-center p-4 relative overflow-hidden`}>
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        {/* Floating Particles */}
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 bg-white/20 rounded-full"
-            initial={{
-              x: Math.random() * window.innerWidth,
-              y: Math.random() * window.innerHeight,
-            }}
-            animate={{
-              y: [null, Math.random() * window.innerHeight],
-              x: [null, Math.random() * window.innerWidth],
-            }}
-            transition={{
-              duration: Math.random() * 10 + 10,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          />
-        ))}
-
-        {/* Gradient Orbs */}
-        <motion.div
-          className="absolute top-1/4 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.6, 0.3],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-white/10 rounded-full blur-3xl"
-          animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.6, 0.3, 0.6],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 2,
-          }}
-        />
-      </div>
+    <VantaBackground
+      className={`min-h-screen flex items-center justify-center p-4 relative overflow-hidden`}
+      color="#8b5cf6"
+      backgroundColor="#1e1b4b"
+      maxDistance={25}
+      spacing={18}
+      showDots={true}
+      showLines={true}
+      mouseControls={true}
+      touchControls={true}
+      gyroControls={false}
+      minHeight={200}
+      minWidth={200}
+      scale={1}
+      scaleMobile={1}
+    >
+      <div className="w-full h-full flex items-center justify-center">
 
       <div className="max-w-lg w-full relative z-10">
         {/* Main Loading Card */}
@@ -389,7 +356,8 @@ const EnhancedLoadingPage: React.FC<EnhancedLoadingPageProps> = ({
           </motion.div>
         )}
       </div>
-    </div>
+      </div>
+    </VantaBackground>
   );
 };
 

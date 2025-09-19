@@ -769,7 +769,7 @@ export default function InterestAssessment() {
                         }));
                       }
                     }}
-                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                    className=""
                   />
                   <span className="text-gray-800">{style}</span>
                 </label>
@@ -798,7 +798,7 @@ export default function InterestAssessment() {
                         challengeApproach: e.target.value
                       }
                     }))}
-                    className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                    className=""
                   />
                   <span className="text-gray-800">{approach}</span>
                 </label>
@@ -836,7 +836,7 @@ export default function InterestAssessment() {
                         }));
                       }
                     }}
-                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                    className=""
                   />
                   <span className="text-gray-800">{value}</span>
                 </label>
@@ -914,7 +914,7 @@ export default function InterestAssessment() {
                         }));
                       }
                     }}
-                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                    className=""
                   />
                   <span className="text-gray-800 text-sm">{career}</span>
                 </label>

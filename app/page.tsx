@@ -285,11 +285,34 @@ export default function Home() {
               {/* Logo in Card */}
               <motion.div
                 className="absolute top-6 left-6 rounded-full p-3"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ 
+                  delay: 0.2, 
+                  duration: 0.8,
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 15
+                }}
+                whileHover={{ 
+                  scale: 1.1, 
+                  rotate: 5,
+                  transition: { duration: 0.3 }
+                }}
               >
-                <Image src="/icons/logo.svg" alt="Logo" width={50} height={50} className="w-30 h-30 mt-1 object-contain" />
+                <motion.div
+                  animate={{ 
+                    rotate: [0, 5, -5, 0],
+                    scale: [1, 1.05, 1]
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  <Image src="/icons/logo.svg" alt="Logo" width={50} height={50} className="w-30 h-30 mt-1 object-contain" />
+                </motion.div>
               </motion.div>
 
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                {/* Content Container */}
@@ -516,14 +539,14 @@ export default function Home() {
                  {currentCard === 0 && (
                    <StaggeredText
                      text="Welcome to the Future of Learning"
-                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 tracking-tight"
+                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 tracking-wide leading-tight"
                      delay={0.2}
                      staggerDelay={0.08}
                      animationType="fadeUp"
                    />
                  )}
                  {currentCard === 1 && (
-                   <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight">
+                   <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-wide leading-tight">
                      <span className="text-black">Dynamic </span>
                      <GradientText
                        text="AI"
@@ -541,7 +564,7 @@ export default function Home() {
                  {currentCard === 2 && (
                    <StaggeredText
                      text="Ready to Learn?"
-                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 tracking-tight"
+                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 tracking-wide leading-tight"
                      delay={0.1}
                      staggerDelay={0.1}
                      animationType="scale"
@@ -550,7 +573,7 @@ export default function Home() {
                  {currentCard === 3 && (
                    <GradientText
                      text="Success Stories"
-                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight"
+                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-wide leading-tight"
                      colors={['#059669', '#10b981', '#34d399', '#6ee7b7']}
                      speed={2}
                    />

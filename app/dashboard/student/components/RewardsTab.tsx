@@ -338,27 +338,7 @@ export default function RewardsTab({ badges, onTabChange }: RewardsTabProps) {
         </div>
       )}
 
-      {/* AI Buddy Help Section */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <div className="bg-white rounded-xl shadow-lg p-4 border border-gray-200 max-w-xs">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-              <span className="text-purple-600 text-lg">✌️</span>
-            </div>
-            <div className="text-sm text-gray-700">
-              How can I help you
-            </div>
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-          <div className="flex justify-center">
-            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-lg">🤖</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      
     </motion.div>
   );
 } 

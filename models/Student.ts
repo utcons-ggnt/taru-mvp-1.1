@@ -58,6 +58,10 @@ const studentSchema = new mongoose.Schema({
   profilePictureUrl: {
     type: String
   },
+  avatar: {
+    type: String,
+    default: '/avatars/Group.svg'
+  },
   languagePreference: {
     type: String,
     required: true,

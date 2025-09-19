@@ -26,6 +26,8 @@ interface StudentOnboardingData {
   learningModePreference: string[];
   interestsOutsideClass: string[];
   preferredCareerDomains: string[];
+  favoriteSubjects: string[];
+  preferredLearningStyles: string[];
   
   // Guardian Information
   guardianName: string;
@@ -45,7 +47,9 @@ interface StudentOnboardingData {
 }
 
 const languageOptions = [
-  'English', 'Hindi', 'Spanish', 'French', 'German', 'Chinese', 'Arabic', 'Other'
+  'English', 'Hindi', 'Bengali', 'Telugu', 'Marathi', 'Tamil', 'Gujarati', 'Urdu',
+  'Kannada', 'Odia', 'Malayalam', 'Punjabi', 'Assamese', 'Bhojpuri', 'Sanskrit',
+  'Kashmiri', 'Konkani', 'Manipuri', 'Nepali', 'Sindhi', 'Other'
 ];
 
 const learningModes = [
@@ -64,12 +68,43 @@ const careerDomains = [
   'Sports', 'Media', 'Environment', 'Other'
 ];
 
+const favoriteSubjects = [
+  'Mathematics', 'Science', 'English', 'History', 'Geography', 'Physics',
+  'Chemistry', 'Biology', 'Computer Science', 'Art', 'Music', 'Physical Education',
+  'Social Studies', 'Literature', 'Economics', 'Psychology', 'Philosophy', 'Other'
+];
+
+const preferredLearningStyles = [
+  'Visual Learning', 'Auditory Learning', 'Reading/Writing', 'Kinesthetic Learning',
+  'Games and Interactive', 'Stories and Narratives', 'Videos and Animations',
+  'Hands-on Practice', 'Group Discussions', 'Individual Study', 'Online Learning',
+  'Project-based Learning', 'Problem-solving', 'Experiments', 'Field Trips', 'Other'
+];
+
 export default function StudentOnboarding() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSuccess, setIsSuccess] = useState(false);
   const [uniqueId, setUniqueId] = useState('');
 
   const [copied, setCopied] = useState(false);
+  const [showFavoriteSubjectsDropdown, setShowFavoriteSubjectsDropdown] = useState(false);
+  const [showLearningStylesDropdown, setShowLearningStylesDropdown] = useState(false);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.dropdown-container')) {
+        setShowFavoriteSubjectsDropdown(false);
+        setShowLearningStylesDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   const [formData, setFormData] = useState<StudentOnboardingData>({
     fullName: '',
     nickname: '',
@@ -83,6 +118,8 @@ export default function StudentOnboarding() {
     learningModePreference: [],
     interestsOutsideClass: [],
     preferredCareerDomains: [],
+    favoriteSubjects: [],
+    preferredLearningStyles: [],
     guardianName: '',
     guardianContactNumber: '',
     guardianEmail: '',
@@ -242,8 +279,11 @@ export default function StudentOnboarding() {
         if (!formData.guardianName.trim()) newErrors.guardianName = 'Guardian name is required';
         if (!formData.languagePreference) newErrors.languagePreference = 'Language preference is required';
         if (!formData.schoolId.trim()) newErrors.schoolId = 'School ID is required';
-        if (formData.learningModePreference.length === 0) {
-          newErrors.learningModePreference = 'Please select at least one learning mode';
+        if (formData.favoriteSubjects.length === 0) {
+          newErrors.favoriteSubjects = 'Please select at least one favorite subject';
+        }
+        if (formData.preferredLearningStyles.length === 0) {
+          newErrors.preferredLearningStyles = 'Please select at least one preferred learning style';
         }
         break;
       
@@ -355,10 +395,6 @@ export default function StudentOnboarding() {
         // Clear registration data after successful onboarding
         RegistrationDataManager.clearRegistrationData();
         
-        // Auto-redirect to interest assessment after 3 seconds
-        setTimeout(() => {
-          router.push('/interest-assessment');
-        }, 3000);
       } else {
         let errorData: any = {};
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
@@ -407,7 +443,7 @@ export default function StudentOnboarding() {
   if (isLoading) {
     return (
       <ConsistentLoadingPage
-        type="general"
+        type="onboarding"
         title="Loading Profile"
         subtitle="Setting up your personalized learning profile..."
         tips={[
@@ -837,7 +873,7 @@ export default function StudentOnboarding() {
         
         <div className="flex-1 flex flex-col justify-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-12 px-4">
-            Students <span className="text-white/90">Details</span>
+            Student <span className="text-white/90">Details</span>
           </h1>
           
           {/* Progress Steps */}
@@ -912,49 +948,54 @@ export default function StudentOnboarding() {
                 <h2 className="text-xl font-semibold text-purple-600 mb-6">Basic Info</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Full Name
+                    </label>
                     <input
                       type="text"
                       value={formData.fullName}
                       disabled
-                      placeholder="Full Name"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 focus:outline-none"
                     />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Guardian Name *
+                    </label>
                     <input
                       type="text"
                       value={formData.guardianName}
                       onChange={(e) => handleInputChange('guardianName', e.target.value)}
-                      placeholder="Guardian Name"
+                      placeholder="Enter guardian's full name"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                     />
                     {errors.guardianName && <p className="text-red-500 text-sm mt-1">{errors.guardianName}</p>}
                   </div>
-                  <div className="relative">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Date of Birth *
+                    </label>
                     <input
                       type="date"
                       value={formData.dateOfBirth}
                       onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                      placeholder=""
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                       style={{
                         colorScheme: 'light'
                       }}
                     />
-                    {!formData.dateOfBirth && (
-                      <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400 text-sm">
-                        Select date of birth
-                      </div>
-                    )}
                     {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>}
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Gender *
+                    </label>
                     <select
                       value={formData.gender}
                       onChange={(e) => handleInputChange('gender', e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                     >
-                      <option value="">Gender</option>
+                      <option value="">Select gender</option>
                       <option value="male">Male</option>
                       <option value="female">Female</option>
                       <option value="other">Other</option>
@@ -962,33 +1003,49 @@ export default function StudentOnboarding() {
                     {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender}</p>}
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Location
+                    </label>
                     <input
                       type="text"
                       value={formData.location}
                       onChange={(e) => handleInputChange('location', e.target.value)}
-                      placeholder="Location / City"
+                      placeholder="Enter your location/city"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                     />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Language Preference *
+                    </label>
                     <select
                       value={formData.languagePreference}
                       onChange={(e) => handleInputChange('languagePreference', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                        autoFilledFields.languagePreference 
+                          ? 'border-green-300 bg-green-50 text-green-700' 
+                          : 'border-gray-300 bg-white text-gray-900'
+                      }`}
                     >
-                      <option value="">Language</option>
+                      <option value="">Select language</option>
                       {languageOptions.map((lang) => (
                         <option key={lang} value={lang}>{lang}</option>
                       ))}
                     </select>
+                    {autoFilledFields.languagePreference && (
+                      <p className="text-xs text-green-600 mt-1">Auto-filled from registration</p>
+                    )}
                     {errors.languagePreference && <p className="text-red-500 text-sm mt-1">{errors.languagePreference}</p>}
-              </div>
-            </div>
+                  </div>
+                </div>
 
                 <div className="mt-8">
                   <h3 className="text-xl font-semibold text-purple-600 mb-6">School & Learning</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Class/Grade
+                      </label>
                       <select
                         value={formData.classGrade}
                         onChange={(e) => handleInputChange('classGrade', e.target.value)}
@@ -1012,42 +1069,157 @@ export default function StudentOnboarding() {
                       </select>
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        School Name
+                      </label>
                       <input
                         type="text"
                         value={formData.schoolName}
                         onChange={(e) => handleInputChange('schoolName', e.target.value)}
-                        placeholder="School Name"
+                        placeholder="Enter school name"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                       />
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        School ID *
+                      </label>
                       <input
                         type="text"
                         value={formData.schoolId}
                         onChange={(e) => handleInputChange('schoolId', e.target.value)}
-                        placeholder="School ID"
+                        placeholder="Enter your school ID"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                       />
                       {errors.schoolId && <p className="text-red-500 text-sm mt-1">{errors.schoolId}</p>}
                     </div>
-                    <div>
-                      <input
-                        type="text"
-                        value={formData.interestsOutsideClass.join(', ')}
-                        onChange={(e) => handleInputChange('interestsOutsideClass', e.target.value.split(', ').filter(i => i.trim()))}
-                        placeholder="Favourite Subjects"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
-                      />
+                    <div className="dropdown-container md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Favourite Subjects *
+                      </label>
+                      <div className="relative">
+                        <div 
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 min-h-[48px] flex flex-wrap gap-2 items-center cursor-pointer hover:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          onClick={() => setShowFavoriteSubjectsDropdown(!showFavoriteSubjectsDropdown)}
+                        >
+                          {formData.favoriteSubjects.length === 0 ? (
+                            <span className="text-gray-400">Select your favourite subjects</span>
+                          ) : (
+                            formData.favoriteSubjects.map((subject) => (
+                              <span
+                                key={subject}
+                                className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-sm flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {subject}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMultiSelect('favoriteSubjects', subject);
+                                  }}
+                                  className="text-purple-600 hover:text-purple-800"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))
+                          )}
+                        </div>
+                        <div className="absolute inset-0 pointer-events-none">
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <svg 
+                              className={`w-4 h-4 text-gray-400 transition-transform ${showFavoriteSubjectsDropdown ? 'rotate-180' : ''}`} 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Dropdown Options */}
+                      {showFavoriteSubjectsDropdown && (
+                        <div className="mt-2 border border-gray-200 rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto z-10 relative">
+                          {favoriteSubjects.map((subject) => (
+                            <label key={subject} className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-50 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={formData.favoriteSubjects.includes(subject)}
+                                onChange={() => handleMultiSelect('favoriteSubjects', subject)}
+                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              />
+                              <span className="text-sm text-gray-800">{subject}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {errors.favoriteSubjects && <p className="text-red-500 text-sm mt-1">{errors.favoriteSubjects}</p>}
                     </div>
-                    <div>
-                      <input
-                        type="text"
-                        value={formData.learningModePreference.join(', ')}
-                        onChange={(e) => handleInputChange('learningModePreference', e.target.value.split(', ').filter(i => i.trim()))}
-                        placeholder="Preferred Learning Style (Games, Stories, Videos)"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
-                      />
-                      {errors.learningModePreference && <p className="text-red-500 text-sm mt-1">{errors.learningModePreference}</p>}
+                    <div className="dropdown-container md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Preferred Learning Style *
+                      </label>
+                      <div className="relative">
+                        <div 
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 min-h-[48px] flex flex-wrap gap-2 items-center cursor-pointer hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          onClick={() => setShowLearningStylesDropdown(!showLearningStylesDropdown)}
+                        >
+                          {formData.preferredLearningStyles.length === 0 ? (
+                            <span className="text-gray-400">Select your preferred learning styles</span>
+                          ) : (
+                            formData.preferredLearningStyles.map((style) => (
+                              <span
+                                key={style}
+                                className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {style}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMultiSelect('preferredLearningStyles', style);
+                                  }}
+                                  className="text-blue-600 hover:text-blue-800"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))
+                          )}
+                        </div>
+                        <div className="absolute inset-0 pointer-events-none">
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <svg 
+                              className={`w-4 h-4 text-gray-400 transition-transform ${showLearningStylesDropdown ? 'rotate-180' : ''}`} 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Dropdown Options */}
+                      {showLearningStylesDropdown && (
+                        <div className="mt-2 border border-gray-200 rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto z-10 relative">
+                          {preferredLearningStyles.map((style) => (
+                            <label key={style} className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-50 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={formData.preferredLearningStyles.includes(style)}
+                                onChange={() => handleMultiSelect('preferredLearningStyles', style)}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-gray-800">{style}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {errors.preferredLearningStyles && <p className="text-red-500 text-sm mt-1">{errors.preferredLearningStyles}</p>}
                     </div>
                   </div>
                 </div>
@@ -1068,21 +1240,27 @@ export default function StudentOnboarding() {
                 <h2 className="text-xl font-semibold text-purple-600 mb-6">Guardian Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Guardian Contact Number *
+                    </label>
                     <input
                       type="tel"
                       value={formData.guardianContactNumber}
                       onChange={(e) => handleInputChange('guardianContactNumber', e.target.value)}
-                      placeholder="Guardian Contact Number"
+                      placeholder="Enter guardian's contact number"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                     />
                     {errors.guardianContactNumber && <p className="text-red-500 text-sm mt-1">{errors.guardianContactNumber}</p>}
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Guardian Email
+                    </label>
                     <input
                       type="email"
                       value={formData.guardianEmail}
                       onChange={(e) => handleInputChange('guardianEmail', e.target.value)}
-                      placeholder="Guardian Email (Optional)"
+                      placeholder="Enter guardian's email (optional)"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                     />
                     {errors.guardianEmail && <p className="text-red-500 text-sm mt-1">{errors.guardianEmail}</p>}

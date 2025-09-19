@@ -96,15 +96,6 @@ const IconRenderer = ({ icon, label, size = 24, className = "", isActive = false
           <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-red-500 to-pink-500 rounded-full"></div>
         </div>
       ),
-      'ai-buddy': (
-        <div className="relative">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h6" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01" />
-          </svg>
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"></div>
-        </div>
-      )
     };
     
     const iconKey = label.toLowerCase().replace(/\s+/g, '-').replace(/[&]/g, '');
@@ -348,8 +339,9 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
                     key={item.id}
                     onClick={() => handleTabChange(item.id)}
                     className={`
-                      flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-300 
+                      flex items-center gap-3 px-4 py-3 text-left transition-all duration-300 
                       font-medium text-gray-900 relative overflow-hidden group
+                      ${isHovered ? 'rounded-lg' : 'rounded-none'}
                       ${activeTab === item.id 
                         ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' 
                         : 'hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 active:bg-purple-100'
@@ -448,64 +440,6 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
               </motion.button>
             </div>
             
-            {/* AI Buddy Section */}
-            <motion.div 
-              className="mt-auto"
-              initial={{ y: 50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.6 }}
-            >
-              <motion.div 
-                className="bg-purple-100 rounded-xl p-4 flex flex-col items-center cursor-pointer"
-                whileHover={{ 
-                  scale: 1.05,
-                  boxShadow: "0 10px 25px -5px rgba(147, 51, 234, 0.3)",
-                  transition: { duration: 0.3 }
-                }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <motion.div 
-                  className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mb-2"
-                  whileHover={{ 
-                    scale: 1.1,
-                    rotate: [0, -10, 10, 0],
-                    transition: { duration: 0.5 }
-                  }}
-                >
-                  <motion.span 
-                    className="text-2xl text-white"
-                    animate={{ 
-                      scale: [1, 1.1, 1],
-                    }}
-                    transition={{ 
-                      duration: 2,
-                      repeat: Infinity,
-                      repeatType: "reverse"
-                    }}
-                  >
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h6" />
-                    </svg>
-                  </motion.span>
-                </motion.div>
-                <motion.div 
-                  className="text-sm font-semibold text-gray-900 text-center"
-                  whileHover={{ scale: 1.05 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  Ask <span className="text-purple-600">AI Buddy</span>
-                </motion.div>
-                <motion.p 
-                  className="text-xs text-gray-600 text-center mt-1"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0, duration: 0.4 }}
-                >
-                  Get instant help with your studies
-                </motion.p>
-              </motion.div>
-            </motion.div>
           </motion.aside>
         </AnimatePresence>
       ) : (
@@ -635,109 +569,6 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
             </motion.button>
           </div>
           
-          {/* AI Buddy Section */}
-          <motion.div 
-            className="mt-auto"
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.8, duration: 0.6 }}
-          >
-            {/* Collapsed state - Only icon visible */}
-            {!isSidebarExpanded && (
-              <motion.div 
-                className="flex justify-center"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.8, duration: 0.4 }}
-              >
-                <motion.div 
-                  className={`w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 ${
-                    activeTab === 'chat' 
-                      ? 'bg-purple-600 shadow-lg shadow-purple-600/30' 
-                      : 'bg-gray-100 hover:bg-gray-200'
-                  }`}
-                  whileHover={{ 
-                    scale: 1.1,
-                    rotate: [0, -10, 10, 0],
-                    transition: { duration: 0.5 }
-                  }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <motion.span 
-                    className={`text-xl transition-colors duration-200 ${
-                      activeTab === 'chat' ? 'text-white' : 'text-gray-600'
-                    }`}
-                    animate={{ 
-                      scale: [1, 1.1, 1],
-                    }}
-                    transition={{ 
-                      duration: 2,
-                      repeat: Infinity,
-                      repeatType: "reverse"
-                    }}
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h6" />
-                    </svg>
-                  </motion.span>
-                </motion.div>
-              </motion.div>
-            )}
-            
-            {/* Expanded state - Full AI Buddy section */}
-            {isSidebarExpanded && (
-              <motion.div 
-                className="bg-purple-100 rounded-xl p-4 flex flex-col items-center cursor-pointer"
-                whileHover={{ 
-                  scale: 1.05,
-                  boxShadow: "0 10px 25px -5px rgba(147, 51, 234, 0.3)",
-                  transition: { duration: 0.3 }
-                }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <motion.div 
-                  className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mb-2"
-                  whileHover={{ 
-                    scale: 1.1,
-                    rotate: [0, -10, 10, 0],
-                    transition: { duration: 0.5 }
-                  }}
-                >
-                  <motion.span 
-                    className="text-2xl text-white"
-                    animate={{ 
-                      scale: [1, 1.1, 1],
-                    }}
-                    transition={{ 
-                      duration: 2,
-                      repeat: Infinity,
-                      repeatType: "reverse"
-                    }}
-                  >
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h6" />
-                    </svg>
-                  </motion.span>
-                </motion.div>
-                <motion.div 
-                  className="text-sm font-semibold text-gray-900 text-center"
-                  whileHover={{ scale: 1.05 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  Ask <span className="text-purple-600">AI Buddy</span>
-                </motion.div>
-                <motion.p 
-                  className="text-xs text-gray-600 text-center mt-1"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: isHovered ? 1 : 0 }}
-                  transition={{ delay: isHovered ? 0 : 1, duration: 0.4 }}
-                >
-                  Get instant help with your studies
-                </motion.p>
-              </motion.div>
-            )}
-          </motion.div>
         </motion.aside>
       )}
     </>
