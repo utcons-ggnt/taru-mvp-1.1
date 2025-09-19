@@ -1262,7 +1262,7 @@ export default function DiagnosticAssessment() {
   if (!isCompleted) {
   return (
     <motion.main 
-      className="min-h-screen bg-white flex flex-col"
+      className="h-screen bg-white flex flex-col overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -1283,9 +1283,41 @@ export default function DiagnosticAssessment() {
         </div>
       </header>
 
+      {/* Progress Bar */}
+      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 border-b border-purple-100">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">{currentQuestionNumber}</span>
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-gray-800">
+                  Question {currentQuestionNumber} of {totalQuestions}
+                </span>
+                <p className="text-xs text-gray-600">Diagnostic Assessment</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-lg font-bold text-purple-600">
+                {Math.round((currentQuestionNumber / totalQuestions) * 100)}%
+              </span>
+              <p className="text-xs text-gray-600">Complete</p>
+            </div>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
+            <div 
+              className="bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-600 h-3 rounded-full transition-all duration-500 ease-out shadow-sm relative overflow-hidden"
+              style={{ width: `${(currentQuestionNumber / totalQuestions) * 100}%` }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Question Content */}
-      <div className="flex-1 px-6 py-8">
+      <div className="flex-1 px-6 py-8 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
           
           <AnimatePresence mode="wait">

@@ -90,10 +90,31 @@ function CareerDetailsContent() {
 
   // Save learning path function
   const saveLearningPath = async () => {
-    if (!careerDetails?.output || !userInfo?.id) return;
+    if (!careerDetails?.output || !userInfo?.id || isSaved || isSaving) return;
     
     try {
       setIsSaving(true);
+      
+      // First, save career details
+      const careerDetailsResponse = await fetch('/api/career-details/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          careerDetails: careerDetails,
+          careerPath: searchParams.get('careerPath') || 'Unknown Career',
+          description: careerDetails.output.overview?.join(' ') || 'Career learning path'
+        }),
+      });
+
+      if (!careerDetailsResponse.ok) {
+        const errorData = await careerDetailsResponse.json().catch(() => ({}));
+        setSaveError(errorData.error || 'Failed to save career details');
+        return;
+      }
+
+      // Then, save learning path
       const response = await fetch('/api/learning-paths/save', {
         method: 'POST',
         headers: {
@@ -655,7 +676,7 @@ function CareerDetailsContent() {
         }
       `}</style>
       <motion.div 
-        className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 relative overflow-hidden"
+        className="h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 relative overflow-hidden flex flex-col"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
@@ -810,7 +831,8 @@ function CareerDetailsContent() {
       </motion.header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Enhanced Hero Section */}
         <motion.div 
           className="text-center mb-16"
@@ -1204,7 +1226,7 @@ function CareerDetailsContent() {
                     Saved! Redirecting...
                   </>
                 ) : (
-                  'Go to Dashboard'
+                  'Save Learning Path'
                 )}
               </button>
             </div>
@@ -1221,6 +1243,7 @@ function CareerDetailsContent() {
             )}
           </div>
         </section>
+        </div>
       </main>
 
       {/* Success Modal - Learning Path Saved */}
@@ -1241,7 +1264,10 @@ function CareerDetailsContent() {
             </div>
             <div className="flex justify-center">
               <button
-                onClick={() => router.push('/dashboard/student')}
+                onClick={() => {
+                  // Only navigate to dashboard, do not trigger any save functionality
+                  router.push('/dashboard/student');
+                }}
                 className="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
               >
                 Go to Dashboard Now

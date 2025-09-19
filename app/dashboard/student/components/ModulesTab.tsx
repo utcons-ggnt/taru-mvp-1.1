@@ -114,7 +114,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   
   // N8N Loading Indicator states
-  const [n8nStatus, setN8nStatus] = useState<'idle' | 'triggering' | 'processing' | 'completed' | 'error'>('idle');
+  const [n8nStatus, setN8nStatus] = useState<'idle' | 'triggering' | 'processing' | 'checking' | 'completed' | 'error'>('idle');
   const [n8nProgress, setN8nProgress] = useState(0);
   const [n8nMessage, setN8nMessage] = useState('');
   const [showN8nIndicator, setShowN8nIndicator] = useState(false);
@@ -127,18 +127,61 @@ export default function ModulesTab({ user }: ModulesTabProps) {
     }
   }, [user?.uniqueId]);
 
-  // Status validation function
-  const validateN8nStatus = (currentStatus: string, startTime: number | null) => {
-    if (currentStatus === 'processing' && startTime) {
-      const elapsed = Date.now() - startTime;
-      const maxProcessingTime = 2 * 60 * 1000; // 2 minutes
+  // Database check function
+  const checkDatabaseForModules = async (): Promise<boolean> => {
+    if (!user?.uniqueId) return false;
+    
+    try {
+      const response = await fetch(`/api/youtube-urls?uniqueid=${encodeURIComponent(user.uniqueId)}`);
       
-      if (elapsed > maxProcessingTime) {
-        console.warn('⏰ N8N processing exceeded maximum time, marking as error');
-        return 'error';
+      if (response.ok) {
+        const result = await response.json();
+        // Check if we have actual data (not fallback) and modules exist
+        if (result.success && result.data && result.data.chapters && result.data.chapters.length > 0) {
+          console.log('✅ Database check: Modules found in database');
+          return true;
+        }
       }
+      
+      console.log('⏳ Database check: No modules found yet');
+      return false;
+    } catch (error) {
+      console.error('❌ Database check error:', error);
+      return false;
     }
+  };
+
+  // Status validation function - removed timeout restrictions
+  const validateN8nStatus = (currentStatus: string, startTime: number | null) => {
+    // No timeout restrictions - let the process continue until completion
     return currentStatus;
+  };
+
+  // Handle database check completion
+  const handleDatabaseCheckComplete = (hasModules: boolean) => {
+    if (hasModules) {
+      console.log('✅ Database check successful: Modules found, marking as completed');
+      setN8nStatus('completed');
+      setN8nProgress(100);
+      setN8nMessage('Your learning modules are ready!');
+      
+      // Refresh the YouTube data to show the new modules
+      fetchYouTubeData();
+      
+      // Hide indicator after 2 minutes
+      setTimeout(() => {
+        setShowN8nIndicator(false);
+      }, 120000);
+    } else {
+      console.log('❌ Database check failed: No modules found after all attempts');
+      setN8nStatus('error');
+      setN8nMessage('Failed to generate learning modules. Please try again.');
+      
+      // Hide indicator after 5 seconds
+      setTimeout(() => {
+        setShowN8nIndicator(false);
+      }, 5000);
+    }
   };
 
   // Cleanup effect for N8N polling
@@ -301,14 +344,13 @@ export default function ModulesTab({ user }: ModulesTabProps) {
           });
         }, 2000);
         
-        // Start polling for results
+        // Start polling for results - no timeout restrictions
         let pollCount = 0;
-        const maxPolls = 24; // Maximum 2 minutes of polling (24 * 5 seconds)
         
         const pollForResults = async () => {
           try {
             pollCount++;
-            console.log(`🔄 Polling attempt ${pollCount}/${maxPolls} for N8N results`);
+            console.log(`🔄 Polling attempt ${pollCount} for N8N results`);
             
             await fetchYouTubeData(true); // Use polling mode
             
@@ -326,18 +368,10 @@ export default function ModulesTab({ user }: ModulesTabProps) {
                 return 'error';
               }
               
-              // Continue polling if status is still processing and we haven't exceeded max polls
-              if (currentStatus === 'processing' && pollCount < maxPolls) {
+              // Continue polling if status is still processing - no timeout restrictions
+              if (currentStatus === 'processing') {
                 setTimeout(pollForResults, 5000);
                 return currentStatus; // Keep current status
-              } else if (pollCount >= maxPolls) {
-                // Timeout after max polls
-                console.warn('⏰ N8N polling timeout reached, stopping');
-                clearInterval(progressInterval);
-                setTimeout(() => {
-                  setShowN8nIndicator(false);
-                }, 3000);
-                return 'error';
               }
               return currentStatus;
             });
@@ -1969,6 +2003,18 @@ When any threat is found, these tools give details so you can quickly fix the pr
           message={n8nMessage}
           progress={n8nProgress}
           startTime={n8nStartTime}
+          onDatabaseCheck={async () => {
+            const hasModules = await checkDatabaseForModules();
+            handleDatabaseCheckComplete(hasModules);
+            return hasModules;
+          }}
+          onClose={() => {
+            setShowN8nIndicator(false);
+            setN8nStatus('idle');
+            setN8nMessage('');
+            setN8nProgress(0);
+            setN8nStartTime(null);
+          }}
         />
     </div>
   );

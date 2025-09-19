@@ -982,7 +982,7 @@ export default function InterestAssessment() {
 
   return (
     <motion.main 
-      className="min-h-screen bg-white flex flex-col"
+      className="h-screen bg-white flex flex-col overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -1080,7 +1080,7 @@ export default function InterestAssessment() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-6 py-8">
+      <div className="flex-1 px-6 py-8 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
           <AnimatePresence mode="wait">
             <motion.div 

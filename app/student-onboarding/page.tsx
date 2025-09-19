@@ -458,7 +458,7 @@ export default function StudentOnboarding() {
 
   if (isSuccess) {
     return (
-      <main className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
+      <main className="h-screen flex flex-col md:flex-row bg-white overflow-hidden">
         <div className="w-full md:w-1/2 bg-gradient-to-br from-[#8B3DFF] to-[#6D18CE] px-6 py-8 text-white flex flex-col relative">
                   <Image src="/icons/logo.svg" alt="Logo" width={60} height={60} className="w-15 h-15 object-contain mb-8" />
         
@@ -469,7 +469,7 @@ export default function StudentOnboarding() {
           <p className="text-xl px-4 text-white/80">Your onboarding is complete!</p>
         </div>
         </div>
-        <div className="w-full md:w-1/2 bg-white px-4 sm:px-8 py-10 flex flex-col justify-center">
+        <div className="w-full md:w-1/2 bg-white px-4 sm:px-8 py-10 flex flex-col justify-center overflow-y-auto">
           <div className="max-w-md mx-auto w-full text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">✅</span>
@@ -866,7 +866,7 @@ export default function StudentOnboarding() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col md:flex-row overflow-hidden">
+    <main className="h-screen flex flex-col md:flex-row overflow-hidden">
       {/* 🟪 Left Section - Students Details */}
       <section className="w-full md:w-1/2 bg-gradient-to-br from-[#8B3DFF] to-[#6D18CE] px-6 py-8 text-white flex flex-col relative">
         <Image src="/icons/logo.svg" alt="Logo" width={60} height={60} className="w-15 h-15 object-contain mb-8" />
@@ -928,7 +928,7 @@ export default function StudentOnboarding() {
       </section>
 
       {/* ⬜ Right Section - Getting to Know You */}
-      <section className="w-full md:w-1/2 bg-white px-8 py-8 flex flex-col relative">
+      <section className="w-full md:w-1/2 bg-white px-8 py-8 flex flex-col relative overflow-y-auto">
 
 
         <div className="max-w-2xl mx-auto w-full">

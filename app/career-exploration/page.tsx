@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import ConsistentLoadingPage from '../components/ConsistentLoadingPage';
@@ -16,11 +16,93 @@ export default function CareerExploration() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [currentScrollIndex, setCurrentScrollIndex] = useState(0);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [touchStartX, setTouchStartX] = useState(0);
+  const [touchEndX, setTouchEndX] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   useEffect(() => {
     fetchCareerOptions();
   }, []);
+
+  // Update scroll state when career options change
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      updateScrollState();
+    }
+  }, [careerOptions]);
+
+  const updateScrollState = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    setCanScrollLeft(scrollLeft > 0);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+  };
+
+  const scrollToIndex = (index: number) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const cardWidth = container.scrollWidth / (careerOptions.length || defaultCareerPaths.length);
+    const scrollPosition = index * cardWidth;
+    
+    container.scrollTo({
+      left: scrollPosition,
+      behavior: 'smooth'
+    });
+    
+    setCurrentScrollIndex(index);
+  };
+
+  const scrollLeft = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const cardWidth = container.scrollWidth / (careerOptions.length || defaultCareerPaths.length);
+    const newIndex = Math.max(0, currentScrollIndex - 1);
+    scrollToIndex(newIndex);
+  };
+
+  const scrollRight = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const maxIndex = (careerOptions.length || defaultCareerPaths.length) - 1;
+    const newIndex = Math.min(maxIndex, currentScrollIndex + 1);
+    scrollToIndex(newIndex);
+  };
+
+  const handleScroll = () => {
+    updateScrollState();
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX || !touchEndX) return;
+    
+    const distance = touchStartX - touchEndX;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe && canScrollRight) {
+      scrollRight();
+    } else if (isRightSwipe && canScrollLeft) {
+      scrollLeft();
+    }
+  };
 
   const fetchCareerOptions = async () => {
     try {
@@ -155,7 +237,7 @@ export default function CareerExploration() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 relative">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
@@ -266,7 +348,7 @@ export default function CareerExploration() {
         </motion.header>
 
         {/* Main Content */}
-        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-20">
           {/* Hero Section */}
           <motion.div 
             className="text-center mb-16"
@@ -313,12 +395,64 @@ export default function CareerExploration() {
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
                 Suggested Career Paths
               </h2>
-              <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto rounded-full"></div>
+              <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto rounded-full mb-4"></div>
+              <p className="text-sm md:text-base text-gray-600 mb-2">
+                Swipe or use the arrows to explore different career options
+              </p>
             </div>
 
-            {/* Career Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
-              {(careerOptions.length > 0 ? careerOptions.slice(0, 4) : defaultCareerPaths).map((path, index) => {
+            {/* Scroller Container */}
+            <div className="relative">
+              {/* Scroll Navigation Buttons */}
+              <motion.button
+                onClick={scrollLeft}
+                disabled={!canScrollLeft}
+                className={`absolute left-0 md:left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
+                  canScrollLeft
+                    ? 'bg-white/90 hover:bg-white text-purple-600 hover:text-purple-700 hover:scale-110'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+                whileHover={canScrollLeft ? { scale: 1.1 } : {}}
+                whileTap={canScrollLeft ? { scale: 0.95 } : {}}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.2 }}
+              >
+                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </motion.button>
+
+              <motion.button
+                onClick={scrollRight}
+                disabled={!canScrollRight}
+                className={`absolute right-0 md:right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
+                  canScrollRight
+                    ? 'bg-white/90 hover:bg-white text-purple-600 hover:text-purple-700 hover:scale-110'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+                whileHover={canScrollRight ? { scale: 1.1 } : {}}
+                whileTap={canScrollRight ? { scale: 0.95 } : {}}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.2 }}
+              >
+                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </motion.button>
+
+              {/* Career Cards Scroller */}
+              <div
+                ref={scrollContainerRef}
+                onScroll={handleScroll}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                className="flex gap-4 md:gap-8 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth px-2 md:px-4 py-2"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+              {(careerOptions.length > 0 ? careerOptions : defaultCareerPaths).map((path, index) => {
                 const isApiData = 'career' in path;
                 const title = isApiData ? path.career : path.title;
                 const description = isApiData ? path.description : path.description;
@@ -328,7 +462,7 @@ export default function CareerExploration() {
                 return (
                   <motion.div
                     key={index}
-                    className="group relative bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 border border-purple-100/50 hover:border-purple-200/50"
+                    className="group relative bg-white/80 backdrop-blur-sm rounded-3xl p-6 md:p-8 shadow-xl hover:shadow-2xl transition-all duration-300 border border-purple-100/50 hover:border-purple-200/50 flex-shrink-0 w-72 md:w-80 snap-center"
                     initial={{ y: 30, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 1.1 + index * 0.1, duration: 0.6 }}
@@ -396,6 +530,24 @@ export default function CareerExploration() {
                   </motion.div>
                 );
               })}
+              </div>
+
+              {/* Scroll Indicators */}
+              <div className="flex justify-center mt-8 space-x-2">
+                {(careerOptions.length > 0 ? careerOptions : defaultCareerPaths).map((_, index) => (
+                  <motion.button
+                    key={index}
+                    onClick={() => scrollToIndex(index)}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      index === currentScrollIndex
+                        ? 'bg-gradient-to-r from-purple-500 to-blue-500 scale-125'
+                        : 'bg-gray-300 hover:bg-gray-400'
+                    }`}
+                    whileHover={{ scale: 1.2 }}
+                    whileTap={{ scale: 0.9 }}
+                  />
+                ))}
+              </div>
             </div>
           </motion.div>
 

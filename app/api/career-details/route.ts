@@ -551,43 +551,14 @@ export async function POST(request: NextRequest) {
       console.log('🔍 Learning path array content:', careerDetails.output.learningPath);
     }
 
-    // Save the career details to CareerSession (for exploration tracking)
-    let careerSessionId = null;
-    if (careerDetails && careerDetails.output) {
-      careerSessionId = await saveCareerDetailsToSession(
-        careerDetails, 
-        student, 
-        careerPath, 
-        description || ''
-      );
-    }
-
-    // Save N8N output in exact format to database
-    let n8nSaveResult = null;
-    if (careerDetails && careerDetails.output) {
-      console.log('💾 Saving N8N output in exact format for student:', student.uniqueId);
-      n8nSaveResult = await saveN8NLearningPathResponse(
-        careerDetails.output,
-        student.uniqueId
-      );
-      
-      if (n8nSaveResult.success) {
-        console.log('✅ N8N output saved successfully:', n8nSaveResult.id);
-      } else {
-        console.error('❌ Failed to save N8N output:', n8nSaveResult.error);
-      }
-    }
-
-    // Note: Learning path will be saved when user clicks "GO TO DASHBOARD"
+    // Note: Career details will only be saved when user clicks "Save Learning Path"
     // This allows users to explore multiple career options before committing
 
     // Ensure the data structure is properly formatted for the frontend
     const responseData = {
       success: true,
       careerDetails: careerDetails,
-      n8nResults: n8nOutput,
-      careerSessionId: careerSessionId,
-      n8nSaveResult: n8nSaveResult
+      n8nResults: n8nOutput
     };
     
     console.log('🔍 Final API response:', JSON.stringify(responseData, null, 2));
@@ -777,43 +748,14 @@ export async function GET(request: NextRequest) {
       console.log('🔍 Learning path array content:', careerDetails.output.learningPath);
     }
 
-    // Save the career details to CareerSession (for exploration tracking)
-    let careerSessionId = null;
-    if (careerDetails && careerDetails.output) {
-      careerSessionId = await saveCareerDetailsToSession(
-        careerDetails, 
-        student, 
-        careerPath, 
-        description || ''
-      );
-    }
-
-    // Save N8N output in exact format to database
-    let n8nSaveResult = null;
-    if (careerDetails && careerDetails.output) {
-      console.log('💾 Saving N8N output in exact format for student:', student.uniqueId);
-      n8nSaveResult = await saveN8NLearningPathResponse(
-        careerDetails.output,
-        student.uniqueId
-      );
-      
-      if (n8nSaveResult.success) {
-        console.log('✅ N8N output saved successfully:', n8nSaveResult.id);
-      } else {
-        console.error('❌ Failed to save N8N output:', n8nSaveResult.error);
-      }
-    }
-
-    // Note: Learning path will be saved when user clicks "GO TO DASHBOARD"
+    // Note: Career details will only be saved when user clicks "Save Learning Path"
     // This allows users to explore multiple career options before committing
 
     // Ensure the data structure is properly formatted for the frontend
     const responseData = {
       success: true,
       careerDetails: careerDetails,
-      n8nResults: n8nOutput,
-      careerSessionId: careerSessionId,
-      n8nSaveResult: n8nSaveResult
+      n8nResults: n8nOutput
     };
     
     console.log('🔍 Final API response:', JSON.stringify(responseData, null, 2));

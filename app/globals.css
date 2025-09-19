@@ -74,8 +74,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden; /* Prevent horizontal scroll on mobile */
-  height: 100vh;
-  overflow-y: hidden;
+  min-height: 100vh;
 }
 
 /* Basic utility classes */
@@ -1559,4 +1558,14 @@ input[type="checkbox"]:focus, input[type="radio"]:focus {
     stroke-dasharray: 188;
     stroke-dashoffset: 188;
   }
+}
+
+/* Scrollbar hiding utilities */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
 }

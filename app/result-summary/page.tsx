@@ -240,237 +240,55 @@ export default function ResultSummary() {
           );
         })}
       </div>
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Your Learning Profile
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-6">
+            🎉 Assessment Complete!
           </h1>
           <p className="text-xl text-gray-700 dark:text-gray-400">
-            Here&apos;s what we learned about you and your personalized learning recommendations
+            Here&apos;s your personalized assessment result
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Personal Information */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Language & Voice Settings */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Your Preferences
-              </h2>
-              <div className="space-y-3">
-                <div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Language:</span>
-                  <p className="font-medium text-gray-900 dark:text-white">{assessment.languagePreference}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Voice Instructions:</span>
-                  <p className="font-medium text-gray-900 dark:text-white">
-                    {assessment.enableVoiceInstructions ? 'Enabled' : 'Disabled'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Learning Style */}
-            {assessment.diagnosticCompleted && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                  Your Learning Style
-                </h2>
-                <div className="mb-3">
-                  <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium">
-                    {assessment.diagnosticResults.learningStyle.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </span>
-                </div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">
-                  {getLearningStyleDescription(assessment.diagnosticResults.learningStyle)}
-                </p>
+        {/* Score and Summary Card */}
+        <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl shadow-2xl p-8 mb-8">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-white mb-4">
+              Your Assessment Results
+            </h2>
+            {assessment.diagnosticScore && (
+              <div className="inline-block bg-white/20 rounded-full px-6 py-3 mb-6">
+                <span className="text-4xl font-bold text-white">{assessment.diagnosticScore}%</span>
+                <p className="text-white/80 text-sm mt-1">Overall Score</p>
               </div>
             )}
-
-            {/* Interests */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Your Interests
-              </h2>
-              <div className="space-y-3">
-                <div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Favorite Subjects:</span>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {assessment.subjectsILike.slice(0, 5).map(subject => (
-                      <span key={subject} className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded text-xs">
-                        {subject}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Career Interests:</span>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {assessment.currentCareerInterest.slice(0, 3).map(career => (
-                      <span key={career} className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 rounded text-xs">
-                        {career}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Center Column - Skills & Strengths */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Score Summary */}
-            {assessment.diagnosticCompleted && assessment.diagnosticResults?.summary && (
-              <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl shadow-lg p-6 mb-6">
-                <h2 className="text-xl font-semibold text-white mb-4">
-                  🎉 Your Assessment Summary
-                </h2>
-                <div className="bg-white/10 rounded-lg p-4">
-                  <p className="text-white text-lg leading-relaxed">
-                    {assessment.diagnosticResults.summary}
-                  </p>
-                </div>
-                {assessment.diagnosticScore && (
-                  <div className="mt-4 flex items-center justify-between">
-                    <span className="text-white/80">Your Score:</span>
-                    <span className="text-2xl font-bold text-white">{assessment.diagnosticScore}%</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Diagnostic Results */}
-            {assessment.diagnosticCompleted && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-                  Your Skills Assessment
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {Object.entries(assessment.diagnosticResults.skillLevels).map(([category, score]) => {
-                    const skillInfo = getSkillLevelDescription(score);
-                    return (
-                      <div key={category} className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium text-gray-900 dark:text-white">{category}</span>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${skillInfo.bg} ${skillInfo.color}`}>
-                            {skillInfo.level}
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all duration-500 ${
-                              score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-yellow-500' : 'bg-blue-500'
-                            }`}
-                            style={{ width: `${score}%` }}
-                          />
-                        </div>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">{score}%</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Strengths & Areas for Growth */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Strengths */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Your Strengths
-                </h3>
-                <div className="space-y-2">
-                  {assessment.thingsImConfidentDoing.slice(0, 4).map(activity => (
-                    <div key={activity} className="flex items-center space-x-2">
-                      <span className="text-green-500">•</span>
-                      <span className="text-gray-700 dark:text-gray-300 text-sm">{activity}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Areas for Growth */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                  <span className="text-blue-500 mr-2">📈</span>
-                  Areas for Growth
-                </h3>
-                <div className="space-y-2">
-                  {assessment.thingsINeedHelpWith.slice(0, 4).map(area => (
-                    <div key={area} className="flex items-center space-x-2">
-                      <span className="text-blue-500">•</span>
-                      <span className="text-gray-700 dark:text-gray-300 text-sm">{area}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Personal Insights */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Personal Insights
-              </h3>
-              <div className="space-y-4">
-                {assessment.dreamJobAsKid && (
-                  <div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Dream Job as a Kid:</span>
-                    <p className="font-medium text-gray-900 dark:text-white">&quot;{assessment.dreamJobAsKid}&quot;</p>
-                  </div>
-                )}
-                {assessment.whatImMostProudOf && (
-                  <div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">What You&apos;re Most Proud Of:</span>
-                    <p className="font-medium text-gray-900 dark:text-white">&quot;{assessment.whatImMostProudOf}&quot;</p>
-                  </div>
-                )}
-                {assessment.ifICouldFixOneProblem && (
-                  <div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Problem You&apos;d Like to Fix:</span>
-                    <p className="font-medium text-gray-900 dark:text-white">&quot;{assessment.ifICouldFixOneProblem}&quot;</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="mt-8 text-center space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => router.push('/career-exploration')}
-              className="px-8 py-4 bg-purple-600 text-white rounded-lg font-medium transition-colors hover:bg-purple-700 flex items-center gap-2 mx-auto"
-            >
-              <span>🚀</span>
-              Explore Career Options
-            </button>
-            <button
-              onClick={() => router.push('/recommended-modules')}
-              className="px-8 py-4 bg-blue-600 text-white rounded-lg font-medium transition-colors hover:bg-blue-700"
-            >
-              View Recommended Modules
-            </button>
-            <button
-              onClick={() => router.push('/curriculum-path')}
-              className="px-8 py-4 bg-green-600 text-white rounded-lg font-medium transition-colors hover:bg-green-700"
-            >
-              Explore Learning Paths
-            </button>
-            <button
-              onClick={() => router.push('/dashboard/student')}
-              className="px-8 py-4 bg-gray-600 text-white rounded-lg font-medium transition-colors hover:bg-gray-700"
-            >
-              Go to Dashboard
-            </button>
           </div>
           
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Your learning profile will help us recommend the best modules and learning paths for you!
+          {assessment.diagnosticCompleted && assessment.diagnosticResults?.summary && (
+            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm">
+              <h3 className="text-xl font-semibold text-white mb-4 text-center">
+                📋 Assessment Summary
+              </h3>
+              <p className="text-white text-lg leading-relaxed text-center">
+                {assessment.diagnosticResults.summary}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Action Button */}
+        <div className="text-center">
+          <button
+            onClick={() => router.push('/career-exploration')}
+            className="px-12 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold text-lg transition-all duration-300 hover:from-purple-700 hover:to-blue-700 hover:shadow-2xl hover:scale-105 flex items-center gap-3 mx-auto"
+          >
+            <span className="text-2xl">🚀</span>
+            Get My Career Path
+          </button>
+          
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+            Discover personalized career recommendations based on your assessment results
           </p>
         </div>
       </div>
