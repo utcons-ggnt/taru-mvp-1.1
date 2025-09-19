@@ -640,48 +640,123 @@ export default function ModulesTab({ user }: ModulesTabProps) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlContent, 'text/html');
       
-      // Extract content from different sections - handle both old and new formats
+      // Extract title from head
       const title = doc.querySelector('title')?.textContent || '';
       
-      // Try different selectors for header
-      const header = doc.querySelector('header h1')?.textContent || 
-                    doc.querySelector('h1')?.textContent || 
-                    doc.querySelector('h2')?.textContent || '';
+      // Find all headings (h1, h2, h3) and their content
+      const allHeadings = Array.from(doc.querySelectorAll('h1, h2, h3'));
+      const sections = allHeadings.map(heading => {
+        const title = heading.textContent || '';
+        let content = '';
+        
+        // Get content from the next sibling elements until we hit another heading
+        let nextElement = heading.nextElementSibling;
+        const contentElements = [];
+        
+        while (nextElement && !['H1', 'H2', 'H3'].includes(nextElement.tagName)) {
+          contentElements.push(nextElement);
+          nextElement = nextElement.nextElementSibling;
+        }
+        
+        // Process content elements
+        content = contentElements.map(el => {
+          if (el.tagName === 'P') {
+            return el.textContent || '';
+          } else if (el.tagName === 'UL' || el.tagName === 'OL') {
+            return Array.from(el.querySelectorAll('li')).map(li => li.textContent || '').join('\n');
+          } else if (el.tagName === 'DIV') {
+            return el.textContent || '';
+          }
+          return '';
+        }).filter(text => text.trim()).join('\n\n');
+        
+        return { title, content };
+      });
       
-      // Try different selectors for main content
-      const article = doc.querySelector('article p')?.textContent || 
-                     doc.querySelector('p')?.textContent || '';
+      // Remove duplicate sections based on title similarity and content
+      const uniqueSections = sections.filter((section, index, arr) => {
+        const isDuplicate = arr.findIndex(s => 
+          s.title.toLowerCase().trim() === section.title.toLowerCase().trim() &&
+          s.content.trim() === section.content.trim()
+        );
+        return isDuplicate === index;
+      });
       
-      // Try different selectors for footer/source acknowledgment
-      const footer = doc.querySelector('footer h2')?.textContent || 
-                    doc.querySelector('h2:nth-of-type(2)')?.textContent || '';
-      const footerText = doc.querySelector('footer p')?.textContent || 
-                        doc.querySelector('h2:nth-of-type(2) + p')?.textContent || '';
+      // Find specific sections dynamically
+      const answerSummary = uniqueSections.find(section => 
+        section.title.toLowerCase().includes('answer') || 
+        section.title.toLowerCase().includes('summary') ||
+        section.title.toLowerCase().includes('overview')
+      );
       
-      // Try different selectors for follow-up questions section
-      const sectionTitle = doc.querySelector('section h3')?.textContent || 
-                          doc.querySelector('h2:nth-of-type(3)')?.textContent || '';
-      const followUpQuestions = Array.from(doc.querySelectorAll('section ul li, ul li')).map(li => li.textContent || '');
+      const sourceAcknowledgment = uniqueSections.find(section => 
+        section.title.toLowerCase().includes('source') || 
+        section.title.toLowerCase().includes('acknowledgment') ||
+        section.title.toLowerCase().includes('reference')
+      );
+      
+      const followUpQuestions = uniqueSections.find(section => 
+        section.title.toLowerCase().includes('question') || 
+        section.title.toLowerCase().includes('follow') ||
+        section.title.toLowerCase().includes('ask') ||
+        section.title.toLowerCase().includes('smart')
+      );
+      
+      // Extract follow-up questions from the specific section
+      let questions = [];
+      if (followUpQuestions && followUpQuestions.content) {
+        // Split by newlines and filter out empty strings, also handle bullet points
+        questions = followUpQuestions.content
+          .split('\n')
+          .map(q => q.replace(/^[-•]\s*/, '').trim()) // Remove bullet points
+          .filter(q => q.trim());
+      } else {
+        // Fallback: extract all list items
+        const allListItems = Array.from(doc.querySelectorAll('ul li, ol li')).map(li => li.textContent || '').filter(text => text.trim());
+        questions = allListItems;
+      }
+      
+      // Get main content - prefer answer summary, fallback to first section, then all paragraphs
+      let mainContent = '';
+      if (answerSummary && answerSummary.content) {
+        mainContent = answerSummary.content;
+      } else if (uniqueSections.length > 0 && uniqueSections[0].content) {
+        mainContent = uniqueSections[0].content;
+      } else {
+        const paragraphs = Array.from(doc.querySelectorAll('p')).map(p => p.textContent || '').filter(text => text.trim());
+        mainContent = paragraphs.join('\n\n');
+      }
+      
+      // Clean up main content - remove bullet points and format properly
+      if (mainContent) {
+        mainContent = mainContent
+          .split('\n')
+          .map(line => line.replace(/^[-•]\s*/, '').trim())
+          .filter(line => line.trim())
+          .join('\n');
+      }
       
       return {
         title,
-        header,
-        article,
-        footer,
-        footerText,
-        sectionTitle,
-        followUpQuestions
+        header: answerSummary?.title || uniqueSections[0]?.title || 'AI Response',
+        article: mainContent,
+        footer: sourceAcknowledgment?.title || '',
+        footerText: sourceAcknowledgment?.content || '',
+        sectionTitle: followUpQuestions?.title || '',
+        followUpQuestions: questions,
+        allSections: uniqueSections
       };
     } catch (error) {
       console.error('Error parsing HTML:', error);
       return {
         title: '',
-        header: '',
+        header: 'AI Response',
         article: htmlContent, // Fallback to original content
         footer: '',
         footerText: '',
         sectionTitle: '',
-        followUpQuestions: []
+        followUpQuestions: [],
+        allSections: []
       };
     }
   };
@@ -724,31 +799,61 @@ When any threat is found, these tools give details so you can quickly fix the pr
   const renderHtmlContent = (htmlContent: string) => {
     const parsed = parseHtmlResponse(htmlContent);
     
+    // Get dynamic section titles based on content
+    const getSectionTitle = (section: any) => {
+      const title = section.title.toLowerCase();
+      if (title.includes('answer') || title.includes('summary')) return 'Answer Summary';
+      if (title.includes('concept') || title.includes('explanation')) return 'Key Concepts';
+      if (title.includes('source') || title.includes('acknowledgment')) return 'Source Reference';
+      if (title.includes('question') || title.includes('follow') || title.includes('smart')) return 'Follow-up Questions';
+      return section.title || 'Content';
+    };
+
+    const getSectionIcon = (section: any) => {
+      const title = section.title.toLowerCase();
+      if (title.includes('answer') || title.includes('summary')) return <BookOpen className="w-4 h-4 text-blue-600" />;
+      if (title.includes('concept') || title.includes('explanation')) return <Lightbulb className="w-4 h-4 text-green-600" />;
+      if (title.includes('source') || title.includes('acknowledgment')) return <FileText className="w-4 h-4 text-gray-600" />;
+      if (title.includes('question') || title.includes('follow') || title.includes('smart')) return <MessageCircle className="w-4 h-4 text-purple-600" />;
+      return <BookOpen className="w-4 h-4 text-blue-600" />;
+    };
+
+    const getSectionColor = (section: any) => {
+      const title = section.title.toLowerCase();
+      if (title.includes('answer') || title.includes('summary')) return 'from-blue-50 to-indigo-50 border-blue-200';
+      if (title.includes('concept') || title.includes('explanation')) return 'from-green-50 to-emerald-50 border-green-200';
+      if (title.includes('source') || title.includes('acknowledgment')) return 'from-gray-50 to-slate-50 border-gray-200';
+      if (title.includes('question') || title.includes('follow') || title.includes('smart')) return 'from-purple-50 to-pink-50 border-purple-200';
+      return 'from-blue-50 to-indigo-50 border-blue-200';
+    };
+
     return (
       <div className="space-y-4">
-        {/* Header Section */}
+        {/* Dynamic Header Section */}
         {parsed.header && (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+          <div className={`bg-gradient-to-r ${getSectionColor({ title: parsed.header })} rounded-lg p-4 border`}>
             <div className="flex items-center gap-3">
               <div className="w-6 h-6 bg-blue-100 rounded-md flex items-center justify-center flex-shrink-0">
-                <BookOpen className="w-3 h-3 text-blue-600" />
+                {getSectionIcon({ title: parsed.header })}
               </div>
               <h2 className="text-lg font-bold text-blue-900">{parsed.header}</h2>
             </div>
           </div>
         )}
         
-        {/* Main Article Content */}
+        {/* Dynamic Main Content */}
         {parsed.article && (
           <div className="bg-white rounded-lg p-4 border border-gray-200">
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 bg-green-100 rounded-md flex items-center justify-center flex-shrink-0 mt-1">
-                <Lightbulb className="w-3 h-3 text-green-600" />
+                <Lightbulb className="w-4 h-4 text-green-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-base font-semibold text-gray-800 mb-2">Key Concepts</h3>
+                <h3 className="text-base font-semibold text-gray-800 mb-3">
+                  {parsed.allSections.length > 0 ? getSectionTitle(parsed.allSections[0]) : 'Key Concepts'}
+                </h3>
                 <div 
-                  className="text-gray-800 leading-relaxed text-sm [&_b]:font-bold [&_b]:text-gray-900 [&_br]:block [&_br]:mb-2 [&_b]:text-blue-700"
+                  className="text-gray-800 leading-relaxed text-sm [&_strong]:font-bold [&_strong]:text-gray-900 [&_br]:block [&_br]:mb-2 [&_strong]:text-blue-700 [&_li]:mb-2 [&_li]:ml-4"
                   dangerouslySetInnerHTML={{ 
                     __html: parsed.article.replace(/\n/g, '<br>') 
                   }}
@@ -758,18 +863,18 @@ When any threat is found, these tools give details so you can quickly fix the pr
           </div>
         )}
         
-        {/* Footer Section */}
+        {/* Dynamic Footer Section */}
         {parsed.footer && (
-          <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg p-4 border border-gray-200">
+          <div className={`bg-gradient-to-r ${getSectionColor({ title: parsed.footer })} rounded-lg p-4 border`}>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-6 h-6 bg-gray-100 rounded-md flex items-center justify-center flex-shrink-0">
-                <FileText className="w-3 h-3 text-gray-600" />
+                {getSectionIcon({ title: parsed.footer })}
               </div>
               <h3 className="text-base font-semibold text-gray-800">{parsed.footer}</h3>
             </div>
             {parsed.footerText && (
               <div 
-                className="text-gray-600 text-xs bg-white/60 rounded-md p-2 border border-gray-200 [&_b]:font-bold [&_b]:text-gray-800 [&_br]:block [&_br]:mb-1"
+                className="text-gray-600 text-sm bg-white/60 rounded-md p-3 border border-gray-200 [&_strong]:font-bold [&_strong]:text-gray-800 [&_br]:block [&_br]:mb-1"
                 dangerouslySetInnerHTML={{ 
                   __html: parsed.footerText.replace(/\n/g, '<br>') 
                 }}
@@ -778,12 +883,12 @@ When any threat is found, these tools give details so you can quickly fix the pr
           </div>
         )}
         
-        {/* Follow-up Questions Section */}
+        {/* Dynamic Follow-up Questions Section */}
         {parsed.sectionTitle && parsed.followUpQuestions.length > 0 && (
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
+          <div className={`bg-gradient-to-r ${getSectionColor({ title: parsed.sectionTitle })} rounded-lg p-4 border`}>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-6 h-6 bg-purple-100 rounded-md flex items-center justify-center flex-shrink-0">
-                <MessageCircle className="w-3 h-3 text-purple-600" />
+                {getSectionIcon({ title: parsed.sectionTitle })}
               </div>
               <h3 className="text-base font-semibold text-purple-900">{parsed.sectionTitle}</h3>
             </div>
@@ -793,13 +898,56 @@ When any threat is found, these tools give details so you can quickly fix the pr
                   <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0 group-hover:bg-purple-600 transition-colors"></div>
                   <button
                     onClick={() => setChatQuery(question)}
-                    className="text-left text-purple-800 hover:text-purple-900 hover:bg-purple-100 rounded-md p-2 transition-all duration-200 text-xs font-medium w-full border border-transparent hover:border-purple-200 hover:shadow-sm"
+                    className="text-left text-purple-800 hover:text-purple-900 hover:bg-purple-100 rounded-md p-2 transition-all duration-200 text-sm font-medium w-full border border-transparent hover:border-purple-200 hover:shadow-sm"
                   >
                     {question}
                   </button>
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Render any additional sections dynamically - exclude already shown sections */}
+        {parsed.allSections.length > 1 && (
+          <div className="space-y-3">
+            {parsed.allSections.slice(1).map((section, index) => {
+              if (!section.content || section.content.trim() === '') return null;
+              
+              // Skip sections that are already displayed in main content
+              const isAlreadyShown = 
+                section.title.toLowerCase() === parsed.header?.toLowerCase() ||
+                section.title.toLowerCase() === parsed.footer?.toLowerCase() ||
+                section.title.toLowerCase() === parsed.sectionTitle?.toLowerCase();
+              
+              if (isAlreadyShown) return null;
+              
+              // Clean up section content
+              const cleanContent = section.content
+                .split('\n')
+                .map(line => line.replace(/^[-•]\s*/, '').trim())
+                .filter(line => line.trim())
+                .join('\n');
+              
+              if (!cleanContent.trim()) return null;
+              
+              return (
+                <div key={index} className={`bg-gradient-to-r ${getSectionColor(section)} rounded-lg p-4 border`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-6 h-6 bg-gray-100 rounded-md flex items-center justify-center flex-shrink-0">
+                      {getSectionIcon(section)}
+                    </div>
+                    <h3 className="text-base font-semibold text-gray-800">{section.title}</h3>
+                  </div>
+                  <div 
+                    className="text-gray-600 text-sm [&_strong]:font-bold [&_strong]:text-gray-800 [&_br]:block [&_br]:mb-1 [&_li]:mb-2 [&_li]:ml-4"
+                    dangerouslySetInnerHTML={{ 
+                      __html: cleanContent.replace(/\n/g, '<br>') 
+                    }}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -1627,10 +1775,10 @@ When any threat is found, these tools give details so you can quickly fix the pr
 
       {/* Chat Modal */}
       {showChat && selectedChapter && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-hidden">
-          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl max-w-6xl w-full max-h-[95vh] flex flex-col shadow-2xl">
             {/* Header */}
-            <div className="relative bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-8 flex-shrink-0">
+            <div className="relative bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-6 flex-shrink-0">
               <div className="absolute inset-0 bg-black/10"></div>
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -1641,194 +1789,178 @@ When any threat is found, these tools give details so you can quickly fix the pr
                     <h3 className="text-2xl font-bold mb-1">AI Learning Assistant</h3>
                     <p className="text-emerald-100">Chapter {selectedChapter} - Ask anything about this topic</p>
                   </div>
-            </div>
-              <button
+                </div>
+                <button
                   onClick={() => setShowChat(false)}
                   className="p-2 hover:bg-white/20 rounded-xl transition-colors"
-              >
+                >
                   <X className="w-6 h-6" />
-              </button>
+                </button>
               </div>
             </div>
             
-            {/* Content */}
-            <div className="p-8">
-              <div className="space-y-6">
-                {/* Chat Input */}
-                <div className="bg-gradient-to-r from-gray-50 to-emerald-50 rounded-2xl p-6 border border-gray-200">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Ask a question about this chapter:
-                  </label>
-                  <div className="flex gap-3">
-                    <div className="flex-1 relative">
-                      <input
-                        type="text"
-                        value={chatQuery}
-                        onChange={(e) => setChatQuery(e.target.value)}
-                        placeholder="e.g., What is the main concept of this chapter? How does this work?"
-                        className="w-full pl-4 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900 bg-white text-lg"
-                        onKeyPress={(e) => e.key === 'Enter' && handleChatQuery(selectedChapter)}
-                      />
-                    </div>
-              <button
-                      onClick={() => handleChatQuery(selectedChapter)}
-                      disabled={chatLoading || !chatQuery.trim()}
-                      className="px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl"
-                    >
-                      {chatLoading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <Zap className="w-5 h-5" />
-                          Ask
-                        </div>
-                      )}
-              </button>
-                  </div>
-                </div>
-                
-                {/* Chat Response */}
-                {chatResponse && (
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-gray-200 shadow-lg">
-                    {/* Header */}
-                    <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white/50 backdrop-blur-sm rounded-t-2xl">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Lightbulb className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h4 className="text-lg font-semibold text-gray-900">AI Response</h4>
-                          <p className="text-sm text-gray-500">Generated for Chapter {selectedChapter}</p>
-                        </div>
+            {/* Content - Scrollable Area */}
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              <div className="p-6">
+                <div className="space-y-6">
+                  {/* Chat Input */}
+                  <div className="bg-gradient-to-r from-gray-50 to-emerald-50 rounded-2xl p-6 border border-gray-200">
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Ask a question about this chapter:
+                    </label>
+                    <div className="flex gap-3">
+                      <div className="flex-1 relative">
+                        <input
+                          type="text"
+                          value={chatQuery}
+                          onChange={(e) => setChatQuery(e.target.value)}
+                          placeholder="e.g., What is the main concept of this chapter? How does this work?"
+                          className="w-full pl-4 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900 bg-white text-lg"
+                          onKeyPress={(e) => e.key === 'Enter' && handleChatQuery(selectedChapter)}
+                        />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setChatResponse('')}
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Clear response"
-                        >
-                          <X className="w-4 h-4 text-gray-500" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(chatResponse);
-                            setSuccess('Response copied to clipboard!');
-                            setTimeout(() => setSuccess(null), 3000);
-                          }}
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Copy response"
-                        >
-                          <Download className="w-4 h-4 text-gray-500" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Scrollable Content */}
-                    <div className="relative">
-                      <div 
-                        className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full scrollbar-track-rounded-full"
-                        onScroll={(e) => {
-                          const target = e.target as HTMLDivElement;
-                          setShowScrollToTop(target.scrollTop > 100);
-                        }}
+                      <button
+                        onClick={() => handleChatQuery(selectedChapter)}
+                        disabled={chatLoading || !chatQuery.trim()}
+                        className="px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl"
                       >
-                        <div className="p-6">
                         {chatLoading ? (
-                          <div className="flex items-center justify-center py-12">
-                            <div className="flex flex-col items-center gap-4">
-                              <div className="relative">
-                                <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <Brain className="w-5 h-5 text-blue-600" />
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Zap className="w-5 h-5" />
+                            Ask
+                          </div>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Chat Response */}
+                  {chatResponse && (
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-gray-200 shadow-lg">
+                      {/* Header */}
+                      <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white/50 backdrop-blur-sm rounded-t-2xl">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
+                            <Lightbulb className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-lg font-semibold text-gray-900 truncate">
+                              {chatResponse ? parseHtmlResponse(chatResponse).header || 'AI Response' : 'AI Response'}
+                            </h4>
+                            <p className="text-sm text-gray-500 truncate">
+                              {chatResponse ? `Generated for Chapter ${selectedChapter}` : `Ready for Chapter ${selectedChapter}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => setChatResponse('')}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Clear response"
+                          >
+                            <X className="w-4 h-4 text-gray-500" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(chatResponse);
+                              setSuccess('Response copied to clipboard!');
+                              setTimeout(() => setSuccess(null), 3000);
+                            }}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Copy response"
+                          >
+                            <Download className="w-4 h-4 text-gray-500" />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Scrollable Content */}
+                      <div className="relative max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full scrollbar-track-rounded-full">
+                        <div className="p-6">
+                          {chatLoading ? (
+                            <div className="flex items-center justify-center py-12">
+                              <div className="flex flex-col items-center gap-4">
+                                <div className="relative">
+                                  <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <Brain className="w-5 h-5 text-blue-600" />
+                                  </div>
                                 </div>
-                              </div>
-                              <div className="text-center">
-                                <p className="text-gray-600 font-medium">AI is thinking...</p>
-                                <p className="text-sm text-gray-500">Generating response for Chapter {selectedChapter}</p>
-                                <div className="flex items-center gap-1 mt-3">
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                <div className="text-center">
+                                  <p className="text-gray-600 font-medium">AI is thinking...</p>
+                                  <p className="text-sm text-gray-500">Generating response for Chapter {selectedChapter}</p>
+                                  <div className="flex items-center gap-1 mt-3">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        ) : (
+                          ) : (
                             renderHtmlContent(chatResponse)
                           )}
                         </div>
+                        
+                        {/* Fade overlay at bottom */}
+                        <div className="sticky bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-blue-50 to-transparent pointer-events-none"></div>
                       </div>
                       
-                      {/* Fade overlay at bottom */}
-                      <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-blue-50 to-transparent pointer-events-none"></div>
-                      
-                      {/* Scroll to Top Button */}
-                      {showScrollToTop && (
-                        <button
-                          onClick={(e) => {
-                            const scrollContainer = (e.target as HTMLElement).closest('.overflow-y-auto') as HTMLDivElement;
-                            scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                          className="absolute bottom-4 right-4 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110 z-10"
-                          title="Scroll to top"
-                        >
-                          <ChevronRight className="w-4 h-4 rotate-[-90deg]" />
-                        </button>
-                      )}
-                    </div>
-                    
-                    {/* Footer */}
-                    <div className="px-6 py-3 bg-white/30 backdrop-blur-sm border-t border-gray-200 rounded-b-2xl">
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          <span>AI Generated Response</span>
-                          {chatResponse && (
-                            <span className="text-gray-400">
-                              • {chatResponse.length} characters • {chatResponse.split(' ').length} words
+                      {/* Footer */}
+                      <div className="px-6 py-3 bg-white/30 backdrop-blur-sm border-t border-gray-200 rounded-b-2xl">
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
+                            <span className="truncate">AI Generated Response</span>
+                            {chatResponse && (
+                              <span className="text-gray-400 truncate">
+                                • {chatResponse.length} chars • {chatResponse.split(' ').length} words
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 flex-shrink-0">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              Just now
                             </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            Just now
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Brain className="w-3 h-3" />
-                            Chapter {selectedChapter}
-                          </span>
+                            <span className="flex items-center gap-1">
+                              <Brain className="w-3 h-3" />
+                              Ch {selectedChapter}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
-                
-                {/* Quick Questions */}
-                <div className="bg-gradient-to-r from-gray-50 to-purple-50 rounded-2xl p-6 border border-gray-200">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Quick Questions:</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {[
-                      "What is the main concept?",
-                      "How does this work?",
-                      "What are the key points?",
-                      "Can you explain this simply?"
-                    ].map((question, index) => (
-              <button
-                        key={index}
-                        onClick={() => setChatQuery(question)}
-                        className="p-3 text-left bg-white hover:bg-blue-50 rounded-xl border border-gray-200 hover:border-blue-300 transition-all duration-200 text-gray-700 hover:text-blue-700"
-              >
-                        {question}
-              </button>
-                    ))}
+                  )}
+                  
+                  {/* Quick Questions */}
+                  <div className="bg-gradient-to-r from-gray-50 to-purple-50 rounded-2xl p-6 border border-gray-200">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Quick Questions:</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {[
+                        "What is the main concept?",
+                        "How does this work?",
+                        "What are the key points?",
+                        "Can you explain this simply?"
+                      ].map((question, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setChatQuery(question)}
+                          className="p-3 text-left bg-white hover:bg-blue-50 rounded-xl border border-gray-200 hover:border-blue-300 transition-all duration-200 text-gray-700 hover:text-blue-700 text-sm"
+                        >
+                          {question}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* N8N Loading Indicator */}
         <N8NLoadingIndicator

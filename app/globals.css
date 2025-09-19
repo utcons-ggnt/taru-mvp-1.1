@@ -74,6 +74,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+  height: 100vh;
+  overflow-y: hidden;
 }
 
 /* Basic utility classes */
@@ -241,10 +243,11 @@ body {
 /* Dashboard Layout */
 .dashboard-container {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
   flex-direction: column;
   background-color: #f7fafc;
   overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 @media (min-width: 768px) {
@@ -258,6 +261,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  overflow-y: auto;
   min-width: 0;
 }
 
@@ -279,9 +283,10 @@ body {
 
 .dashboard-content {
   flex: 1;
-  overflow-y: auto;
-  padding: 1rem;
+  padding: 1.5rem;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (min-width: 768px) {

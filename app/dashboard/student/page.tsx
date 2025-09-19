@@ -164,13 +164,6 @@ interface DashboardData {
   };
 }
 
-// Define Test type
-interface Test {
-  title: string;
-  date: string;
-  color: string;
-  score?: number;
-}
 
 // Define Course type for the courses section
 interface Course {
@@ -205,8 +198,6 @@ export default function StudentDashboard() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isRightPanelHovered, setIsRightPanelHovered] = useState(false);
-  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const notificationRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -637,8 +628,6 @@ export default function StudentDashboard() {
       }))
     : [];
 
-  // Tests array - no diagnostic tests available
-  const tests: Test[] = [];
 
   // Calculate real progress data, fallback to empty/default
   const progressData = dashboardData?.overview 
@@ -1339,11 +1328,10 @@ export default function StudentDashboard() {
             })}
           </div>
           {/* Main Panel */}
-          <main className="flex-1 p-6">
+          <main className="flex-1 min-h-0">
             {/* Tab Content */}
             <AnimatePresence mode="wait">
               <motion.div 
-                className="space-y-6"
                 key={activeTab}
                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -1515,7 +1503,6 @@ export default function StudentDashboard() {
                   >
                   <OverviewTab 
                     courses={courses}
-                    tests={tests}
                     onTabChange={setActiveTab}
                     dashboardData={dashboardData}
                     user={user ? { uniqueId: user.uniqueId || undefined } : undefined}
@@ -1546,107 +1533,6 @@ export default function StudentDashboard() {
             </AnimatePresence>
           </main>
           
-          {/* Enhanced Right Panel */}
-          <motion.aside 
-            className={`dashboard-right-panel ${isRightPanelOpen ? 'open' : ''} flex flex-col justify-between`}
-            onMouseEnter={() => !isMobile && setIsRightPanelHovered(true)}
-            onMouseLeave={() => !isMobile && setIsRightPanelHovered(false)}
-            initial={{ x: 100, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            whileHover={{ scale: 1.02 }}
-          >
-            {/* Enhanced Arrow indicator for expandability - centered in collapsed state (desktop only) */}
-            {!isMobile && (
-              <motion.div 
-                className={`flex justify-center items-center ${isRightPanelHovered ? 'h-16' : 'flex-1'}`}
-                animate={{ 
-                  scale: isRightPanelHovered ? 1.05 : 1,
-                  y: isRightPanelHovered ? -5 : 0
-                }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-              >
-                <motion.div 
-                  className="w-8 h-8 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100 hover:border-purple-300 hover:text-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  whileHover={{ 
-                    scale: 1.1,
-                    rotate: [0, -10, 10, 0]
-                  }}
-                  whileTap={{ scale: 0.95 }}
-                  animate={{
-                    boxShadow: [
-                      "0 4px 8px rgba(0,0,0,0.1)",
-                      "0 8px 16px rgba(139, 92, 246, 0.2)",
-                      "0 4px 8px rgba(0,0,0,0.1)"
-                    ]
-                  }}
-                  transition={{
-                    boxShadow: {
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }
-                  }}
-                  style={{ transform: isRightPanelHovered ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </motion.div>
-              </motion.div>
-            )}
-            {/* Panel Content */}
-            <div className="flex-1 flex flex-col transition-all duration-300 p-4">
-              {/* Title and Close button for mobile */}
-                <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 transition-opacity duration-200"
-                    style={{ opacity: isMobile ? 1 : (isRightPanelHovered ? 1 : 0) }}>
-                  Upcoming Tests
-                </h3>
-                {isMobile && (
-                  <button 
-                    onClick={() => setIsRightPanelOpen(false)}
-                    className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:border-gray-300 transition-all duration-200"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-              
-              <div className="space-y-3">
-                {tests.length === 0 && (
-                  <div className={`text-center text-gray-400 text-sm py-8 transition-opacity duration-200 ${isMobile ? '' : 'opacity-0 pointer-events-none'}`} 
-                       style={!isMobile ? { opacity: isRightPanelHovered ? 1 : 0 } : {}}>
-                    No upcoming tests
-                  </div>
-                )}
-                {tests.map((test, index) => (
-                  <div key={index} className={`flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 shadow-sm hover:bg-purple-50 cursor-pointer transition-all duration-200 ${isMobile ? '' : (isRightPanelHovered ? '' : 'opacity-0 pointer-events-none')}`}> 
-                    <div 
-                      className="w-3 h-3 rounded-full flex-shrink-0" 
-                      style={{ backgroundColor: test.color }}
-                    ></div>
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900 text-sm">{test.title}</div>
-                      <div className="text-xs text-gray-500">{test.date}</div>
-                    </div>
-                    <span className="text-gray-400">→</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-          </motion.aside>
-          
-          {/* Mobile Right Panel Overlay */}
-          {isRightPanelOpen && (
-            <div 
-              className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
-              onClick={() => setIsRightPanelOpen(false)}
-            />
-          )}
           
         </div>
       </div>

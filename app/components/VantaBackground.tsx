@@ -6,12 +6,13 @@ import { motion } from 'framer-motion';
 interface VantaBackgroundProps {
   children: React.ReactNode;
   className?: string;
-  color?: string;
-  backgroundColor?: string;
-  maxDistance?: number;
-  spacing?: number;
-  showDots?: boolean;
-  showLines?: boolean;
+  color2?: number;
+  colorMode?: string;
+  birdSize?: number;
+  wingSpan?: number;
+  separation?: number;
+  cohesion?: number;
+  quantity?: number;
   mouseControls?: boolean;
   touchControls?: boolean;
   gyroControls?: boolean;
@@ -43,12 +44,13 @@ declare global {
 const VantaBackground: React.FC<VantaBackgroundProps> = ({
   children,
   className = '',
-  color = '#0f172a',
-  backgroundColor = '#0f172a',
-  maxDistance = 20,
-  spacing = 20,
-  showDots = true,
-  showLines = true,
+  color2 = 0x1c00ff,
+  colorMode = "lerpGradient",
+  birdSize = 1.70,
+  wingSpan = 19.00,
+  separation = 24.00,
+  cohesion = 22.00,
+  quantity = 4.00,
   mouseControls = true,
   touchControls = true,
   gyroControls = false,
@@ -77,7 +79,7 @@ const VantaBackground: React.FC<VantaBackgroundProps> = ({
       // Load Vanta.js
       if (!window.VANTA) {
         const vantaScript = document.createElement('script');
-        vantaScript.src = '/vanta.net.min.js';
+        vantaScript.src = '/vanta.birds.min.js';
         vantaScript.async = true;
         document.head.appendChild(vantaScript);
         
@@ -86,14 +88,14 @@ const VantaBackground: React.FC<VantaBackgroundProps> = ({
         });
       }
 
-      // Initialize Vanta NET effect
+      // Initialize Vanta BIRDS effect
       if (containerRef.current && window.VANTA && window.THREE) {
         // Clean up previous instance
         if (vantaRef.current) {
           vantaRef.current.destroy();
         }
 
-        vantaRef.current = window.VANTA.NET({
+        vantaRef.current = window.VANTA.BIRDS({
           el: containerRef.current,
           THREE: window.THREE,
           mouseControls,
@@ -103,12 +105,13 @@ const VantaBackground: React.FC<VantaBackgroundProps> = ({
           minWidth,
           scale,
           scaleMobile,
-          color,
-          backgroundColor,
-          maxDistance,
-          spacing,
-          showDots,
-          showLines
+          color2,
+          colorMode,
+          birdSize,
+          wingSpan,
+          separation,
+          cohesion,
+          quantity
         });
       }
     };
@@ -122,12 +125,13 @@ const VantaBackground: React.FC<VantaBackgroundProps> = ({
       }
     };
   }, [
-    color,
-    backgroundColor,
-    maxDistance,
-    spacing,
-    showDots,
-    showLines,
+    color2,
+    colorMode,
+    birdSize,
+    wingSpan,
+    separation,
+    cohesion,
+    quantity,
     mouseControls,
     touchControls,
     gyroControls,

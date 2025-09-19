@@ -1,5 +1,6 @@
 'use client';
 
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Target, TrendingUp, Award, Zap, Play, ChevronRight, Star, Clock, Users, Briefcase, Youtube, Brain, Trophy, BarChart3, Sparkles, ArrowRight, Activity, BookMarked } from 'lucide-react';
@@ -7,7 +8,6 @@ import { useRouter } from 'next/navigation';
 
 interface OverviewTabProps {
   courses: any[];
-  tests: any[];
   onTabChange: (tab: string) => void;
   dashboardData?: {
     overview?: {
@@ -30,7 +30,6 @@ interface OverviewTabProps {
 
 export default function OverviewTab({ 
   courses, 
-  tests: _tests, 
   onTabChange, 
   dashboardData, 
   user

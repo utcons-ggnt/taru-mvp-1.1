@@ -149,12 +149,13 @@ const EnhancedLoadingPage: React.FC<EnhancedLoadingPageProps> = ({
   return (
     <VantaBackground
       className={`min-h-screen flex items-center justify-center p-4 relative overflow-hidden`}
-      color="#8b5cf6"
-      backgroundColor="#1e1b4b"
-      maxDistance={25}
-      spacing={18}
-      showDots={true}
-      showLines={true}
+      color2={0x1c00ff}
+      colorMode="lerpGradient"
+      birdSize={1.70}
+      wingSpan={19.00}
+      separation={24.00}
+      cohesion={22.00}
+      quantity={4.00}
       mouseControls={true}
       touchControls={true}
       gyroControls={false}
