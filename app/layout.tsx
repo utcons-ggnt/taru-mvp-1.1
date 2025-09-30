@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "./components/SessionProvider";
-import ErrorBoundary from "./components/ErrorBoundary";
 import PerformanceMonitor from "./components/PerformanceMonitor";
 import DataRecoveryUI from "./components/DataRecoveryUI";
 
@@ -62,16 +61,14 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900 selection:bg-purple-200 selection:text-purple-900`}
         suppressHydrationWarning={true}
       >
-        <ErrorBoundary>
-          <SessionProvider>
-            {children}
-            <DataRecoveryUI />
-            <PerformanceMonitor 
-              enabled={true}
-              showInDevelopment={true}
-            />
-          </SessionProvider>
-        </ErrorBoundary>
+        <SessionProvider>
+          {children}
+          <DataRecoveryUI />
+          <PerformanceMonitor 
+            enabled={true}
+            showInDevelopment={true}
+          />
+        </SessionProvider>
       </body>
     </html>
   );
