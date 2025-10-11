@@ -67,16 +67,52 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const moduleId = searchParams.get('moduleId');
-    const userId = searchParams.get('userId'); // Replace with actual user ID from auth
+    const studentId = searchParams.get('studentId');
 
-    if (!moduleId || !userId) {
+    // If studentId is provided, return all progress for that student
+    if (studentId) {
+      console.log('🔍 Looking for progress data for student:', studentId);
+      
+      const studentProgress = await StudentProgress.findOne({ studentId });
+      console.log('📋 Student progress found:', !!studentProgress);
+      
+      if (!studentProgress) {
+        console.log('⚠️ No student progress found for student:', studentId);
+        return NextResponse.json({
+          success: true,
+          progress: []
+        });
+      }
+
+      console.log('📊 Total modules in progress:', studentProgress.moduleProgress.length);
+      console.log('📊 Raw module progress:', studentProgress.moduleProgress);
+
+      // Return module progress data
+      const progressData = studentProgress.moduleProgress.map((module: any) => ({
+        moduleId: module.moduleId,
+        quizScore: module.quizScore,
+        completedAt: module.completedAt,
+        pointsEarned: module.pointsEarned,
+        lastAccessedAt: module.lastAccessedAt
+      }));
+
+      console.log('📊 Processed progress data for student:', studentId, progressData);
+
+      return NextResponse.json({
+        success: true,
+        progress: progressData
+      });
+    }
+
+    // If moduleId is provided, return specific module progress
+    if (!moduleId) {
       return NextResponse.json(
-        { error: 'Module ID and User ID are required' },
+        { error: 'Module ID or Student ID is required' },
         { status: 400 }
       );
     }
 
-    const progress = await StudentProgress.findOne({ userId, moduleId });
+    const progress = await StudentProgress.findOne({ moduleId });
 
     return NextResponse.json({
       success: true,

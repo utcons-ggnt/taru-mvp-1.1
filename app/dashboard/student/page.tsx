@@ -128,6 +128,7 @@ interface DashboardData {
     inProgressModules: number;
     totalXp: number;
     averageScore: number;
+    learningStreak: number;
     studentName: string;
     grade: string;
     school: string;
@@ -439,6 +440,7 @@ export default function StudentDashboard() {
       try {
         setDashboardLoading(true);
         const response = await fetch('/api/dashboard/student/overview');
+        
         if (!response.ok) {
           throw new Error('Failed to fetch dashboard data');
         }
@@ -483,6 +485,36 @@ export default function StudentDashboard() {
 
     fetchDashboardData();
   }, [user]);
+
+  // Auto-refresh dashboard data every 30 seconds to show real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (user) {
+        fetch('/api/dashboard/student/overview')
+          .then(response => response.json())
+          .then(data => setDashboardData(data))
+          .catch(error => console.error('Error refreshing dashboard data:', error));
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Refresh dashboard data when switching to progress tab
+  useEffect(() => {
+    if (activeTab === 'progress' && user) {
+      // Force a fresh fetch with cache busting
+      fetch(`/api/dashboard/student/overview?t=${Date.now()}`, {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
+        .then(response => response.json())
+        .then(data => setDashboardData(data))
+        .catch(error => console.error('Error refreshing progress data:', error));
+    }
+  }, [activeTab, user]);
 
   // Function to test API connectivity
   const testApiConnectivity = async () => {
@@ -630,19 +662,23 @@ export default function StudentDashboard() {
 
 
   // Calculate real progress data, fallback to empty/default
+
   const progressData = dashboardData?.overview 
     ? {
         completedModules: dashboardData.overview.completedModules || 0,
         totalModules: dashboardData.overview.totalModules || 0,
         progressHistory: calculateProgressHistory(dashboardData),
         recentScores: calculateRecentScores(dashboardData),
-        totalTimeSpent: dashboardData.progress.totalTimeSpent || 0,
+        totalTimeSpent: dashboardData.progress?.totalTimeSpent || 0,
+        totalXp: dashboardData.overview.totalXp || 0,
+        badgesEarned: dashboardData.progress?.badgesEarned || [],
       }
-    : { completedModules: 0, totalModules: 0, progressHistory: [], recentScores: [], totalTimeSpent: 0 };
+    : { completedModules: 0, totalModules: 0, progressHistory: [], recentScores: [], totalTimeSpent: 0, totalXp: 0, badgesEarned: [] };
+
 
   // Map real badges data, fallback to empty
   const badgesData = dashboardData?.progress?.badgesEarned && dashboardData.progress.badgesEarned.length > 0
-    ? dashboardData.progress.badgesEarned.map((badge: DashboardData['progress']['badgesEarned'][number]) => ({
+    ? dashboardData.progress.badgesEarned.map((badge: any) => ({
         name: badge.name,
         description: badge.description,
         icon: '/badge-default.png',
@@ -830,33 +866,59 @@ export default function StudentDashboard() {
   };
 
   // Stats cards data with proper fallbacks
+  // Calculate XP breakdown for better display
+  const xpBreakdown = dashboardData?.overview ? {
+    totalXp: dashboardData.overview.totalXp || 0,
+    completedXp: (dashboardData.overview.completedModules || 0) * 100, // 100 XP per completed module
+    inProgressXp: (dashboardData.overview.inProgressModules || 0) * 25, // 25 XP for starting a module
+    quizXp: Math.round((dashboardData.overview.averageScore || 0) * 0.5), // 0.5 XP per percentage point
+    streakBonus: Math.min((dashboardData.overview.learningStreak || 0) * 10, 100), // 10 XP per day streak, max 100
+    currentLevel: Math.floor((dashboardData.overview.totalXp || 0) / 1000) + 1,
+    xpToNextLevel: 1000 - ((dashboardData.overview.totalXp || 0) % 1000)
+  } : {
+    totalXp: 0,
+    completedXp: 0,
+    inProgressXp: 0,
+    quizXp: 0,
+    streakBonus: 0,
+    currentLevel: 1,
+    xpToNextLevel: 1000
+  };
+
   const statsCardsData = dashboardData?.overview ? [
     {
       title: 'Courses in Progress',
       value: String(dashboardData.overview.inProgressModules || 0),
-      subtitle: `${Math.round((dashboardData.overview.inProgressModules || 0) * 7.5)}+ XP`, 
+      subtitle: `${xpBreakdown.inProgressXp} XP Available`, 
       icon: '/icons/courseinprogress.png',
       color: 'bg-orange-500'
     },
     {
       title: 'Courses Completed',
       value: String(dashboardData.overview.completedModules || 0),
-      subtitle: `${Math.round((dashboardData.overview.completedModules || 0) * 10)}+ XP`,
+      subtitle: `${xpBreakdown.completedXp} XP Earned`,
       icon: '/icons/coursescompleted.png',
       color: 'bg-green-500'
     },
     {
-      title: 'Certificates Earned',
-      value: String(dashboardData.progress?.badgesEarned?.length || 0),
-      subtitle: 'Achievement Level',
-      icon: '/icons/certificatesearned.png',
+      title: 'Total XP Earned',
+      value: String(xpBreakdown.totalXp),
+      subtitle: `Level ${xpBreakdown.currentLevel} • ${xpBreakdown.xpToNextLevel} to next`,
+      icon: '/icons/xp.png',
+      color: 'bg-purple-500'
+    },
+    {
+      title: 'Average Score',
+      value: `${dashboardData.overview.averageScore || 0}%`,
+      subtitle: `${xpBreakdown.quizXp} XP from Quizzes`,
+      icon: '/icons/score.png',
       color: 'bg-blue-500'
     },
     {
-      title: 'AI Avatar Support',
-      value: '24/7',
-      subtitle: 'Learning Support',
-      icon: '/icons/bot.png',
+      title: 'Learning Streak',
+      value: `${dashboardData.overview.learningStreak || 0} days`,
+      subtitle: `${xpBreakdown.streakBonus} XP Bonus`,
+      icon: '/icons/streak.png',
       color: 'bg-yellow-500'
     }
   ] : [
@@ -1512,7 +1574,38 @@ export default function StudentDashboard() {
               )}
               {activeTab === 'learning-path' && <LearningPathTab user={user ? { uniqueId: user.uniqueId ?? undefined, name: user.name ?? undefined } : null} onTabChange={setActiveTab} />}
               {activeTab === 'modules' && <ModulesTab user={user} />}
-              {activeTab === 'progress' && <ProgressTab progress={progressData} onTabChange={setActiveTab} />}
+              {activeTab === 'progress' && (
+                <div>
+                  {dashboardLoading ? (
+                    <div className="flex items-center justify-center h-64">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading progress data...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <ProgressTab 
+                      progress={progressData} 
+                      onTabChange={setActiveTab} 
+                      onRefresh={async () => {
+                        // Refresh dashboard data with cache busting
+                        try {
+                          const response = await fetch(`/api/dashboard/student/overview?t=${Date.now()}`, {
+                            cache: 'no-cache',
+                            headers: {
+                              'Cache-Control': 'no-cache'
+                            }
+                          });
+                          const data = await response.json();
+                          setDashboardData(data);
+                        } catch (error) {
+                          console.error('Error refreshing dashboard data:', error);
+                        }
+                      }} 
+                    />
+                  )}
+                </div>
+              )}
               {activeTab === 'rewards' && <RewardsTab badges={badgesData} onTabChange={setActiveTab} />}
               {activeTab === 'settings' && <SettingsTab profile={profileData} onProfileUpdate={handleProfileUpdate} />}
               {/* Fallback for unknown tab */}

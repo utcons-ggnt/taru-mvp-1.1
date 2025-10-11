@@ -85,11 +85,11 @@ export async function GET(request: NextRequest) {
         uniqueId: student.uniqueId,
         onboardingCompleted: student.onboardingCompleted,
         joinedAt: userInfo?.createdAt,
-        // Progress statistics
+        // Progress statistics - using new structure
         totalModulesCompleted: progress?.totalModulesCompleted || 0,
-        totalXpEarned: progress?.totalXpEarned || 0,
+        totalXpEarned: progress?.totalPoints || 0,
         learningStreak: progress?.learningStreak || 0,
-        badgesEarned: progress?.badgesEarned?.length || 0,
+        badgesEarned: progress?.moduleProgress?.flatMap((mp: any) => mp.gamificationProgress?.badges || []).length || 0,
         // Assessment status
         assessmentCompleted: assessment?.assessmentCompleted || false,
         diagnosticCompleted: assessment?.diagnosticCompleted || false,

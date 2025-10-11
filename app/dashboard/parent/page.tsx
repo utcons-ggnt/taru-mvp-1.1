@@ -50,6 +50,7 @@ interface ChildProfile {
 
 interface RecentActivity {
   moduleId: string;
+  moduleName?: string;
   status: string;
   progress: number;
   xpEarned: number;
@@ -65,6 +66,7 @@ interface DashboardData {
       inProgressModules: number;
       totalXp: number;
       averageScore: number;
+      learningStreak: number;
       studentName: string;
       grade: string;
       school: string;
@@ -140,7 +142,7 @@ function getRandomAvatar(userId?: string): string {
 export default function ParentDashboard() {
   const [child, setChild] = useState<ChildProfile | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [stats, setStats] = useState<Array<{ label: string; value: string; icon: string }>>([]);
+  const [stats, setStats] = useState<Array<{ label: string; value: string; icon: string; subtitle?: string }>>([]);
   const [analytics, setAnalytics] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -226,6 +228,15 @@ export default function ParentDashboard() {
         if (dashRes.ok) {
           const dashData = await dashRes.json();
           console.log('🔍 Dashboard data:', dashData);
+          console.log('📊 Student dashboard overview:', dashData.studentDashboard?.overview);
+          console.log('📈 Progress data:', {
+            totalModules: dashData.studentDashboard?.overview?.totalModules,
+            completedModules: dashData.studentDashboard?.overview?.completedModules,
+            inProgressModules: dashData.studentDashboard?.overview?.inProgressModules,
+            totalXp: dashData.studentDashboard?.overview?.totalXp,
+            averageScore: dashData.studentDashboard?.overview?.averageScore,
+            learningStreak: dashData.studentDashboard?.overview?.learningStreak
+          });
           setDashboardData(dashData);
 
           // Set child info
@@ -240,24 +251,50 @@ export default function ParentDashboard() {
             });
           }
 
-          // Set stats from studentDashboard.overview
+          // Set stats from studentDashboard.overview - exact same format as student dashboard
           const sd = dashData.studentDashboard || {};
           if (sd.overview) {
+            // Calculate XP breakdown exactly like student dashboard
+            const xpBreakdown = {
+              totalXp: sd.overview.totalXp || 0,
+              completedXp: (sd.overview.completedModules || 0) * 100, // 100 XP per completed module
+              inProgressXp: (sd.overview.inProgressModules || 0) * 25, // 25 XP for starting a module
+              quizXp: Math.round((sd.overview.averageScore || 0) * 0.5), // 0.5 XP per percentage point
+              streakBonus: Math.min((sd.overview.learningStreak || 0) * 10, 100), // 10 XP per day streak, max 100
+              currentLevel: Math.floor((sd.overview.totalXp || 0) / 1000) + 1,
+              xpToNextLevel: 1000 - ((sd.overview.totalXp || 0) % 1000)
+            };
+            
             setStats([
               { 
-                label: 'Modules Completed', 
-                value: `${sd.overview.completedModules || 0}/${sd.overview.totalModules || 0}`, 
-                icon: '📚' 
+                label: 'Courses in Progress', 
+                value: `${sd.overview.inProgressModules || 0}`, 
+                icon: '📚',
+                subtitle: `${xpBreakdown.inProgressXp} XP Available`
+              },
+              { 
+                label: 'Courses Completed', 
+                value: `${sd.overview.completedModules || 0}`, 
+                icon: '✅',
+                subtitle: `${xpBreakdown.completedXp} XP Earned`
+              },
+              { 
+                label: 'Total XP Earned', 
+                value: `${xpBreakdown.totalXp}`, 
+                icon: '⭐',
+                subtitle: `Level ${xpBreakdown.currentLevel} • ${xpBreakdown.xpToNextLevel} to next`
               },
               { 
                 label: 'Average Score', 
                 value: `${sd.overview.averageScore || 0}%`, 
-                icon: '🎯' 
+                icon: '🎯',
+                subtitle: `${xpBreakdown.quizXp} XP from Quizzes`
               },
               { 
-                label: 'Total XP Earned', 
-                value: `${sd.overview.totalXp || 0} XP`, 
-                icon: '⭐' 
+                label: 'Learning Streak', 
+                value: `${sd.overview.learningStreak || 0} days`, 
+                icon: '🔥',
+                subtitle: `${xpBreakdown.streakBonus} XP Bonus`
               },
             ]);
           }
@@ -340,10 +377,35 @@ export default function ParentDashboard() {
     return totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
   };
 
+  // Helper function to calculate progress history (same as student dashboard)
+  const calculateProgressHistory = (data: DashboardData) => {
+    if (!data.studentDashboard?.overview) return [0];
+    
+    const total = data.studentDashboard.overview.totalModules;
+    const completed = data.studentDashboard.overview.completedModules;
+    
+    if (total === 0) return [0];
+    
+    // Create a simple progress history based on completion rate
+    const baseProgress = Math.round((completed / total) * 100);
+    return [baseProgress * 0.6, baseProgress * 0.7, baseProgress * 0.8, baseProgress * 0.9, baseProgress];
+  };
+
+  // Helper function to calculate recent scores (same as student dashboard)
+  const calculateRecentScores = (data: DashboardData) => {
+    if (!data.studentDashboard?.recentActivity || data.studentDashboard.recentActivity.length === 0) return [0];
+    
+    // Calculate scores based on recent activity progress
+    return data.studentDashboard.recentActivity
+      .slice(-5)
+      .map(activity => Math.round(activity.progress))
+      .filter(score => score > 0);
+  };
+
   const getRecentActivities = () => {
     if (!dashboardData?.studentDashboard?.recentActivity) return [];
     return dashboardData.studentDashboard.recentActivity.slice(0, 5).map((activity) => ({
-      title: activity.moduleId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      title: activity.moduleName || activity.moduleId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       type: activity.status,
       progress: activity.progress,
       xpEarned: activity.xpEarned,
@@ -505,6 +567,75 @@ export default function ParentDashboard() {
         size={180} 
       />
       
+      {/* Additional Particle Effects */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        {/* Floating Geometric Shapes */}
+        {[...Array(8)].map((_, i) => {
+          // Use deterministic positioning based on index to avoid hydration mismatch
+          const left = (i * 73) % 100;
+          const top = (i * 97) % 100;
+          const xOffset = (i * 23) % 20 - 10;
+          const duration = 6 + (i % 4);
+          const delay = (i % 3) * 0.5;
+          
+          return (
+            <motion.div
+              key={`shape-${i}`}
+              className="absolute w-4 h-4 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full"
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+              }}
+              animate={{
+                y: [0, -30, 0],
+                x: [0, xOffset, 0],
+                scale: [1, 1.2, 1],
+                opacity: [0.3, 0.8, 0.3],
+              }}
+              transition={{
+                duration: duration,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: delay,
+              }}
+            />
+          );
+        })}
+        
+        {/* Floating Lines */}
+        {[...Array(5)].map((_, i) => {
+          // Use deterministic positioning based on index to avoid hydration mismatch
+          const left = (i * 67) % 100;
+          const top = (i * 89) % 100;
+          const width = 100 + (i * 37) % 200;
+          const xOffset = (i * 41) % 100 - 50;
+          const duration = 4 + (i % 3);
+          const delay = (i % 4) * 0.5;
+          
+          return (
+            <motion.div
+              key={`line-${i}`}
+              className="absolute h-px bg-gradient-to-r from-transparent via-purple-400/30 to-transparent"
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+                width: `${width}px`,
+              }}
+              animate={{
+                x: [0, xOffset, 0],
+                opacity: [0, 1, 0],
+              }}
+              transition={{
+                duration: duration,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: delay,
+              }}
+            />
+          );
+        })}
+      </div>
+
       {/* Scroll Progress Indicator */}
       <ScrollProgress 
         color="linear-gradient(90deg, #6D18CE, #8B5CF6, #A855F7)"
@@ -525,7 +656,7 @@ export default function ParentDashboard() {
       </div>
       
       {/* Main Content Area */}
-      <div className="dashboard-main bg-gradient-to-br from-gray-50 via-purple-50/30 to-blue-50/30 relative overflow-hidden">
+      <div className="dashboard-main bg-gradient-to-br from-gray-50 via-purple-50/30 to-blue-50/30 relative">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0" style={{
@@ -534,6 +665,31 @@ export default function ParentDashboard() {
                              radial-gradient(circle at 50% 50%, #EC4899 1px, transparent 1px)`,
             backgroundSize: '50px 50px, 80px 80px, 30px 30px'
           }} />
+        </div>
+        
+        {/* Floating Orbs */}
+        <div className="absolute inset-0 pointer-events-none">
+          {[...Array(3)].map((_, i) => (
+            <motion.div
+              key={`orb-${i}`}
+              className="absolute w-32 h-32 rounded-full bg-gradient-to-r from-purple-400/10 to-pink-400/10 blur-xl"
+              style={{
+                left: `${20 + i * 30}%`,
+                top: `${10 + i * 20}%`,
+              }}
+              animate={{
+                y: [0, -20, 0],
+                x: [0, 10, 0],
+                scale: [1, 1.1, 1],
+              }}
+              transition={{
+                duration: 4 + i,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: i * 0.5,
+              }}
+            />
+          ))}
         </div>
         
         {/* Enhanced Top Bar */}
@@ -702,203 +858,550 @@ export default function ParentDashboard() {
         </div>
         
         {/* Main Content with Responsive Layout */}
-        <div className="dashboard-content">
+        <div className={`dashboard-content relative transition-all duration-300 ${isNotificationOpen ? 'blur-sm pointer-events-none' : ''}`}>
+          {/* Content Background Effects */}
+          <div className="absolute inset-0 pointer-events-none">
+            {/* Gradient Orbs */}
+            {[...Array(4)].map((_, i) => {
+              // Use deterministic positioning based on index to avoid hydration mismatch
+              const left = (i * 79) % 100;
+              const top = (i * 83) % 100;
+              const xOffset = (i * 47) % 50 - 25;
+              const yOffset = (i * 53) % 50 - 25;
+              const duration = 8 + (i % 4);
+              const delay = (i % 3) * 0.5;
+              
+              return (
+                <motion.div
+                  key={`content-orb-${i}`}
+                  className="absolute w-64 h-64 rounded-full bg-gradient-to-r from-purple-400/5 to-pink-400/5 blur-3xl"
+                  style={{
+                    left: `${left}%`,
+                    top: `${top}%`,
+                  }}
+                  animate={{
+                    x: [0, xOffset, 0],
+                    y: [0, yOffset, 0],
+                    scale: [1, 1.2, 1],
+                  }}
+                  transition={{
+                    duration: duration,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: delay,
+                  }}
+                />
+              );
+            })}
+            
+            {/* Floating Dots */}
+            {[...Array(12)].map((_, i) => {
+              // Use deterministic positioning based on index to avoid hydration mismatch
+              const left = (i * 71) % 100;
+              const top = (i * 91) % 100;
+              const duration = 3 + (i % 2);
+              const delay = (i % 5) * 0.4;
+              
+              return (
+                <motion.div
+                  key={`content-dot-${i}`}
+                  className="absolute w-2 h-2 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full"
+                  style={{
+                    left: `${left}%`,
+                    top: `${top}%`,
+                  }}
+                  animate={{
+                    y: [0, -20, 0],
+                    opacity: [0.3, 0.8, 0.3],
+                    scale: [1, 1.5, 1],
+                  }}
+                  transition={{
+                    duration: duration,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: delay,
+                  }}
+                />
+              );
+            })}
+          </div>
           {/* Main Panel */}
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 min-h-0">
             {/* Tab Content */}
-            <div className="space-y-6">
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={activeTab}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              >
               {activeTab === 'overview' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                >
                 <>
                   {/* Welcome Section */}
-                  <div className="mb-6">
+                  <div className="mb-8">
                     <div className="flex items-center justify-between">
                       {/* Left side: Avatar and welcome text */}
-                      <div className="flex items-center gap-4">
-                        <div className="relative w-16 h-16 sm:w-20 sm:h-20">
-                          <div className="w-full h-full bg-purple-600 rounded-full flex items-center justify-center">
-                            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                            </svg>
+                      <div className="flex items-center space-x-6">
+                        <div className="relative group">
+                          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 flex items-center justify-center text-white text-3xl font-bold shadow-2xl ring-4 ring-purple-200/50 group-hover:scale-105 transition-transform duration-300">
+                            {user?.name?.charAt(0) || 'P'}
+                          </div>
+                          <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
+                            <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                          </div>
+                          {/* Floating particles around avatar */}
+                          <div className="absolute inset-0 pointer-events-none">
+                            {[...Array(3)].map((_, i) => (
+                              <motion.div
+                                key={`avatar-particle-${i}`}
+                                className="absolute w-2 h-2 bg-purple-400/60 rounded-full"
+                                style={{
+                                  left: `${20 + i * 30}%`,
+                                  top: `${10 + i * 20}%`,
+                                }}
+                                animate={{
+                                  y: [0, -10, 0],
+                                  opacity: [0.4, 1, 0.4],
+                                  scale: [1, 1.2, 1],
+                                }}
+                                transition={{
+                                  duration: 2 + i * 0.5,
+                                  repeat: Infinity,
+                                  ease: "easeInOut",
+                                  delay: i * 0.3,
+                                }}
+                              />
+                            ))}
                           </div>
                         </div>
                         <div>
-                          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-1">
+                          <motion.h1 
+                            className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.6, delay: 0.2 }}
+                          >
                             Welcome back, {user?.name || 'Parent'}!
-                          </h2>
-                          <p className="text-gray-600 text-lg sm:text-xl font-medium">
+                          </motion.h1>
+                          <motion.p 
+                            className="text-gray-600 text-lg mt-1"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.6, delay: 0.4 }}
+                          >
                             Monitor {child?.name || 'your child'}&apos;s learning journey
-                          </p>
+                          </motion.p>
                         </div>
                       </div>
                       
-                      {/* Right side: Stats cards */}
+                      {/* Right side: Enhanced Stats cards */}
                       <div className="flex gap-4">
-                        {/* Modules Card */}
-                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
-                          <div className="text-3xl font-bold text-purple-600">
-                            {stats.find(s => s.label === 'Modules Completed')?.value?.split('/')[1] || 0}
+                        {/* Courses in Progress Card */}
+                        <motion.div 
+                          className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-6 shadow-lg border border-orange-200/50 min-w-[160px] min-h-[120px] hover:shadow-xl transition-all duration-300 flex flex-col justify-center group"
+                          whileHover={{ scale: 1.05, y: -5 }}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.6, delay: 0.6 }}
+                        >
+                          <div className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+                            {stats.find(s => s.label === 'Courses in Progress')?.value || 0}
                           </div>
-                          <div className="text-sm text-gray-900">Total Modules</div>
-                        </div>
+                          <div className="text-sm text-gray-700 font-medium">In Progress</div>
+                          <div className="text-xs text-orange-600 font-medium mt-1">
+                            {stats.find(s => s.label === 'Courses in Progress')?.subtitle || ''}
+                          </div>
+                        </motion.div>
                         
-                        {/* Progress Card */}
-                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
-                          <div className="text-3xl font-bold text-purple-600">
-                            {stats.find(s => s.label === 'Modules Completed')?.value?.split('/')[0] || 0}
+                        {/* Courses Completed Card */}
+                        <motion.div 
+                          className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 shadow-lg border border-green-200/50 min-w-[160px] min-h-[120px] hover:shadow-xl transition-all duration-300 flex flex-col justify-center group"
+                          whileHover={{ scale: 1.05, y: -5 }}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.6, delay: 0.8 }}
+                        >
+                          <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                            {stats.find(s => s.label === 'Courses Completed')?.value || 0}
                           </div>
-                          <div className="text-sm text-gray-900">Completed</div>
-                        </div>
+                          <div className="text-sm text-gray-700 font-medium">Completed</div>
+                          <div className="text-xs text-green-600 font-medium mt-1">
+                            {stats.find(s => s.label === 'Courses Completed')?.subtitle || ''}
+                          </div>
+                        </motion.div>
                         
-                        {/* XP Card */}
-                        <div className="bg-gray-100 rounded-xl p-6 shadow-sm border border-gray-100 min-w-[140px] min-h-[100px] hover:bg-purple-50 transition-colors flex flex-col justify-center">
-                          <div className="text-3xl font-bold text-gray-900">
-                            {stats.find(s => s.label === 'Total XP Earned')?.value?.replace(' XP', '') || 0}
+                        {/* Total XP Card */}
+                        <motion.div 
+                          className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 shadow-lg border border-purple-200/50 min-w-[160px] min-h-[120px] hover:shadow-xl transition-all duration-300 flex flex-col justify-center group"
+                          whileHover={{ scale: 1.05, y: -5 }}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.6, delay: 1.0 }}
+                        >
+                          <div className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                            {stats.find(s => s.label === 'Total XP Earned')?.value || 0}
                           </div>
-                          <div className="text-sm text-gray-900">XP Points</div>
-                        </div>
+                          <div className="text-sm text-gray-700 font-medium">XP Points</div>
+                          <div className="text-xs text-purple-600 font-medium mt-1">
+                            {stats.find(s => s.label === 'Total XP Earned')?.subtitle || ''}
+                          </div>
+                        </motion.div>
+                        
+                        {/* Average Score Card */}
+                        <motion.div 
+                          className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 shadow-lg border border-blue-200/50 min-w-[160px] min-h-[120px] hover:shadow-xl transition-all duration-300 flex flex-col justify-center group"
+                          whileHover={{ scale: 1.05, y: -5 }}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.6, delay: 1.2 }}
+                        >
+                          <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                            {stats.find(s => s.label === 'Average Score')?.value || '0%'}
+                          </div>
+                          <div className="text-sm text-gray-700 font-medium">Average Score</div>
+                          <div className="text-xs text-blue-600 font-medium mt-1">
+                            {stats.find(s => s.label === 'Average Score')?.subtitle || ''}
+                          </div>
+                        </motion.div>
+                        
+                        {/* Learning Streak Card */}
+                        <motion.div 
+                          className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl p-6 shadow-lg border border-yellow-200/50 min-w-[160px] min-h-[120px] hover:shadow-xl transition-all duration-300 flex flex-col justify-center group"
+                          whileHover={{ scale: 1.05, y: -5 }}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.6, delay: 1.4 }}
+                        >
+                          <div className="text-4xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
+                            {stats.find(s => s.label === 'Learning Streak')?.value || '0 days'}
+                          </div>
+                          <div className="text-sm text-gray-700 font-medium">Learning Streak</div>
+                          <div className="text-xs text-yellow-600 font-medium mt-1">
+                            {stats.find(s => s.label === 'Learning Streak')?.subtitle || ''}
+                          </div>
+                        </motion.div>
                       </div>
                     </div>
                   </div>
 
                   {/* Child Profile Card */}
-                  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Child Profile</h3>
-                    <div className="flex items-center gap-6">
+                  <motion.div 
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 1.2 }}
+                  >
+                    {/* Background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 via-pink-50/30 to-blue-50/50 pointer-events-none" />
+                    
+                    <div className="flex items-center justify-between mb-6 relative z-10">
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Child Profile</h3>
+                      <div className="flex items-center space-x-3">
+                        <div className="w-4 h-4 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse"></div>
+                        <span className="text-sm text-gray-700 font-medium">Active</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-6 relative z-10">
                       {child?.avatar && isValidProfilePictureUrl(child.avatar) ? (
-                        <Image 
-                          src={child.avatar}
-                          alt="Child Avatar" 
-                          width={80} height={80}
-                          className="w-20 h-20 rounded-full object-cover border-2 border-purple-500" 
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
+                        <div className="relative group">
+                          <Image 
+                            src={child.avatar}
+                            alt="Child Avatar" 
+                            width={80} height={80}
+                            className="w-20 h-20 rounded-full object-cover border-4 border-purple-200/50 shadow-2xl group-hover:scale-105 transition-transform duration-300" 
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                          <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
+                            <div className="w-3 h-3 bg-white rounded-full"></div>
+                          </div>
+                        </div>
                       ) : (
-                        <div className="w-20 h-20 rounded-full border-2 border-gray-200 bg-purple-100 flex items-center justify-center text-purple-600 font-semibold text-2xl">
-                          {child?.name ? child.name.charAt(0).toUpperCase() : '?'}
+                        <div className="relative group">
+                          <div className="w-20 h-20 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-full flex items-center justify-center shadow-2xl ring-4 ring-purple-200/50 group-hover:scale-105 transition-transform duration-300">
+                            <span className="text-3xl font-bold text-white">
+                              {child?.name ? child.name.charAt(0).toUpperCase() : '?'}
+                            </span>
+                          </div>
+                          <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
+                            <div className="w-3 h-3 bg-white rounded-full"></div>
+                          </div>
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-800 text-xl truncate flex items-center gap-2">
+                        <div className="font-bold text-gray-900 text-2xl truncate flex items-center gap-3 mb-2">
                           {child?.name || <span className="text-gray-400">No child linked</span>}
-                          {child?.grade && <span className="ml-2 px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-700 font-semibold">Grade {child.grade}</span>}
+                          {child?.grade && <span className="px-3 py-1 text-sm rounded-full bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 font-semibold border border-purple-200">Grade {child.grade}</span>}
                         </div>
-                        {child?.school && <div className="text-xs text-gray-500 mt-1 truncate">🏫 {child.school}</div>}
-                        {child?.email && <div className="text-xs text-gray-500 mt-1 truncate">✉️ {child.email}</div>}
+                        {child?.school && <div className="text-sm text-gray-600 mt-1 truncate flex items-center gap-2">🏫 {child.school}</div>}
+                        {child?.email && <div className="text-sm text-gray-600 mt-1 truncate flex items-center gap-2">✉️ {child.email}</div>}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* Progress Bar */}
-                  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Today&apos;s Progress</h3>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold text-gray-900">Learning Progress</span>
-                      <span className="text-sm text-gray-700">{getCompletionPercentage()}% Complete - {getCompletionPercentage() >= 80 ? 'Excellent work!' : 'Keep going!'} 🚀</span>
+                  <motion.div 
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 1.4 }}
+                  >
+                    {/* Background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-cyan-50/30 to-purple-50/50 pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-6">Today's Progress</h3>
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="font-bold text-gray-900 text-lg">Learning Progress</span>
+                        <span className="text-sm text-gray-700 font-medium bg-gradient-to-r from-blue-100 to-cyan-100 px-3 py-1 rounded-full">
+                          {getCompletionPercentage()}% Complete - {getCompletionPercentage() >= 80 ? 'Excellent work!' : 'Keep going!'} 🚀
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-6 shadow-inner">
+                        <motion.div 
+                          className="bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500 h-6 rounded-full shadow-lg relative overflow-hidden"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${getCompletionPercentage()}%` }}
+                          transition={{ duration: 1, delay: 1.6, ease: "easeOut" }}
+                        >
+                          {/* Animated shine effect */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
+                        </motion.div>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-4">
-                      <div 
-                        className="bg-gradient-to-r from-purple-500 to-blue-500 h-4 rounded-full transition-all duration-500" 
-                        style={{ width: `${getCompletionPercentage()}%` }}
-                      ></div>
-                    </div>
-                  </div>
+                  </motion.div>
 
                   {/* Recent Activity */}
-                  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-                    <div className="space-y-2">
-                      {getRecentActivities().length > 0 ? getRecentActivities().map((activity, index) => (
-                        <div key={index} className="flex items-center gap-2 text-sm">
-                          <span className={`w-2 h-2 rounded-full ${
-                            activity.type === 'completed' ? 'bg-green-500' : 
-                            activity.type === 'in-progress' ? 'bg-blue-500' : 'bg-purple-500'
-                          }`}></span>
-                          <span>{activity.title} - {Math.round(activity.progress * 100)}% progress</span>
-                        </div>
-                      )) : (
-                        <div className="text-gray-500 text-sm">No recent activity</div>
-                      )}
+                  <motion.div 
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 1.6 }}
+                  >
+                    {/* Background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 via-green-50/30 to-teal-50/50 pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent mb-6">Recent Activity</h3>
+                      <div className="space-y-3">
+                        {getRecentActivities().length > 0 ? getRecentActivities().map((activity, index) => (
+                          <motion.div 
+                            key={index} 
+                            className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50/80 to-green-50/80 rounded-xl border border-emerald-200/50 shadow-sm hover:shadow-md transition-all duration-300"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.4, delay: 1.8 + index * 0.1 }}
+                          >
+                            <div className="flex items-center space-x-4">
+                              <div className={`w-3 h-3 rounded-full ${
+                                activity.type === 'completed' ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 
+                                activity.type === 'in-progress' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' : 'bg-gradient-to-r from-purple-500 to-pink-500'
+                              } animate-pulse`}></div>
+                              <span className="text-sm text-gray-700 font-medium">{activity.title} - {Math.round(activity.progress * 100)}% progress</span>
+                            </div>
+                            <span className="text-xs text-gray-500 bg-emerald-100 px-2 py-1 rounded-full">Today</span>
+                          </motion.div>
+                        )) : (
+                          <div className="text-center py-8">
+                            <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                              </svg>
+                            </div>
+                            <p className="text-gray-500 text-lg">No recent activity</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* Weekly Analytics */}
-                  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Weekly Analytics</h3>
-                    <div className="flex items-end gap-1 h-20">
-                      {analytics.map((h, i) => (
-                        <div key={i} className="flex-1 flex flex-col items-center">
-                          <div 
-                            className="w-4 bg-purple-400 rounded-t transition-all duration-500" 
-                            style={{ height: `${Math.max(h, 5)}%` }}
-                          ></div>
-                        </div>
-                      ))}
+                  <motion.div 
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 1.8 }}
+                  >
+                    {/* Background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/50 pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-6">Weekly Analytics</h3>
+                      <div className="flex items-end gap-2 h-24">
+                        {analytics.map((h, i) => (
+                          <motion.div 
+                            key={i} 
+                            className="flex-1 flex flex-col items-center group"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 2.0 + i * 0.1 }}
+                          >
+                            <motion.div 
+                              className="w-6 bg-gradient-to-t from-indigo-500 via-purple-500 to-pink-500 rounded-t-lg shadow-lg group-hover:shadow-xl transition-all duration-300 relative overflow-hidden"
+                              style={{ height: `${Math.max(h, 5)}%` }}
+                              whileHover={{ scale: 1.05 }}
+                            >
+                              {/* Animated shine effect */}
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+                            </motion.div>
+                            <span className="text-xs text-gray-500 mt-2 font-medium">
+                              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i]}
+                            </span>
+                          </motion.div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex justify-between w-full mt-2 text-xs text-gray-400">
-                      <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-                    </div>
-                  </div>
+                  </motion.div>
                 </>
+                </motion.div>
               )}
               {activeTab === 'child-progress' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                >
                 <div className="space-y-6">
                   {/* Progress Overview */}
-                  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Learning Progress Overview</h3>
+                  <motion.div 
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                  >
+                    {/* Background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-cyan-50/30 to-purple-50/50 pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-6">Learning Progress Overview</h3>
                     {dashboardData?.studentDashboard ? (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-purple-600 mb-2">{dashboardData.studentDashboard.overview.completedModules}</div>
-                          <div className="text-sm text-gray-500">Modules Completed</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-blue-600 mb-2">{dashboardData.studentDashboard.overview.totalXp}</div>
-                          <div className="text-sm text-gray-500">XP Points Earned</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-green-600 mb-2">{Math.floor(dashboardData.studentDashboard.progress.totalTimeSpent / 60)}h</div>
-                          <div className="text-sm text-gray-500">Total Learning Time</div>
-                        </div>
+                        <motion.div 
+                          className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-300"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: 0.4 }}
+                          whileHover={{ scale: 1.05 }}
+                        >
+                          <div className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">{dashboardData.studentDashboard.overview.completedModules}</div>
+                          <div className="text-sm text-gray-700 font-medium">Modules Completed</div>
+                        </motion.div>
+                        <motion.div 
+                          className="text-center p-6 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-300"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: 0.6 }}
+                          whileHover={{ scale: 1.05 }}
+                        >
+                          <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">{dashboardData.studentDashboard.overview.totalXp}</div>
+                          <div className="text-sm text-gray-700 font-medium">XP Points Earned</div>
+                        </motion.div>
+                        <motion.div 
+                          className="text-center p-6 bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl border border-emerald-200/50 shadow-lg hover:shadow-xl transition-all duration-300"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: 0.8 }}
+                          whileHover={{ scale: 1.05 }}
+                        >
+                          <div className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent mb-2">{Math.floor(dashboardData.studentDashboard.progress.totalTimeSpent / 60)}h</div>
+                          <div className="text-sm text-gray-700 font-medium">Total Learning Time</div>
+                        </motion.div>
                       </div>
                     ) : (
-                      <div className="text-center text-gray-500">No progress data available</div>
+                      <div className="text-center py-12">
+                        <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                          <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                        </div>
+                        <p className="text-gray-500 text-lg">No progress data available</p>
+                      </div>
                     )}
-                  </div>
+                    </div>
+                  </motion.div>
 
                   {/* Badges and Achievements */}
-                  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Achievements & Badges</h3>
+                  <motion.div 
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 1.0 }}
+                  >
+                    {/* Background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-yellow-50/50 via-amber-50/30 to-orange-50/50 pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 bg-clip-text text-transparent mb-6">Achievements & Badges</h3>
                     {dashboardData?.studentDashboard?.progress?.badgesEarned?.length && dashboardData.studentDashboard.progress.badgesEarned.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {dashboardData.studentDashboard.progress.badgesEarned.map((badge, index) => (
-                          <div key={index} className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                            <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold">🏆</div>
+                          <motion.div 
+                            key={index} 
+                            className="flex items-center gap-4 p-6 bg-gradient-to-br from-yellow-50/80 to-amber-50/80 rounded-2xl border border-yellow-200/50 shadow-lg hover:shadow-xl transition-all duration-300 group"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 1.2 + index * 0.1 }}
+                            whileHover={{ scale: 1.05 }}
+                          >
+                            <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-amber-500 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:scale-110 transition-transform duration-300">🏆</div>
                             <div>
-                              <div className="font-medium text-gray-900">{badge.name}</div>
-                              <div className="text-xs text-gray-500">{new Date(badge.earnedAt).toLocaleDateString()}</div>
+                              <div className="font-bold text-gray-900 text-lg">{badge.name}</div>
+                              <div className="text-sm text-gray-600 font-medium">{new Date(badge.earnedAt).toLocaleDateString()}</div>
                             </div>
-                          </div>
+                          </motion.div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center text-gray-500 py-8">
-                        <div className="text-4xl mb-2">🏆</div>
-                        <p>No badges earned yet. Keep learning to unlock achievements!</p>
+                      <div className="text-center py-12">
+                        <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                          <div className="text-4xl">🏆</div>
+                        </div>
+                        <p className="text-gray-500 text-lg">No badges earned yet. Keep learning to unlock achievements!</p>
                       </div>
                     )}
-                  </div>
+                    </div>
+                  </motion.div>
                 </div>
+                </motion.div>
               )}
               {activeTab === 'reports' && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Academic Reports</h3>
-                  {dashboardData?.studentDashboard ? (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="p-4 bg-blue-50 rounded-lg">
-                          <h4 className="font-medium text-blue-900 mb-2">Performance Summary</h4>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                >
+                <div className="space-y-6">
+                  {/* Academic Reports */}
+                  <motion.div 
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                  >
+                    {/* Background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/50 pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-6">Academic Reports</h3>
+                      {dashboardData?.studentDashboard ? (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <motion.div 
+                              className="p-6 bg-gradient-to-br from-blue-50/80 to-cyan-50/80 rounded-2xl border border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-300"
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.4, delay: 0.4 }}
+                              whileHover={{ scale: 1.02 }}
+                            >
+                              <h4 className="font-bold text-blue-900 text-lg mb-3">Performance Summary</h4>
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                               <span>Average Score:</span>
@@ -913,158 +1416,253 @@ export default function ParentDashboard() {
                               <span className="font-semibold">{Math.floor(dashboardData.studentDashboard.progress.totalTimeSpent / 60)}h {dashboardData.studentDashboard.progress.totalTimeSpent % 60}m</span>
                             </div>
                           </div>
-                        </div>
-                        <div className="p-4 bg-green-50 rounded-lg">
-                          <h4 className="font-medium text-green-900 mb-2">Learning Insights</h4>
+                        </motion.div>
+                        <motion.div 
+                          className="p-6 bg-gradient-to-br from-green-50/80 to-emerald-50/80 rounded-2xl border border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-300"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: 0.6 }}
+                          whileHover={{ scale: 1.02 }}
+                        >
+                          <h4 className="font-bold text-green-900 text-lg mb-3">Learning Insights</h4>
                           <div className="space-y-2 text-sm text-green-800">
                             <div>✓ Consistent learning patterns</div>
                             <div>✓ Strong engagement with interactive content</div>
                             <div>✓ Good progress tracking</div>
                           </div>
-                        </div>
+                        </motion.div>
                       </div>
 
-                      <div className="border-t pt-6">
-                        <h4 className="font-medium text-gray-700 mb-4">Recent Module Performance</h4>
+                      <motion.div 
+                        className="border-t pt-6"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.8 }}
+                      >
+                        <h4 className="font-bold text-gray-700 mb-4 text-lg">Recent Module Performance</h4>
                         <div className="space-y-3">
                           {dashboardData.studentDashboard.recentActivity.slice(0, 5).map((activity, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <motion.div 
+                              key={index} 
+                              className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50/80 to-gray-100/80 rounded-xl border border-gray-200/50 shadow-sm hover:shadow-md transition-all duration-300"
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.4, delay: 1.0 + index * 0.1 }}
+                            >
                               <div>
-                                <div className="font-medium text-gray-900">{activity.moduleId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
+                                <div className="font-bold text-gray-900">{activity.moduleName || activity.moduleId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
                                 <div className="text-sm text-gray-500">Last accessed: {new Date(activity.lastAccessed).toLocaleDateString()}</div>
                               </div>
                               <div className="text-right">
-                                <div className="font-semibold text-purple-600">{Math.round(activity.progress * 100)}%</div>
+                                <div className="font-bold text-purple-600">{Math.round(activity.progress * 100)}%</div>
                                 <div className="text-sm text-gray-500">{activity.xpEarned} XP</div>
                               </div>
-                            </div>
+                            </motion.div>
                           ))}
                         </div>
-                      </div>
+                      </motion.div>
                     </div>
                   ) : (
-                    <div className="text-center text-gray-500 py-8">
-                      <div className="text-4xl mb-2">📊</div>
-                      <p>No report data available yet. Reports will appear as your child progresses through modules.</p>
+                    <div className="text-center py-12">
+                      <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <div className="text-4xl">📊</div>
+                      </div>
+                      <p className="text-gray-500 text-lg">No report data available yet. Reports will appear as your child progresses through modules.</p>
                     </div>
                   )}
+                    </div>
+                  </motion.div>
                 </div>
+                </motion.div>
               )}
               {activeTab === 'messages' && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Messages & Communication</h3>
-                  <div className="space-y-4">
-                    {dashboardData?.studentDashboard?.notifications?.length && dashboardData.studentDashboard.notifications.length > 0 ? (
-                      <div className="space-y-3">
-                        <h4 className="font-medium text-gray-700">Recent Notifications</h4>
-                        {dashboardData.studentDashboard.notifications.map((notification) => (
-                          <div key={notification.id} className={`p-4 rounded-lg border ${
-                            notification.type === 'success' ? 'bg-green-50 border-green-200' :
-                            notification.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
-                            'bg-blue-50 border-blue-200'
-                          }`}>
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <div className="font-medium text-gray-900">{notification.title}</div>
-                                <div className="text-sm text-gray-600 mt-1">{notification.message}</div>
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {new Date(notification.date).toLocaleDateString()}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center text-gray-500 py-8">
-                        <div className="text-4xl mb-2">💬</div>
-                        <p>No messages yet. Communication features will be available soon.</p>
-                      </div>
-                    )}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                >
+                <div className="space-y-6">
+                  {/* Messages & Communication */}
+                  <motion.div 
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                  >
+                    {/* Background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-cyan-50/30 to-purple-50/50 pointer-events-none" />
                     
-                    <div className="border-t pt-6">
-                      <h4 className="font-medium text-gray-700 mb-4">Quick Actions</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <button className="p-4 text-left bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors">
-                          <div className="font-medium text-purple-900">📧 Contact Teacher</div>
-                          <div className="text-sm text-purple-700 mt-1">Send a message to your child&apos;s teacher</div>
-                        </button>
-                        <button className="p-4 text-left bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors">
-                          <div className="font-medium text-blue-900">📅 Schedule Meeting</div>
-                          <div className="text-sm text-blue-700 mt-1">Book a parent-teacher conference</div>
-                        </button>
+                    <div className="relative z-10">
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-6">Messages & Communication</h3>
+                      <div className="space-y-4">
+                        {dashboardData?.studentDashboard?.notifications?.length && dashboardData.studentDashboard.notifications.length > 0 ? (
+                          <div className="space-y-3">
+                            <h4 className="font-bold text-gray-700 text-lg">Recent Notifications</h4>
+                            {dashboardData.studentDashboard.notifications.map((notification) => (
+                              <motion.div 
+                                key={notification.id} 
+                                className={`p-4 rounded-xl border shadow-sm hover:shadow-md transition-all duration-300 ${
+                                  notification.type === 'success' ? 'bg-gradient-to-r from-green-50/80 to-emerald-50/80 border-green-200/50' :
+                                  notification.type === 'warning' ? 'bg-gradient-to-r from-yellow-50/80 to-amber-50/80 border-yellow-200/50' :
+                                  'bg-gradient-to-r from-blue-50/80 to-cyan-50/80 border-blue-200/50'
+                                }`}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.4, delay: 0.4 }}
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <div className="font-bold text-gray-900">{notification.title}</div>
+                                    <div className="text-sm text-gray-600 mt-1">{notification.message}</div>
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {new Date(notification.date).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12">
+                            <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                              <div className="text-4xl">💬</div>
+                            </div>
+                            <p className="text-gray-500 text-lg">No messages yet. Communication features will be available soon.</p>
+                          </div>
+                        )}
+                        
+                        <motion.div 
+                          className="border-t pt-6"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: 0.6 }}
+                        >
+                          <h4 className="font-bold text-gray-700 mb-4 text-lg">Quick Actions</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <motion.button 
+                              className="p-6 text-left bg-gradient-to-br from-purple-50/80 to-pink-50/80 hover:from-purple-100/80 hover:to-pink-100/80 rounded-xl border border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-300"
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              <div className="font-bold text-purple-900 text-lg">📧 Contact Teacher</div>
+                              <div className="text-sm text-purple-700 mt-1">Send a message to your child&apos;s teacher</div>
+                            </motion.button>
+                            <motion.button 
+                              className="p-6 text-left bg-gradient-to-br from-blue-50/80 to-cyan-50/80 hover:from-blue-100/80 hover:to-cyan-100/80 rounded-xl border border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-300"
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              <div className="font-bold text-blue-900 text-lg">📅 Schedule Meeting</div>
+                              <div className="text-sm text-blue-700 mt-1">Book a parent-teacher conference</div>
+                            </motion.button>
+                          </div>
+                        </motion.div>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 </div>
+                </motion.div>
               )}
               {activeTab === 'settings' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                >
                 <div className="space-y-6">
-                  <div className="bg-white rounded-xl shadow-sm p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Settings</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Language Preference</label>
-                        <select
-                          value={language}
-                          onChange={e => handleLanguageChange(e.target.value)}
-                          className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
-                        >
-                          <option value="English (USA)">English (USA)</option>
-                          <option value="हिन्दी">हिन्दी</option>
-                          <option value="मराठी">मराठी</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Notification Preferences</label>
-                        <div className="space-y-2">
-                          <label className="flex items-center">
-                            <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" defaultChecked />
-                            <span className="ml-2 text-sm text-gray-700">Email notifications for progress updates</span>
-                          </label>
-                          <label className="flex items-center">
-                            <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" defaultChecked />
-                            <span className="ml-2 text-sm text-gray-700">Weekly progress reports</span>
-                          </label>
-                          <label className="flex items-center">
-                            <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
-                            <span className="ml-2 text-sm text-gray-700">SMS notifications for important updates</span>
-                          </label>
+                  {/* Account Settings */}
+                  <motion.div 
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                  >
+                    {/* Background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 via-pink-50/30 to-blue-50/50 pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-6">Account Settings</h3>
+                      <div className="space-y-6">
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-3">Language Preference</label>
+                          <select
+                            value={language}
+                            onChange={e => handleLanguageChange(e.target.value)}
+                            className="w-full border border-gray-300 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white/80 backdrop-blur-sm shadow-sm"
+                          >
+                            <option value="English (USA)">English (USA)</option>
+                            <option value="हिन्दी">हिन्दी</option>
+                            <option value="मराठी">मराठी</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-3">Notification Preferences</label>
+                          <div className="space-y-3">
+                            <label className="flex items-center p-3 bg-white/50 rounded-xl border border-gray-200/50 hover:bg-white/80 transition-colors">
+                              <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" defaultChecked />
+                              <span className="ml-3 text-sm text-gray-700 font-medium">Email notifications for progress updates</span>
+                            </label>
+                            <label className="flex items-center p-3 bg-white/50 rounded-xl border border-gray-200/50 hover:bg-white/80 transition-colors">
+                              <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" defaultChecked />
+                              <span className="ml-3 text-sm text-gray-700 font-medium">Weekly progress reports</span>
+                            </label>
+                            <label className="flex items-center p-3 bg-white/50 rounded-xl border border-gray-200/50 hover:bg-white/80 transition-colors">
+                              <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                              <span className="ml-3 text-sm text-gray-700 font-medium">SMS notifications for important updates</span>
+                            </label>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                   
-                  <div className="bg-white rounded-xl shadow-sm p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Child Information</h3>
-                    {child ? (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Child Name</label>
-                            <div className="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">{child.name}</div>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Grade</label>
-                            <div className="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">{child.grade}</div>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">School</label>
-                            <div className="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">{child.school}</div>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <div className="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">{child.email}</div>
+                  {/* Child Information */}
+                  <motion.div 
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.4 }}
+                  >
+                    {/* Background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-cyan-50/30 to-purple-50/50 pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-6">Child Information</h3>
+                      {child ? (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <label className="block text-sm font-bold text-gray-700 mb-2">Child Name</label>
+                              <div className="px-4 py-3 border border-gray-300 rounded-xl bg-white/80 backdrop-blur-sm text-gray-700 shadow-sm">{child.name}</div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-bold text-gray-700 mb-2">Grade</label>
+                              <div className="px-4 py-3 border border-gray-300 rounded-xl bg-white/80 backdrop-blur-sm text-gray-700 shadow-sm">{child.grade}</div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-bold text-gray-700 mb-2">School</label>
+                              <div className="px-4 py-3 border border-gray-300 rounded-xl bg-white/80 backdrop-blur-sm text-gray-700 shadow-sm">{child.school}</div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-bold text-gray-700 mb-2">Email</label>
+                              <div className="px-4 py-3 border border-gray-300 rounded-xl bg-white/80 backdrop-blur-sm text-gray-700 shadow-sm">{child.email}</div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="text-center text-gray-500 py-4">
-                        <p>No child information available</p>
-                      </div>
-                    )}
-                  </div>
+                      ) : (
+                        <div className="text-center py-12">
+                          <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                            <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                            </svg>
+                          </div>
+                          <p className="text-gray-500 text-lg">No child information available</p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
                 </div>
+                </motion.div>
               )}
               {/* Fallback for unknown tab */}
               {![
@@ -1079,7 +1677,8 @@ export default function ParentDashboard() {
                   Coming soon!
                 </div>
               )}
-            </div>
+              </motion.div>
+            </AnimatePresence>
           </main>
           
           {/* Right Panel */}
@@ -1162,18 +1761,17 @@ export default function ParentDashboard() {
           
         </div>
       </div>
-
       {/* Chat Modal */}
       {child && (
         <ChatModal
           isOpen={isChatOpen}
           onClose={() => setIsChatOpen(false)}
           studentData={{
-            name: child.name || 'Student',
-            grade: child.grade,
-            email: child.email,
-            school: child.school,
-            studentId: child.id,
+            name: child?.name || 'Student',
+            grade: child?.grade || '',
+            email: child?.email || '',
+            school: child?.school || '',
+            studentId: child?.id || '',
           }}
         />
       )}

@@ -104,13 +104,10 @@ export async function POST(request: NextRequest) {
       userProfile = {
         subjectSpecialization: profile?.subjectSpecialization || profile?.classGrade,
         experienceYears: profile?.experienceYears || profile?.language,
-        location: profile?.location,
       };
     } else if (role === 'parent') {
       userProfile = {
         linkedStudentUniqueId: profile?.linkedStudentUniqueId || profile?.classGrade,
-        location: profile?.location,
-        guardianName: profile?.guardianName,
       };
       
       // Verify student exists if linking

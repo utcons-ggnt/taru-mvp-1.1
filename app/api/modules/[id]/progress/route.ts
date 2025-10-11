@@ -359,43 +359,39 @@ export async function POST(
       };
     }
 
-    // Calculate points earned
+    // Calculate points earned using the same formula as dashboard XP calculation
     let pointsEarned = 0;
     
-    // Points for video completion (25% of module points)
-    if (moduleProgress.videoProgress.completed) {
-      pointsEarned += Math.floor(moduleData.points * 0.25);
-    }
+    // Base XP for starting a module
+    pointsEarned += 25;
     
-    // Points for interactive completion (25% of module points)
-    if (moduleProgress.interactiveProgress?.completed) {
-      pointsEarned += Math.floor(moduleData.points * 0.25);
-    }
-    
-    // Points for project submission (25% of module points)
-    if (moduleProgress.projectSubmission) {
-      pointsEarned += Math.floor(moduleData.points * 0.25);
-    }
-    
-    // Points for quiz (15% of module points)
+    // XP for quiz performance (0.5 XP per percentage point)
     if (moduleProgress.quizScore > 0) {
-      pointsEarned += Math.floor((moduleProgress.quizScore / 100) * moduleData.points * 0.15);
+      pointsEarned += Math.round(moduleProgress.quizScore * 0.5);
     }
     
-    // Points for feedback (10% of module points)
-    if (moduleProgress.feedback.trim()) {
-      pointsEarned += Math.floor(moduleData.points * 0.10);
+    // Bonus XP for completion (75 XP bonus)
+    if (moduleProgress.quizScore >= 75 || moduleProgress.completedAt) {
+      pointsEarned += 75;
+    }
+    
+    // Video watch time bonus (1 XP per 10 minutes watched)
+    if (moduleProgress.videoProgress?.watchTime > 0) {
+      pointsEarned += Math.floor(moduleProgress.videoProgress.watchTime / 600); // 600 seconds = 10 minutes
     }
 
     moduleProgress.pointsEarned = pointsEarned;
     moduleProgress.lastAccessedAt = new Date();
 
     // Check if module is completed (all major components completed)
+    // Quiz must have score >= 75% for completion
+    const quizPassed = moduleProgress.quizScore >= 75;
     const isCompleted = moduleProgress.videoProgress.completed && 
                        (moduleProgress.interactiveProgress?.completed || !moduleData.contentTypes.interactive) &&
                        (moduleProgress.projectSubmission || !moduleData.contentTypes.project) &&
                        (moduleProgress.peerLearningProgress?.participationCount > 0 || !moduleData.contentTypes.peerLearning) &&
                        moduleProgress.quizAttempts.length > 0 && 
+                       quizPassed &&
                        moduleProgress.feedback.trim();
 
     if (isCompleted && !moduleProgress.completedAt) {

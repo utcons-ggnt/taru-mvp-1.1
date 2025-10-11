@@ -27,24 +27,33 @@ interface Progress {
   progressHistory: number[];
   recentScores: number[];
   totalTimeSpent: number;
+  totalXp: number;
+  badgesEarned?: Array<{
+    name: string;
+    description: string;
+    earnedAt: string;
+  }>;
 }
 
 interface ProgressTabProps {
   progress: Progress;
   onTabChange?: (tab: string) => void;
+  onRefresh?: () => void;
 }
 
-export default function ProgressTab({ progress, onTabChange }: ProgressTabProps) {
+export default function ProgressTab({ progress, onTabChange, onRefresh }: ProgressTabProps) {
   const [animatedPercent, setAnimatedPercent] = useState(0);
   const [animatedWeeklyProgress, setAnimatedWeeklyProgress] = useState(0);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  
   
   const percent = progress.totalModules > 0 
     ? Math.round((progress.completedModules / progress.totalModules) * 100) 
     : 0;
 
-  const weeklyGoal = 3000;
-  const weeklyXP = 2150; // This would come from real data
+  // Real data from progress - use actual XP from dashboard data
+  const weeklyGoal = 1000; // Weekly XP goal
+  const weeklyXP = progress.totalXp || 0; // Use real XP from dashboard
   const weeklyProgress = Math.round((weeklyXP / weeklyGoal) * 100);
 
   // Animate progress bars on mount
@@ -63,7 +72,7 @@ export default function ProgressTab({ progress, onTabChange }: ProgressTabProps)
       ['Modules Completed', progress.completedModules],
       ['Total Modules', progress.totalModules],
       ['Completion Percentage', `${percent}%`],
-      ['Total Time Spent (minutes)', progress.totalTimeSpent],
+      ['Total XP Earned', progress.totalXp],
       ['Average Recent Score', progress.recentScores.length > 0 ? Math.round(progress.recentScores.reduce((a, b) => a + b, 0) / progress.recentScores.length) : 0]
     ].map(row => row.join(',')).join('\n');
 
@@ -76,7 +85,7 @@ export default function ProgressTab({ progress, onTabChange }: ProgressTabProps)
     window.URL.revokeObjectURL(url);
   };
 
-  const hasData = progress.completedModules > 0 || progress.totalTimeSpent > 0 || progress.recentScores.length > 0;
+  const hasData = progress.completedModules > 0 || progress.totalXp > 0 || progress.recentScores.length > 0;
 
   return (
     <motion.div 
@@ -231,7 +240,7 @@ export default function ProgressTab({ progress, onTabChange }: ProgressTabProps)
                   strokeWidth="3"
                   strokeLinecap="round"
                   initial={{ strokeDasharray: "0, 100" }}
-                  animate={{ strokeDasharray: `${Math.min(progress.totalTimeSpent / 360 * 100, 100)}, 100` }}
+                  animate={{ strokeDasharray: `${Math.min((progress.totalTimeSpent / 60) / 6 * 100, 100)}, 100` }}
                   transition={{ duration: 2, ease: "easeOut" }}
                 />
               </svg>
@@ -258,91 +267,282 @@ export default function ProgressTab({ progress, onTabChange }: ProgressTabProps)
               animate={{ opacity: 1 }}
               transition={{ delay: 1.5 }}
             >
-              {progress.totalTimeSpent} minutes total
+              {Math.floor(progress.totalTimeSpent / 60)} hours of learning
             </motion.p>
           </div>
         </motion.div>
 
         {/* Modules Completed Card */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">Modules Completed</h3>
-          <div className="flex justify-center">
-            <div className="relative w-32 h-32">
-              <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 36 36">
+        <motion.div 
+          className="group bg-white rounded-2xl shadow-lg p-8 border border-gray-200 hover:shadow-xl transition-all duration-300"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          whileHover={{ scale: 1.05, y: -5 }}
+          onHoverStart={() => setHoveredCard('modules')}
+          onHoverEnd={() => setHoveredCard(null)}
+        >
+          <div className="text-center">
+            <motion.div
+              className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center mx-auto mb-6"
+              whileHover={{ rotate: 10, scale: 1.1 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </motion.div>
+            
+            <h3 className="text-xl font-bold text-gray-900 mb-6">Modules Completed</h3>
+            
+            <div className="relative w-40 h-40 mx-auto mb-6">
+              <svg className="w-40 h-40 transform -rotate-90" viewBox="0 0 36 36">
                 <path
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   fill="none"
                   stroke="#E5E7EB"
                   strokeWidth="3"
                 />
-                <path
+                <motion.path
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   fill="none"
-                  stroke="#8B5CF6"
+                  stroke="#10B981"
                   strokeWidth="3"
-                  strokeDasharray={`${Math.min(percent, 100)} 100`}
                   strokeLinecap="round"
+                  initial={{ strokeDasharray: "0, 100" }}
+                  animate={{ strokeDasharray: `${Math.min(percent, 100)} 100` }}
+                  transition={{ duration: 2, ease: "easeOut" }}
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-gray-900">
+                <motion.div 
+                  className="text-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 1, type: "spring", stiffness: 200 }}
+                >
+                  <div className="text-4xl font-bold text-gray-900">
                     {progress.completedModules}
                   </div>
-                </div>
+                  <div className="text-sm text-gray-500">
+                    of {progress.totalModules}
+                  </div>
+                </motion.div>
               </div>
             </div>
+            
+            <motion.div 
+              className="space-y-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.5 }}
+            >
+              <div className="text-2xl font-bold text-green-600">
+                {percent}% Complete
+              </div>
+              <div className="text-sm text-gray-600">
+                {progress.totalModules - progress.completedModules} modules remaining
+              </div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Badges Earned Card */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">Badges Earned</h3>
-          <div className="space-y-3">
-            <div className="bg-purple-100 text-purple-800 px-3 py-2 rounded-full text-sm font-medium text-center">
-              Math Master
-            </div>
-            <div className="bg-purple-100 text-purple-800 px-3 py-2 rounded-full text-sm font-medium text-center">
-              Science Explorer
-            </div>
-            <div className="bg-purple-100 text-purple-800 px-3 py-2 rounded-full text-sm font-medium text-center">
-              Creative Thinker
+        <motion.div 
+          className="group bg-white rounded-2xl shadow-lg p-8 border border-gray-200 hover:shadow-xl transition-all duration-300"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          whileHover={{ scale: 1.05, y: -5 }}
+          onHoverStart={() => setHoveredCard('badges')}
+          onHoverEnd={() => setHoveredCard(null)}
+        >
+          <div className="text-center">
+            <motion.div
+              className="w-16 h-16 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl flex items-center justify-center mx-auto mb-6"
+              whileHover={{ rotate: 10, scale: 1.1 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <Award className="w-8 h-8 text-yellow-600" />
+            </motion.div>
+            
+            <h3 className="text-xl font-bold text-gray-900 mb-6">Badges Earned</h3>
+            
+            <div className="space-y-3">
+              {progress.badgesEarned && progress.badgesEarned.length > 0 ? (
+                progress.badgesEarned.map((badge, index) => (
+                  <motion.div
+                    key={index}
+                    className="bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 px-4 py-3 rounded-full text-sm font-medium text-center border border-yellow-200"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.7 + index * 0.1 }}
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <Trophy className="w-4 h-4" />
+                      {badge.name}
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <motion.div
+                  className="text-gray-500 text-center py-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7 }}
+                >
+                  <Trophy className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                  <p>No badges earned yet</p>
+                  <p className="text-sm">Complete modules to earn badges!</p>
+                </motion.div>
+              )}
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
+
+      {/* Recent Scores Section */}
+      {progress.recentScores && progress.recentScores.length > 0 && (
+        <motion.div 
+          className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+        >
+          <div className="text-center mb-6">
+            <motion.h3 
+              className="text-2xl font-bold text-gray-900 mb-4 flex items-center justify-center gap-3"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9 }}
+            >
+              <TrendingUp className="w-7 h-7 text-green-600" />
+              Recent Quiz Scores
+            </motion.h3>
+            <p className="text-gray-600">Your latest quiz performance</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {progress.recentScores.slice(0, 6).map((score, index) => (
+              <motion.div
+                key={index}
+                className={`p-4 rounded-xl text-center font-bold text-lg ${
+                  score >= 75 
+                    ? 'bg-green-100 text-green-800 border border-green-200' 
+                    : score >= 50 
+                    ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                    : 'bg-red-100 text-red-800 border border-red-200'
+                }`}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1 + index * 0.1 }}
+                whileHover={{ scale: 1.05 }}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  {score >= 75 ? (
+                    <CheckCircle className="w-5 h-5" />
+                  ) : (
+                    <Target className="w-5 h-5" />
+                  )}
+                  {score}%
+                </div>
+                <div className="text-sm font-normal mt-1">
+                  {score >= 75 ? 'Excellent!' : score >= 50 ? 'Good!' : 'Keep practicing!'}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Continue Learning Button */}
       <div className="text-center">
-        <button 
-          className="bg-purple-600 text-white px-8 py-4 rounded-lg hover:bg-purple-700 transition-colors font-medium text-lg"
+        <motion.button 
+          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-4 rounded-xl font-medium text-lg shadow-lg hover:shadow-xl transition-all duration-300"
           onClick={() => onTabChange?.('modules')}
+          whileHover={{ scale: 1.05, y: -2 }}
+          whileTap={{ scale: 0.95 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2 }}
         >
-          Continue learning
-        </button>
+          Continue Learning
+        </motion.button>
       </div>
 
     
 
-      {/* Additional Progress Details (Hidden by default, can be expanded) */}
+
+      {/* Additional Progress Details */}
       {hasData && (
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Detailed Progress</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600 mb-2">{progress.completedModules}</div>
-              <div className="text-sm text-gray-500">Modules Completed</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">{progress.totalModules}</div>
-              <div className="text-sm text-gray-500">Total Modules</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600 mb-2">{percent}%</div>
-              <div className="text-sm text-gray-500">Completion Rate</div>
-            </div>
+        <motion.div 
+          className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.3 }}
+        >
+          <div className="text-center mb-6">
+            <motion.h3 
+              className="text-2xl font-bold text-gray-900 mb-4 flex items-center justify-center gap-3"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.4 }}
+            >
+              <BarChart3 className="w-7 h-7 text-blue-600" />
+              Detailed Progress
+            </motion.h3>
+            <p className="text-gray-600">Your learning journey in numbers</p>
           </div>
-        </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <motion.div 
+              className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.5 }}
+              whileHover={{ scale: 1.05 }}
+            >
+              <div className="text-4xl font-bold text-purple-600 mb-2">{progress.completedModules}</div>
+              <div className="text-sm text-gray-600 font-medium">Modules Completed</div>
+              <div className="text-xs text-gray-500 mt-1">Quiz score ≥ 75%</div>
+            </motion.div>
+            
+            <motion.div 
+              className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.6 }}
+              whileHover={{ scale: 1.05 }}
+            >
+              <div className="text-4xl font-bold text-blue-600 mb-2">{progress.totalModules}</div>
+              <div className="text-sm text-gray-600 font-medium">Total Modules</div>
+              <div className="text-xs text-gray-500 mt-1">Available chapters</div>
+            </motion.div>
+            
+            <motion.div 
+              className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.7 }}
+              whileHover={{ scale: 1.05 }}
+            >
+              <div className="text-4xl font-bold text-green-600 mb-2">{percent}%</div>
+              <div className="text-sm text-gray-600 font-medium">Completion Rate</div>
+              <div className="text-xs text-gray-500 mt-1">Overall progress</div>
+            </motion.div>
+            
+            <motion.div 
+              className="text-center p-6 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.8 }}
+              whileHover={{ scale: 1.05 }}
+            >
+              <div className="text-4xl font-bold text-orange-600 mb-2">{Math.floor(progress.totalTimeSpent / 60)}h</div>
+              <div className="text-sm text-gray-600 font-medium">Time Spent</div>
+              <div className="text-xs text-gray-500 mt-1">Learning hours</div>
+            </motion.div>
+          </div>
+        </motion.div>
       )}
     </motion.div>
   );

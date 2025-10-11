@@ -72,12 +72,19 @@ export async function GET(request: NextRequest) {
       const user = studentUsers.find(u => u._id.toString() === studentId);
       
       return {
-        id: studentId,
-        uniqueId: student?.uniqueId || '',
+        id: studentId, // This is the MongoDB ObjectId (userId)
+        uniqueId: student?.uniqueId || '', // This is the custom unique ID
         name: student?.fullName || user?.name || 'Unknown',
         email: user?.email || '',
         grade: student?.classGrade || 'Not set'
       };
+    });
+
+    console.log('🔍 Available students for parent linking:', {
+      totalStudents: completedStudents.length,
+      availableCount: availableStudents.length,
+      linkedCount: linkedStudentIds.length,
+      students: availableStudents.map(s => ({ id: s.id, name: s.name, uniqueId: s.uniqueId }))
     });
 
     return NextResponse.json(

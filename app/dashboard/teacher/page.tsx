@@ -94,6 +94,7 @@ interface TeacherStats {
   averageProgress: number;
   totalAssignments: number;
   averageScore: number;
+  totalXpAcrossStudents: number;
 }
 
 // Avatar utility functions
@@ -123,7 +124,8 @@ export default function TeacherDashboard() {
     activeStudents: 0,
     averageProgress: 0,
     totalAssignments: 0,
-    averageScore: 0
+    averageScore: 0,
+    totalXpAcrossStudents: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -574,6 +576,17 @@ export default function TeacherDashboard() {
                           className="text-3xl font-bold text-green-600"
                         />
                           <div className="text-sm text-gray-900 font-medium">Avg Progress</div>
+                        </TiltCard>
+                        
+                        {/* Total XP Card */}
+                        <TiltCard className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-6 shadow-sm border border-purple-200/50 min-w-[140px] min-h-[100px] flex flex-col justify-center">
+                        <ScrollCounter
+                          from={0}
+                          to={stats.totalXpAcrossStudents || 0}
+                          duration={2}
+                          className="text-3xl font-bold text-purple-600"
+                        />
+                          <div className="text-sm text-gray-900 font-medium">Total XP</div>
                         </TiltCard>
                       </div>
                 </div>

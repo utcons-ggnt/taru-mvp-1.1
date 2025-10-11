@@ -129,19 +129,17 @@ export default function Register() {
       profileData = {
         subjectSpecialization: formData.classGrade,
         experienceYears: formData.language,
-        location: formData.location,
       }
     } else if (selectedRole === 'parent') {
       profileData = {
         linkedStudentUniqueId: formData.classGrade.trim(),
-        location: formData.location,
-        guardianName: formData.guardianName,
       }
     } else if (selectedRole === 'organization') {
       profileData = {
         organizationType: formData.classGrade,
         industry: formData.language,
         location: formData.location,
+        guardianName: formData.guardianName,
       }
     }
 
@@ -434,21 +432,23 @@ export default function Register() {
                   />
                 </div>
 
-                {/* Guardian Name / Contact Person */}
-                <div className="relative">
-                  <label className="block text-[16.0016px] font-medium leading-[19px] text-[#C2C2C2] mb-1">
-                    {selectedRole === 'organization' ? 'Contact Person' : 'Guardian Name'}
-                  </label>
-                  <input
-                    type="text"
-                    name="guardianName"
-                    value={formData.guardianName}
-                    onChange={handleInputChange}
-                    placeholder={selectedRole === 'organization' ? 'e.g., John Doe, HR Manager' : ''}
-                    className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors"
-                    required
-                  />
-                </div>
+                {/* Guardian Name / Contact Person - Only for organization role */}
+                {selectedRole === 'organization' && (
+                  <div className="relative">
+                    <label className="block text-[16.0016px] font-medium leading-[19px] text-[#C2C2C2] mb-1">
+                      Contact Person
+                    </label>
+                    <input
+                      type="text"
+                      name="guardianName"
+                      value={formData.guardianName}
+                      onChange={handleInputChange}
+                      placeholder="e.g., John Doe, HR Manager"
+                      className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors"
+                      required
+                    />
+                  </div>
+                )}
 
                                  {/* Class/Grade and Language - Side by side */}
                  <div className="grid grid-cols-2 gap-[378px]">
@@ -672,18 +672,20 @@ export default function Register() {
                    </div>
                  </div>
 
-                {/* Location */}
-                <div className="relative">
-                  <label className="block text-[16.0016px] font-medium leading-[19px] text-[#C2C2C2] mb-1">Location</label>
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors"
-                    required
-                  />
-                </div>
+                {/* Location - Only for student role */}
+                {selectedRole === 'student' && (
+                  <div className="relative">
+                    <label className="block text-[16.0016px] font-medium leading-[19px] text-[#C2C2C2] mb-1">Location</label>
+                    <input
+                      type="text"
+                      name="location"
+                      value={formData.location}
+                      onChange={handleInputChange}
+                      className="w-full border-b-[0.5px] border-[#C2C2C2] pb-1 text-black bg-transparent focus:outline-none focus:border-[#6D18CE] transition-colors"
+                      required
+                    />
+                  </div>
+                )}
 
                 {/* Email */}
                 <div className="relative">

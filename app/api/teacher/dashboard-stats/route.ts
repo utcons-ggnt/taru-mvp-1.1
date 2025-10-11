@@ -67,9 +67,42 @@ export async function GET(request: NextRequest) {
     const totalStudents = students.length;
     const activeStudents = progressData.filter(p => p.totalModulesCompleted > 0).length;
     
-    // Calculate average progress
+    // Calculate average progress - using new structure
     const totalProgress = progressData.reduce((sum, p) => sum + (p.totalModulesCompleted || 0), 0);
     const averageProgress = totalStudents > 0 ? Math.round(totalProgress / totalStudents) : 0;
+    
+    // Calculate total XP across all students using the same formula as student dashboard
+    const totalXpAcrossStudents = progressData.reduce((sum, progress) => {
+      if (!progress.moduleProgress) return sum;
+      
+      const studentXp = progress.moduleProgress.reduce((studentSum: number, mp: any) => {
+        let moduleXp = 0;
+        
+        // Base XP for starting a module
+        moduleXp += 25;
+        
+        // XP for quiz performance (0.5 XP per percentage point)
+        if (mp.quizScore > 0) {
+          moduleXp += Math.round(mp.quizScore * 0.5);
+        }
+        
+        // Bonus XP for completion (75 XP bonus)
+        if (mp.quizScore >= 75 || mp.completedAt) {
+          moduleXp += 75;
+        }
+        
+        // Video watch time bonus (1 XP per 10 minutes watched)
+        if (mp.videoProgress?.watchTime > 0) {
+          moduleXp += Math.floor(mp.videoProgress.watchTime / 600); // 600 seconds = 10 minutes
+        }
+        
+        return studentSum + moduleXp;
+      }, 0);
+      
+      // Add learning streak bonus
+      const streakBonus = Math.min((progress.learningStreak || 0) * 10, 100);
+      return sum + studentXp + streakBonus;
+    }, 0);
     
     // Calculate average score
     const totalScores = assessments.reduce((sum, a) => sum + (a.diagnosticScore || 0), 0);
@@ -130,7 +163,8 @@ export async function GET(request: NextRequest) {
         activeStudents,
         averageProgress,
         totalAssignments,
-        averageScore
+        averageScore,
+        totalXpAcrossStudents
       },
       subjectStats: subjectStats.reduce((acc, stat) => {
         acc[stat._id] = stat.count;

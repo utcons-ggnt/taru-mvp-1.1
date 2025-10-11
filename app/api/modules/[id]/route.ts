@@ -220,10 +220,21 @@ export async function PUT(
         moduleProgress.status = 'completed';
         moduleProgress.completedAt = new Date();
         moduleProgress.progress = 100;
-        moduleProgress.xpEarned = foundModule.xpPoints;
+        
+        // Calculate XP using the same formula as dashboard XP calculation
+        let moduleXp = 25; // Base XP for starting a module
+        if (moduleProgress.quizScore > 0) {
+          moduleXp += Math.round(moduleProgress.quizScore * 0.5); // XP for quiz performance
+        }
+        moduleXp += 75; // Bonus XP for completion
+        if (moduleProgress.videoProgress?.watchTime > 0) {
+          moduleXp += Math.floor(moduleProgress.videoProgress.watchTime / 600); // Video watch time bonus
+        }
+        
+        moduleProgress.xpEarned = moduleXp;
         
         // Update overall statistics
-        progress.totalXpEarned += foundModule.xpPoints;
+        progress.totalXpEarned += moduleXp;
         progress.totalModulesCompleted += 1;
         progress.totalTimeSpent += timeSpent || 0;
         

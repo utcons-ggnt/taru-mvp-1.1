@@ -124,8 +124,82 @@ export default function ModulesTab({ user }: ModulesTabProps) {
   useEffect(() => {
     if (user?.uniqueId) {
       fetchYouTubeData();
+      fetchProgressData();
     }
   }, [user?.uniqueId]);
+
+  // Also fetch progress data when component mounts (in case user?.uniqueId is not available initially)
+  useEffect(() => {
+    if (user?.uniqueId) {
+      fetchProgressData();
+    }
+  }, [user?.uniqueId]);
+
+  // Fetch progress data for all chapters
+  const fetchProgressData = async () => {
+    if (!user?.uniqueId) {
+      console.log('❌ No user uniqueId available for fetching progress');
+      return;
+    }
+    
+    console.log('🔄 Fetching progress data for student:', user.uniqueId);
+    
+    try {
+      const response = await fetch(`/api/modules/progress?studentId=${user.uniqueId}`);
+      console.log('📡 Progress API response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📊 Fetched progress data:', data);
+        
+        if (data.success && data.progress && data.progress.length > 0) {
+          const progressMap: Record<string, number> = {};
+          const completedSet = new Set<string>();
+          
+          data.progress.forEach((module: any) => {
+            console.log('📝 Processing module:', module);
+            console.log('🔍 Module ID from API:', module.moduleId);
+            // Use quiz score as progress percentage
+            const progressPercentage = module.quizScore || 0;
+            progressMap[module.moduleId] = progressPercentage;
+            console.log('📊 Setting progress for', module.moduleId, 'to', progressPercentage);
+            
+            // Mark as completed if score >= 75% OR if completedAt exists
+            const isCompleted = progressPercentage >= 75 || module.completedAt;
+            if (isCompleted) {
+              completedSet.add(module.moduleId);
+              console.log('✅ Module marked as completed:', module.moduleId, {
+                score: progressPercentage,
+                completedAt: module.completedAt,
+                isCompleted
+              });
+            } else {
+              console.log('⚠️ Module not completed:', module.moduleId, {
+                score: progressPercentage,
+                completedAt: module.completedAt
+              });
+            }
+          });
+          
+          console.log('✅ Final progress map:', progressMap);
+          console.log('✅ Completed modules:', Array.from(completedSet));
+          
+          setProgress(progressMap);
+          setCompletedModules(completedSet);
+        } else {
+          console.log('⚠️ No progress data found or empty progress array');
+          setProgress({});
+          setCompletedModules(new Set());
+        }
+      } else {
+        console.error('❌ Failed to fetch progress data:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('❌ Error response:', errorText);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching progress data:', error);
+    }
+  };
 
   // Database check function
   const checkDatabaseForModules = async (): Promise<boolean> => {
@@ -475,7 +549,7 @@ export default function ModulesTab({ user }: ModulesTabProps) {
     }));
   };
 
-  const submitMCQ = () => {
+  const submitMCQ = async () => {
     let correctAnswers = 0;
     mcqQuestions.forEach(question => {
       if (mcqAnswers[question.Q] === question.answer) {
@@ -484,8 +558,108 @@ export default function ModulesTab({ user }: ModulesTabProps) {
     });
     
     const score = Math.round((correctAnswers / mcqQuestions.length) * 100);
+    console.log('🎯 Quiz submission:', {
+      selectedChapter,
+      userUniqueId: user?.uniqueId,
+      score,
+      correctAnswers,
+      totalQuestions: mcqQuestions.length
+    });
+    
     setMcqScore(score);
     setMcqSubmitted(true);
+
+    // Save quiz score to backend and update progress
+    if (selectedChapter && user?.uniqueId) {
+      console.log('📤 Calling quiz-score API with:', {
+        chapterId: selectedChapter,
+        studentId: user.uniqueId,
+        score,
+        totalQuestions: mcqQuestions.length,
+        correctAnswers
+      });
+      try {
+        const response = await fetch(`/api/modules/quiz-score`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chapterId: selectedChapter,
+            studentId: user.uniqueId,
+            score: score,
+            totalQuestions: mcqQuestions.length,
+            correctAnswers: correctAnswers,
+            quizAttempts: mcqQuestions.map((question, index) => {
+              const selectedAnswer = mcqAnswers[question.Q] || '';
+              const answerIndex = question.options.findIndex(opt => opt === selectedAnswer);
+              return {
+                questionIndex: index,
+                selectedAnswer: answerIndex >= 0 ? answerIndex : 0,
+                isCorrect: selectedAnswer === question.answer,
+                timeSpent: 0,
+                difficulty: 'medium',
+                skillTags: []
+              };
+            })
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ Quiz score API response:', result);
+          
+          // Update local progress state immediately with the quiz score
+          setProgress(prev => ({
+            ...prev,
+            [selectedChapter]: score
+          }));
+
+          // Force a re-render to ensure progress bars update
+          setTimeout(() => {
+            setProgress(prev => ({
+              ...prev,
+              [selectedChapter]: score
+            }));
+          }, 100);
+
+          // Check if module is completed (score >= 75%)
+          if (score >= 75) {
+            setCompletedModules(prev => {
+              const newSet = new Set([...prev, selectedChapter]);
+              console.log('✅ Module marked as completed in frontend:', selectedChapter, 'Score:', score);
+              return newSet;
+            });
+            setSuccess(`🎉 Congratulations! You scored ${score}% and completed this chapter!`);
+          } else {
+            setSuccess(`You scored ${score}%. Keep practicing to reach 75% for completion!`);
+          }
+
+          // Refresh progress data to ensure consistency
+          fetchProgressData();
+
+          // Auto-clear success message after 5 seconds
+          setTimeout(() => {
+            setSuccess(null);
+          }, 5000);
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('❌ Quiz score API error:', response.status, errorData);
+          setError(errorData.error || 'Failed to save quiz score. Please try again.');
+        }
+      } catch (error) {
+        console.error('❌ Quiz score API network error:', error);
+        setError('Network error. Please check your connection and try again.');
+      }
+    } else {
+      console.error('❌ Quiz submission conditions not met:', {
+        selectedChapter,
+        userUniqueId: user?.uniqueId,
+        hasSelectedChapter: !!selectedChapter,
+        hasUserUniqueId: !!user?.uniqueId
+      });
+      setError('Missing required data for quiz submission. Please try again.');
+    }
   };
 
   const resetMCQ = () => {
@@ -543,7 +717,8 @@ export default function ModulesTab({ user }: ModulesTabProps) {
   };
 
   const getChapterId = (chapterKey: string) => {
-    return chapterKey.replace('Chapter ', '');
+    // Keep the full chapter key to match the API data
+    return chapterKey;
   };
 
   const getVideoId = (url: string) => {
@@ -990,6 +1165,33 @@ When any threat is found, these tools give details so you can quickly fix the pr
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Success/Error Messages */}
+      {success && (
+        <div className="fixed top-4 right-4 z-50 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3 shadow-lg">
+          <CheckCircle className="w-5 h-5 text-green-600" />
+          <span className="text-green-800">{success}</span>
+          <button
+            onClick={() => setSuccess(null)}
+            className="ml-auto text-green-600 hover:text-green-800"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+      
+      {error && (
+        <div className="fixed top-4 right-4 z-50 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 shadow-lg">
+          <AlertCircle className="w-5 h-5 text-red-600" />
+          <span className="text-red-800">{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="ml-auto text-red-600 hover:text-red-800"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-700 text-white">
         <div className="absolute inset-0 bg-black/20"></div>
@@ -1405,15 +1607,31 @@ When any threat is found, these tools give details so you can quickly fix the pr
                           {/* Progress Bar */}
                           <div className="mb-4">
                             <div className="flex items-center justify-between text-sm text-gray-500 mb-1">
-                              <span>Progress</span>
+                              <span>Quiz Score</span>
                               <span>{progress[chapterId] || 0}%</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div 
-                                className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300"
+                                className={`h-2 rounded-full transition-all duration-300 ${
+                                  isCompleted 
+                                    ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
+                                    : progress[chapterId] >= 75 
+                                      ? 'bg-gradient-to-r from-orange-500 to-yellow-500'
+                                      : 'bg-gradient-to-r from-blue-500 to-purple-600'
+                                }`}
                                 style={{ width: `${progress[chapterId] || 0}%` }}
                               ></div>
                             </div>
+                            {progress[chapterId] >= 75 && !isCompleted && (
+                              <p className="text-xs text-orange-600 mt-1">
+                                Quiz passed! Complete other activities to finish chapter
+                              </p>
+                            )}
+                            {progress[chapterId] > 0 && progress[chapterId] < 75 && (
+                              <p className="text-xs text-blue-600 mt-1">
+                                Keep practicing to reach 75% for completion
+                              </p>
+                            )}
                           </div>
                           
                           {/* Action Buttons */}
@@ -1533,15 +1751,31 @@ When any threat is found, these tools give details so you can quickly fix the pr
                             {/* Progress Bar */}
                             <div className="mb-4">
                               <div className="flex items-center justify-between text-sm text-gray-500 mb-1">
-                                <span>Progress</span>
+                                <span>Quiz Score</span>
                                 <span>{progress[chapterId] || 0}%</span>
                                 </div>
                               <div className="w-full bg-gray-200 rounded-full h-2">
                                 <div 
-                                  className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300"
+                                  className={`h-2 rounded-full transition-all duration-300 ${
+                                    isCompleted 
+                                      ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
+                                      : progress[chapterId] >= 75 
+                                        ? 'bg-gradient-to-r from-orange-500 to-yellow-500'
+                                        : 'bg-gradient-to-r from-blue-500 to-purple-600'
+                                  }`}
                                   style={{ width: `${progress[chapterId] || 0}%` }}
                                 ></div>
                                       </div>
+                                      {progress[chapterId] >= 75 && !isCompleted && (
+                                        <p className="text-xs text-orange-600 mt-1">
+                                          Quiz passed! Complete other activities to finish chapter
+                                        </p>
+                                      )}
+                                      {progress[chapterId] > 0 && progress[chapterId] < 75 && (
+                                        <p className="text-xs text-blue-600 mt-1">
+                                          Keep practicing to reach 75% for completion
+                                        </p>
+                                      )}
                                       </div>
           
                             {/* Action Buttons */}
@@ -1765,16 +1999,68 @@ When any threat is found, these tools give details so you can quickly fix the pr
                   
                   {/* Results */}
                   {mcqSubmitted && mcqScore !== null && (
-                    <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-6 border border-green-200">
+                    <div className={`rounded-2xl p-6 border-2 ${
+                      mcqScore >= 75 
+                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300' 
+                        : 'bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-300'
+                    }`}>
                       <div className="text-center">
-                        <div className="w-16 h-16 mx-auto bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mb-4">
-                          <Trophy className="w-8 h-8 text-white" />
-                    </div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">Quiz Completed!</h3>
-                        <div className="text-4xl font-bold text-green-600 mb-2">{mcqScore}%</div>
+                        <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 ${
+                          mcqScore >= 75 
+                            ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
+                            : 'bg-gradient-to-r from-orange-500 to-yellow-500'
+                        }`}>
+                          {mcqScore >= 75 ? (
+                            <Trophy className="w-8 h-8 text-white" />
+                          ) : (
+                            <Target className="w-8 h-8 text-white" />
+                          )}
+                        </div>
+                        
+                        <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                          {mcqScore >= 75 ? '🎉 Chapter Completed!' : 'Quiz Completed!'}
+                        </h3>
+                        
+                        <div className={`text-4xl font-bold mb-2 ${
+                          mcqScore >= 75 ? 'text-green-600' : 'text-orange-600'
+                        }`}>
+                          {mcqScore}%
+                        </div>
+                        
                         <p className="text-gray-600 mb-4">
-                          You scored {mcqScore}% on this quiz
+                          {mcqScore >= 75 
+                            ? `Excellent! You scored ${mcqScore}% and completed this chapter!`
+                            : `You scored ${mcqScore}%. Keep practicing to reach 75% for completion!`
+                          }
                         </p>
+
+                        {/* Progress indicator */}
+                        <div className="mb-6">
+                          <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+                            <span>Chapter Progress</span>
+                            <span>{mcqScore >= 75 ? '100%' : `${mcqScore}%`}</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-3">
+                            <div 
+                              className={`h-3 rounded-full transition-all duration-500 ${
+                                mcqScore >= 75 
+                                  ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
+                                  : 'bg-gradient-to-r from-orange-500 to-yellow-500'
+                              }`}
+                              style={{ width: `${mcqScore >= 75 ? 100 : mcqScore}%` }}
+                            />
+                          </div>
+                          {mcqScore >= 75 ? (
+                            <p className="text-sm text-green-600 mt-2 font-semibold">
+                              🎉 Chapter completed! Great job!
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-500 mt-2">
+                              Need 75% to complete this chapter
+                            </p>
+                          )}
+                        </div>
+                        
                         <div className="flex gap-3 justify-center">
                           <button
                             onClick={resetMCQ}
@@ -1783,7 +2069,11 @@ When any threat is found, these tools give details so you can quickly fix the pr
                             Retake Quiz
                           </button>
                           <button
-                            onClick={() => setShowMcq(false)}
+                            onClick={() => {
+                              setShowMcq(false);
+                              // Refresh progress data to ensure main progress bars are updated
+                              fetchProgressData();
+                            }}
                             className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors"
                           >
                             Close
