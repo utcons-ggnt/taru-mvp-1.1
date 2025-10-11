@@ -155,8 +155,6 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
       
-
-      
       // If switching from mobile to desktop, ensure sidebar is visible
       if (!mobile && !isOpen) {
         setIsHovered(false);
@@ -190,7 +188,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
     
     onTabChange(tabId);
     // Close sidebar after selection on mobile only
-    if (onToggle && isMobile) {
+    if (onToggle && (isMobile || isActuallyMobile)) {
       onToggle();
     }
   };
@@ -245,13 +243,16 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
     }
   };
 
+  // Fallback for mobile detection
+  const isActuallyMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+  
   // Determine sidebar state based on screen size and interaction
-  const isSidebarExpanded = isMobile ? isOpen : isHovered;
+  const isSidebarExpanded = (isMobile || isActuallyMobile) ? isOpen : isHovered;
 
   return (
     <>
       {/* Hamburger Button - Only visible on mobile */}
-      {isMobile && (
+      {(isMobile || isActuallyMobile) && (
         <motion.button
           onClick={onToggle}
           className="fixed top-4 left-4 z-[60] p-2 bg-white rounded-lg shadow-lg border border-gray-200 md:hidden"
@@ -268,7 +269,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
 
       {/* Overlay - Only visible on mobile when sidebar is open */}
       <AnimatePresence>
-        {isMobile && isOpen && (
+        {(isMobile || isActuallyMobile) && isOpen && (
           <motion.div
             className="fixed inset-0 bg-black bg-opacity-50 z-[45] md:hidden"
             variants={overlayVariants}
@@ -281,7 +282,7 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onTogg
       </AnimatePresence>
 
       {/* Sidebar */}
-      {isMobile ? (
+      {(isMobile || isActuallyMobile) ? (
         <AnimatePresence>
           <motion.aside 
             className={`

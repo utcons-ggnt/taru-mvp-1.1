@@ -118,7 +118,8 @@ export async function POST(request: NextRequest) {
       website: website || undefined,
       description: description || undefined,
       employeeCount,
-      onboardingCompleted: true
+      onboardingCompleted: true,
+      approvalStatus: 'pending'
     });
 
     await organization.save();

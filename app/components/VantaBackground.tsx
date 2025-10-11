@@ -145,9 +145,11 @@ const VantaBackground: React.FC<VantaBackgroundProps> = ({
     <div 
       ref={containerRef} 
       className={`w-full h-full ${className}`}
-      style={{ position: 'relative' }}
+      style={{ position: 'relative', pointerEvents: 'none' }}
     >
-      {children}
+      <div style={{ pointerEvents: 'auto' }}>
+        {children}
+      </div>
     </div>
   );
 };

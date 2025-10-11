@@ -22,7 +22,8 @@ export async function middleware(request: NextRequest) {
     '/dashboard/student',
     '/dashboard/parent', 
     '/dashboard/teacher',
-    '/dashboard/admin'
+    '/dashboard/admin',
+    '/dashboard/platform-super-admin'
   ];
 
   // Check if the current path starts with any dashboard route
@@ -63,6 +64,9 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/dashboard/admin') && decoded.role !== 'organization' && decoded.role !== 'admin') {
       return NextResponse.redirect(new URL('/login', request.url));
     }
+    if (pathname.startsWith('/dashboard/platform-super-admin') && decoded.role !== 'platform_super_admin') {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
   }
 
   // Check if user is trying to access onboarding pages, assessments, or other protected routes
@@ -74,7 +78,8 @@ export async function middleware(request: NextRequest) {
     '/interest-assessment',
     '/skill-assessment',
     '/subject-selection',
-    '/modules'
+    '/modules',
+    '/invite'
   ];
   
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
@@ -109,6 +114,10 @@ export async function middleware(request: NextRequest) {
     }
     if (pathname.startsWith('/modules') && decoded.role !== 'student') {
       return NextResponse.redirect(new URL('/login', request.url));
+    }
+    // Invite pages don't require authentication - they have their own token validation
+    if (pathname.startsWith('/invite')) {
+      return NextResponse.next();
     }
   }
 
@@ -147,6 +156,7 @@ export const config = {
     '/interest-assessment',
     '/skill-assessment',
     '/subject-selection',
-    '/modules/:path*'
+    '/modules/:path*',
+    '/invite/:path*'
   ]
 };

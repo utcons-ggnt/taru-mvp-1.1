@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import { StudentKeyGenerator } from '../lib/studentKeyGenerator';
 
 const studentSchema = new mongoose.Schema({
   userId: {
@@ -7,13 +6,18 @@ const studentSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  teacherId: {
+    type: String,
+    required: true,
+    ref: 'User'
+  },
   uniqueId: {
     type: String,
     required: true,
     unique: true,
     default: function() {
-      // Use centralized student key generator for consistency
-      return StudentKeyGenerator.generate();
+      // Generate a simple unique ID
+      return `STU${Date.now()}${Math.random().toString(36).substr(2, 5)}`;
     }
   },
   fullName: {

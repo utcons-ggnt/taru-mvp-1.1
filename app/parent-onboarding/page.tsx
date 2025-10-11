@@ -455,7 +455,7 @@ export default function ParentOnboarding() {
         <select
           value={formData.relationshipToStudent}
           onChange={(e) => handleInputChange('relationshipToStudent', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
         >
           <option value="">Select relationship</option>
           {relationships.map((rel) => (
@@ -481,7 +481,7 @@ export default function ParentOnboarding() {
           type="tel"
           value={formData.contactNumber}
           onChange={(e) => handleInputChange('contactNumber', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
           placeholder="Enter your contact number"
         />
         {errors.contactNumber && <motion.p 
@@ -503,7 +503,7 @@ export default function ParentOnboarding() {
           type="tel"
           value={formData.alternateContactNumber}
           onChange={(e) => handleInputChange('alternateContactNumber', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
           placeholder="Enter alternate contact number (optional)"
         />
         {errors.alternateContactNumber && <motion.p 
@@ -526,7 +526,7 @@ export default function ParentOnboarding() {
           type="text"
           value={formData.occupation}
           onChange={(e) => handleInputChange('occupation', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
           placeholder="Enter your occupation"
         />
         {errors.occupation && <motion.p 
@@ -547,7 +547,7 @@ export default function ParentOnboarding() {
         <select
           value={formData.educationLevel}
           onChange={(e) => handleInputChange('educationLevel', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
         >
           <option value="">Select education level</option>
           {educationLevels.map((level) => (
@@ -572,7 +572,7 @@ export default function ParentOnboarding() {
         <select
           value={formData.preferredLanguage}
           onChange={(e) => handleInputChange('preferredLanguage', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
         >
           <option value="">Select preferred language</option>
           {languageOptions.map((lang) => (
@@ -607,7 +607,7 @@ export default function ParentOnboarding() {
           type="text"
           value={formData.addressLine1}
           onChange={(e) => handleInputChange('addressLine1', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
           placeholder="Enter your address"
         />
         {errors.addressLine1 && <motion.p 
@@ -629,7 +629,7 @@ export default function ParentOnboarding() {
           type="text"
           value={formData.addressLine2}
           onChange={(e) => handleInputChange('addressLine2', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
           placeholder="Enter additional address details (optional)"
         />
       </motion.div>
@@ -646,7 +646,7 @@ export default function ParentOnboarding() {
           type="text"
           value={formData.cityVillage}
           onChange={(e) => handleInputChange('cityVillage', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
           placeholder="Enter your city or village"
         />
         {errors.cityVillage && <motion.p 
@@ -667,7 +667,7 @@ export default function ParentOnboarding() {
         <select
           value={formData.state}
           onChange={(e) => handleInputChange('state', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
         >
           <option value="">Select state</option>
           {states.map((state) => (
@@ -693,7 +693,7 @@ export default function ParentOnboarding() {
           type="text"
           value={formData.pinCode}
           onChange={(e) => handleInputChange('pinCode', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
           placeholder="Enter your pin code"
         />
         {errors.pinCode && <motion.p 
@@ -745,7 +745,7 @@ export default function ParentOnboarding() {
         <select
           value={formData.linkedStudentId}
           onChange={(e) => handleInputChange('linkedStudentId', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
         >
           <option value="">Select a student</option>
           {isLoadingStudents ? (
@@ -779,7 +779,7 @@ export default function ParentOnboarding() {
           type="text"
           value={formData.studentUniqueId}
           onChange={(e) => handleInputChange('studentUniqueId', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-gray-50/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-md"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
           placeholder="Student unique ID (auto-filled when student is selected)"
           readOnly={!!formData.linkedStudentId}
         />
@@ -980,7 +980,7 @@ export default function ParentOnboarding() {
         >
           {/* Enhanced Onboarding Form Container */}
           <motion.div 
-            className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-gray-200/50 relative overflow-hidden"
+            className="bg-white rounded-3xl shadow-2xl p-8 border border-gray-200/50 relative overflow-hidden"
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.6 }}

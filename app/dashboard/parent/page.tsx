@@ -693,7 +693,7 @@ export default function ParentDashboard() {
         </div>
         
         {/* Enhanced Top Bar */}
-        <div className={`flex items-center justify-between w-full px-4 sm:px-6 py-3 sm:py-4 bg-white/80 backdrop-blur-md border-b border-gray-200/50 relative shadow-sm transition-all duration-300 ${isNotificationOpen ? 'blur-sm pointer-events-none' : ''}`}>
+        <div className={`flex items-center justify-between w-full px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-gray-200/50 relative shadow-sm transition-all duration-300 ${isNotificationOpen ? 'blur-sm pointer-events-none' : ''}`}>
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none" />
           
@@ -796,7 +796,7 @@ export default function ParentDashboard() {
             
             {/* Enhanced User Profile Section */}
             <motion.div 
-              className="bg-white/80 backdrop-blur-sm rounded-xl p-3 shadow-lg border border-gray-200/50 flex items-center gap-3 group hover:shadow-xl transition-all duration-300"
+              className="bg-white rounded-xl p-3 shadow-lg border border-gray-200/50 flex items-center gap-3 group hover:shadow-xl transition-all duration-300"
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -1092,7 +1092,7 @@ export default function ParentDashboard() {
 
                   {/* Child Profile Card */}
                   <motion.div 
-                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 1.2 }}
@@ -1149,7 +1149,7 @@ export default function ParentDashboard() {
 
                   {/* Progress Bar */}
                   <motion.div 
-                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 1.4 }}
@@ -1181,7 +1181,7 @@ export default function ParentDashboard() {
 
                   {/* Recent Activity */}
                   <motion.div 
-                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 1.6 }}
@@ -1205,7 +1205,7 @@ export default function ParentDashboard() {
                                 activity.type === 'completed' ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 
                                 activity.type === 'in-progress' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' : 'bg-gradient-to-r from-purple-500 to-pink-500'
                               } animate-pulse`}></div>
-                              <span className="text-sm text-gray-700 font-medium">{activity.title} - {Math.round(activity.progress * 100)}% progress</span>
+                              <span className="text-sm text-gray-700 font-medium">{activity.title} - {Math.round(activity.progress)}% progress</span>
                             </div>
                             <span className="text-xs text-gray-500 bg-emerald-100 px-2 py-1 rounded-full">Today</span>
                           </motion.div>
@@ -1225,7 +1225,7 @@ export default function ParentDashboard() {
 
                   {/* Weekly Analytics */}
                   <motion.div 
-                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 1.8 }}
@@ -1272,7 +1272,7 @@ export default function ParentDashboard() {
                 <div className="space-y-6">
                   {/* Progress Overview */}
                   <motion.div 
-                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
@@ -1330,7 +1330,7 @@ export default function ParentDashboard() {
 
                   {/* Badges and Achievements */}
                   <motion.div 
-                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 1.0 }}
@@ -1381,7 +1381,7 @@ export default function ParentDashboard() {
                 <div className="space-y-6">
                   {/* Academic Reports */}
                   <motion.div 
-                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
@@ -1454,7 +1454,7 @@ export default function ParentDashboard() {
                                 <div className="text-sm text-gray-500">Last accessed: {new Date(activity.lastAccessed).toLocaleDateString()}</div>
                               </div>
                               <div className="text-right">
-                                <div className="font-bold text-purple-600">{Math.round(activity.progress * 100)}%</div>
+                                <div className="font-bold text-purple-600">{Math.round(activity.progress)}%</div>
                                 <div className="text-sm text-gray-500">{activity.xpEarned} XP</div>
                               </div>
                             </motion.div>
@@ -1484,7 +1484,7 @@ export default function ParentDashboard() {
                 <div className="space-y-6">
                   {/* Messages & Communication */}
                   <motion.div 
-                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
@@ -1572,7 +1572,7 @@ export default function ParentDashboard() {
                 <div className="space-y-6">
                   {/* Account Settings */}
                   <motion.div 
-                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
@@ -1588,7 +1588,7 @@ export default function ParentDashboard() {
                           <select
                             value={language}
                             onChange={e => handleLanguageChange(e.target.value)}
-                            className="w-full border border-gray-300 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white/80 backdrop-blur-sm shadow-sm"
+                            className="w-full border border-gray-300 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm"
                           >
                             <option value="English (USA)">English (USA)</option>
                             <option value="हिन्दी">हिन्दी</option>
@@ -1598,15 +1598,15 @@ export default function ParentDashboard() {
                         <div>
                           <label className="block text-sm font-bold text-gray-700 mb-3">Notification Preferences</label>
                           <div className="space-y-3">
-                            <label className="flex items-center p-3 bg-white/50 rounded-xl border border-gray-200/50 hover:bg-white/80 transition-colors">
+                            <label className="flex items-center p-3 bg-white rounded-xl border border-gray-200/50 hover:bg-gray-50 transition-colors">
                               <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" defaultChecked />
                               <span className="ml-3 text-sm text-gray-700 font-medium">Email notifications for progress updates</span>
                             </label>
-                            <label className="flex items-center p-3 bg-white/50 rounded-xl border border-gray-200/50 hover:bg-white/80 transition-colors">
+                            <label className="flex items-center p-3 bg-white rounded-xl border border-gray-200/50 hover:bg-gray-50 transition-colors">
                               <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" defaultChecked />
                               <span className="ml-3 text-sm text-gray-700 font-medium">Weekly progress reports</span>
                             </label>
-                            <label className="flex items-center p-3 bg-white/50 rounded-xl border border-gray-200/50 hover:bg-white/80 transition-colors">
+                            <label className="flex items-center p-3 bg-white rounded-xl border border-gray-200/50 hover:bg-gray-50 transition-colors">
                               <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
                               <span className="ml-3 text-sm text-gray-700 font-medium">SMS notifications for important updates</span>
                             </label>
@@ -1618,7 +1618,7 @@ export default function ParentDashboard() {
                   
                   {/* Child Information */}
                   <motion.div 
-                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
+                    className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200/50 relative overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.4 }}
@@ -1633,19 +1633,19 @@ export default function ParentDashboard() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                               <label className="block text-sm font-bold text-gray-700 mb-2">Child Name</label>
-                              <div className="px-4 py-3 border border-gray-300 rounded-xl bg-white/80 backdrop-blur-sm text-gray-700 shadow-sm">{child.name}</div>
+                              <div className="px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-700 shadow-sm">{child.name}</div>
                             </div>
                             <div>
                               <label className="block text-sm font-bold text-gray-700 mb-2">Grade</label>
-                              <div className="px-4 py-3 border border-gray-300 rounded-xl bg-white/80 backdrop-blur-sm text-gray-700 shadow-sm">{child.grade}</div>
+                              <div className="px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-700 shadow-sm">{child.grade}</div>
                             </div>
                             <div>
                               <label className="block text-sm font-bold text-gray-700 mb-2">School</label>
-                              <div className="px-4 py-3 border border-gray-300 rounded-xl bg-white/80 backdrop-blur-sm text-gray-700 shadow-sm">{child.school}</div>
+                              <div className="px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-700 shadow-sm">{child.school}</div>
                             </div>
                             <div>
                               <label className="block text-sm font-bold text-gray-700 mb-2">Email</label>
-                              <div className="px-4 py-3 border border-gray-300 rounded-xl bg-white/80 backdrop-blur-sm text-gray-700 shadow-sm">{child.email}</div>
+                              <div className="px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-700 shadow-sm">{child.email}</div>
                             </div>
                           </div>
                         </div>

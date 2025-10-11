@@ -14,6 +14,10 @@ export interface IOrganization extends mongoose.Document {
   description?: string;
   employeeCount: string;
   onboardingCompleted: boolean;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+  approvedBy?: string;
+  approvedAt?: Date;
+  rejectionReason?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,6 +90,22 @@ const organizationSchema = new mongoose.Schema<IOrganization>({
   onboardingCompleted: {
     type: Boolean,
     default: false
+  },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
+  approvedBy: {
+    type: String,
+    ref: 'User'
+  },
+  approvedAt: {
+    type: Date
+  },
+  rejectionReason: {
+    type: String,
+    trim: true
   }
 }, {
   timestamps: true

@@ -44,9 +44,9 @@ interface TeacherProfile {
   email: string;
   role: string;
   avatar?: string;
-  profile: {
+  profile?: {
     subjectSpecialization?: string;
-    experienceYears?: string;
+    experienceYears?: number;
   };
 }
 
@@ -116,22 +116,140 @@ const getRandomAvatar = () => {
 
 export default function TeacherDashboard() {
   const [user, setUser] = useState<TeacherProfile | null>(null);
-  const [students, setStudents] = useState<StudentData[]>([]);
-  const [modules, setModules] = useState<ModuleData[]>([]);
-  const [dashboardStats, setDashboardStats] = useState<any>(null);
-  const [stats, setStats] = useState<TeacherStats>({
-    totalStudents: 0,
-    activeStudents: 0,
-    averageProgress: 0,
-    totalAssignments: 0,
-    averageScore: 0,
-    totalXpAcrossStudents: 0
+  const [teacherProfile, setTeacherProfile] = useState<TeacherProfile>({
+    _id: '1',
+    name: 'John Teacher',
+    email: 'john.teacher@school.com',
+    role: 'teacher',
+    avatar: '/avatars/Group-1.svg',
+    profile: {
+      subjectSpecialization: 'Mathematics',
+      experienceYears: 7
+    }
   });
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [teacherStats, setTeacherStats] = useState<TeacherStats>({
+    totalStudents: 25,
+    activeStudents: 20,
+    averageProgress: 75,
+    totalAssignments: 8,
+    averageScore: 85,
+    totalXpAcrossStudents: 2500
+  });
+
+  // Sample data
+  const [students, setStudents] = useState<StudentData[]>([
+    {
+      id: '1',
+      userId: 'user1',
+      fullName: 'John Doe',
+      email: 'john.doe@school.com',
+      classGrade: 'Grade 7',
+      schoolName: 'ABC School',
+      uniqueId: 'STU001',
+      onboardingCompleted: true,
+      joinedAt: '2024-01-15',
+      totalModulesCompleted: 8,
+      totalXpEarned: 450,
+      learningStreak: 5,
+      badgesEarned: 3,
+      assessmentCompleted: true,
+      diagnosticCompleted: true,
+      diagnosticScore: 85
+    },
+    {
+      id: '2',
+      userId: 'user2',
+      fullName: 'Jane Smith',
+      email: 'jane.smith@school.com',
+      classGrade: 'Grade 7',
+      schoolName: 'ABC School',
+      uniqueId: 'STU002',
+      onboardingCompleted: true,
+      joinedAt: '2024-01-10',
+      totalModulesCompleted: 6,
+      totalXpEarned: 320,
+      learningStreak: 3,
+      badgesEarned: 2,
+      assessmentCompleted: true,
+      diagnosticCompleted: true,
+      diagnosticScore: 78
+    },
+    {
+      id: '3',
+      userId: 'user3',
+      fullName: 'Mike Johnson',
+      email: 'mike.johnson@school.com',
+      classGrade: 'Grade 8',
+      schoolName: 'ABC School',
+      uniqueId: 'STU003',
+      onboardingCompleted: false,
+      joinedAt: '2024-01-20',
+      totalModulesCompleted: 2,
+      totalXpEarned: 120,
+      learningStreak: 1,
+      badgesEarned: 0,
+      assessmentCompleted: false,
+      diagnosticCompleted: false,
+      diagnosticScore: 0
+    }
+  ]);
+
+  const [modules, setModules] = useState<ModuleData[]>([
+    {
+      id: '1',
+      title: 'Algebra Fundamentals',
+      subject: 'Mathematics',
+      grade: 'Grade 7',
+      difficulty: 'intermediate',
+      duration: 45,
+      points: 100
+    },
+    {
+      id: '2',
+      title: 'Photosynthesis Process',
+      subject: 'Science',
+      grade: 'Grade 8',
+      difficulty: 'beginner',
+      duration: 30,
+      points: 75
+    },
+    {
+      id: '3',
+      title: 'Creative Writing',
+      subject: 'English',
+      grade: 'Grade 6',
+      difficulty: 'beginner',
+      duration: 40,
+      points: 80
+    },
+    {
+      id: '4',
+      title: 'World War II',
+      subject: 'History',
+      grade: 'Grade 9',
+      difficulty: 'advanced',
+      duration: 60,
+      points: 150
+    }
+  ]);
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [subjectSpecialization, setSubjectSpecialization] = useState('');
   const [experienceYears, setExperienceYears] = useState('');
   const [saving, setSaving] = useState(false);
+  
+  // Form states
+  const [showAddStudentForm, setShowAddStudentForm] = useState(false);
+  const [showBulkImportForm, setShowBulkImportForm] = useState(false);
+  const [showCreateModuleForm, setShowCreateModuleForm] = useState(false);
+  const [showAssignModuleForm, setShowAssignModuleForm] = useState(false);
+  const [showCreateAssignmentForm, setShowCreateAssignmentForm] = useState(false);
+  const [showBulkAssignForm, setShowBulkAssignForm] = useState(false);
+  
+  // Additional state for real data
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [language, setLanguage] = useState('English (USA)');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -145,7 +263,7 @@ export default function TeacherDashboard() {
   const router = useRouter();
   const logoutTriggered = useRef(false);
   const { width: windowWidth } = useWindowSize();
-  const isMobile = windowWidth < 1024;
+  const isMobile = windowWidth < 768; // Changed from 1024 to 768 to match Sidebar component
 
   // Teacher-specific navigation items
   const navItems = [
@@ -168,6 +286,9 @@ export default function TeacherDashboard() {
     } else {
       setUserAvatar(getRandomAvatar());
     }
+    
+    // Load dashboard data
+    loadDashboardData();
     
     // Initialize notifications
     setNotifications([
@@ -198,9 +319,125 @@ export default function TeacherDashboard() {
     ]);
   }, [])
 
+  const loadDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Load dashboard statistics
+      try {
+        const statsResponse = await fetch('/api/teacher/dashboard-stats');
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setTeacherStats(statsData);
+        } else {
+          console.error('Failed to load dashboard stats:', statsResponse.status);
+        }
+      } catch (error) {
+        console.error('Error loading dashboard stats:', error);
+      }
+      
+      // Load students
+      try {
+        const studentsResponse = await fetch('/api/teacher/students');
+        if (studentsResponse.ok) {
+          const studentsData = await studentsResponse.json();
+          setStudents(studentsData.students || []);
+        } else {
+          console.error('Failed to load students:', studentsResponse.status);
+        }
+      } catch (error) {
+        console.error('Error loading students:', error);
+      }
+      
+      // Load modules
+      try {
+        const modulesResponse = await fetch('/api/teacher/modules');
+        if (modulesResponse.ok) {
+          const modulesData = await modulesResponse.json();
+          setModules(modulesData.modules || []);
+        } else {
+          console.error('Failed to load modules:', modulesResponse.status);
+        }
+      } catch (error) {
+        console.error('Error loading modules:', error);
+      }
+      
+      // Load assignments
+      try {
+        const assignmentsResponse = await fetch('/api/teacher/assignments');
+        if (assignmentsResponse.ok) {
+          const assignmentsData = await assignmentsResponse.json();
+          setAssignments(assignmentsData.assignments || []);
+        } else {
+          console.error('Failed to load assignments:', assignmentsResponse.status);
+        }
+      } catch (error) {
+        console.error('Error loading assignments:', error);
+      }
+      
+      // Load analytics
+      try {
+        const analyticsResponse = await fetch('/api/teacher/analytics');
+        if (analyticsResponse.ok) {
+          const analyticsData = await analyticsResponse.json();
+          setAnalytics(analyticsData);
+        } else {
+          console.error('Failed to load analytics:', analyticsResponse.status);
+        }
+      } catch (error) {
+        console.error('Error loading analytics:', error);
+      }
+
+      // Load teacher profile
+      try {
+        const profileResponse = await fetch('/api/teacher/profile');
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          setTeacherProfile(profileData.user);
+        } else {
+          console.error('Failed to load teacher profile:', profileResponse.status);
+        }
+      } catch (error) {
+        console.error('Error loading teacher profile:', error);
+      }
+      
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   const handleLanguageChange = (lang: string) => {
     setLanguage(lang)
     localStorage.setItem('lang', lang)
+  }
+
+  const handleSaveProfile = async () => {
+    try {
+      const response = await fetch('/api/teacher/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: teacherProfile.name,
+          profile: teacherProfile.profile
+        })
+      });
+
+      if (response.ok) {
+        const updatedProfile = await response.json();
+        setTeacherProfile(updatedProfile.user);
+        alert('Profile updated successfully!');
+      } else {
+        console.error('Failed to update profile:', response.status);
+        alert('Failed to update profile. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Error updating profile. Please try again.');
+    }
   }
 
   // Notification functions
@@ -279,7 +516,7 @@ export default function TeacherDashboard() {
               if (statsResponse.ok) {
                 const statsData = await statsResponse.json();
                 setDashboardStats(statsData);
-                setStats(statsData);
+                setTeacherStats(statsData);
               }
             } catch (error) {
               console.error('Error fetching dashboard stats:', error);
@@ -331,6 +568,415 @@ export default function TeacherDashboard() {
     }
   };
 
+  const handleAddStudent = async (studentData: any) => {
+    try {
+      console.log('Sending student data:', studentData);
+      
+      let response;
+      try {
+        response = await fetch('/api/teacher/students', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(studentData),
+        });
+      } catch (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw new Error(`Network error: ${fetchError instanceof Error ? fetchError.message : 'Unknown network error'}`);
+      }
+      
+      if (!response) {
+        throw new Error('No response received from server');
+      }
+      
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
+      if (response.ok) {
+        let result;
+        try {
+          result = await response.json();
+        } catch (jsonError) {
+          console.error('JSON parse error:', jsonError);
+          throw new Error('Invalid response from server');
+        }
+        setStudents(prev => [...prev, result.student]);
+        setShowAddStudentForm(false);
+        
+        // Add success notification
+        const newNotification = {
+          id: Date.now().toString(),
+          title: 'Student Added Successfully',
+          message: `${studentData.fullName} has been added to your class.`,
+          date: new Date().toISOString(),
+          read: false,
+          type: 'success' as const
+        };
+        setNotifications(prev => [newNotification, ...prev]);
+        
+        // Refresh dashboard data
+        loadDashboardData();
+      } else {
+        let error;
+        try {
+          error = await response.json();
+        } catch (jsonError) {
+          console.error('Failed to parse error response:', jsonError);
+          error = { error: 'Server returned an error but response was not valid JSON' };
+        }
+        console.error('Error adding student:', error);
+        console.error('Response status:', response.status);
+        console.error('Response headers:', response.headers);
+        
+        // Add error notification
+        const errorNotification = {
+          id: Date.now().toString(),
+          title: 'Error Adding Student',
+          message: error.error || 'Failed to add student. Please try again.',
+          date: new Date().toISOString(),
+          read: false,
+          type: 'error' as const
+        };
+        setNotifications(prev => [errorNotification, ...prev]);
+      }
+    } catch (error) {
+      console.error('Error adding student:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        type: typeof error
+      });
+      
+      // Add error notification
+      const errorNotification = {
+        id: Date.now().toString(),
+        title: 'Error Adding Student',
+        message: 'Network error. Please check your connection and try again.',
+        date: new Date().toISOString(),
+        read: false,
+        type: 'error' as const
+      };
+      setNotifications(prev => [errorNotification, ...prev]);
+    }
+  };
+
+  const handleBulkImport = async (studentsData: any[]) => {
+    try {
+      const response = await fetch('/api/teacher/students/bulk-import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ students: studentsData }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setShowBulkImportForm(false);
+        
+        // Add success notification
+        const successNotification = {
+          id: Date.now().toString(),
+          title: 'Bulk Import Completed',
+          message: `${result.results.success.length} students imported successfully.`,
+          date: new Date().toISOString(),
+          read: false,
+          type: 'success' as const
+        };
+        setNotifications(prev => [successNotification, ...prev]);
+        
+        // Reload students data
+        loadDashboardData();
+      } else {
+        const error = await response.json();
+        console.error('Error bulk importing students:', error);
+        
+        // Add error notification
+        const errorNotification = {
+          id: Date.now().toString(),
+          title: 'Bulk Import Failed',
+          message: error.error || 'Failed to import students. Please try again.',
+          date: new Date().toISOString(),
+          read: false,
+          type: 'error' as const
+        };
+        setNotifications(prev => [errorNotification, ...prev]);
+      }
+    } catch (error) {
+      console.error('Error bulk importing students:', error);
+      
+      // Add error notification
+      const errorNotification = {
+        id: Date.now().toString(),
+        title: 'Bulk Import Failed',
+        message: 'Network error. Please check your connection and try again.',
+        date: new Date().toISOString(),
+        read: false,
+        type: 'error' as const
+      };
+      setNotifications(prev => [errorNotification, ...prev]);
+    }
+  };
+
+  const handleCreateModule = async (moduleData: any) => {
+    try {
+      const response = await fetch('/api/teacher/modules', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(moduleData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setModules(prev => [...prev, result.module]);
+        setShowCreateModuleForm(false);
+        
+        // Add success notification
+        const successNotification = {
+          id: Date.now().toString(),
+          title: 'Module Created Successfully',
+          message: `${moduleData.title} has been created and is ready for assignment.`,
+          date: new Date().toISOString(),
+          read: false,
+          type: 'success' as const
+        };
+        setNotifications(prev => [successNotification, ...prev]);
+        
+        // Refresh modules data
+        loadDashboardData();
+      } else {
+        const error = await response.json();
+        console.error('Error creating module:', error);
+        
+        // Add error notification
+        const errorNotification = {
+          id: Date.now().toString(),
+          title: 'Error Creating Module',
+          message: error.error || 'Failed to create module. Please try again.',
+          date: new Date().toISOString(),
+          read: false,
+          type: 'error' as const
+        };
+        setNotifications(prev => [errorNotification, ...prev]);
+      }
+    } catch (error) {
+      console.error('Error creating module:', error);
+      
+      // Add error notification
+      const errorNotification = {
+        id: Date.now().toString(),
+        title: 'Error Creating Module',
+        message: 'Network error. Please check your connection and try again.',
+        date: new Date().toISOString(),
+        read: false,
+        type: 'error' as const
+      };
+      setNotifications(prev => [errorNotification, ...prev]);
+    }
+  };
+
+  const handleCreateAssignment = async (assignmentData: any) => {
+    try {
+      console.log('Creating assignment with data:', assignmentData);
+      const response = await fetch('/api/teacher/assignments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(assignmentData),
+      });
+      
+      console.log('Assignment creation response status:', response.status);
+
+      if (response.ok) {
+        const result = await response.json();
+        setAssignments(prev => [...prev, result.assignment]);
+        setShowCreateAssignmentForm(false);
+        
+        // Add success notification
+        const successNotification = {
+          id: Date.now().toString(),
+          title: 'Assignment Created Successfully',
+          message: `${assignmentData.title} has been created and is ready for students.`,
+          date: new Date().toISOString(),
+          read: false,
+          type: 'success' as const
+        };
+        setNotifications(prev => [successNotification, ...prev]);
+        
+        // Refresh assignments data
+        loadDashboardData();
+      } else {
+        const error = await response.json();
+        console.error('Error creating assignment:', error);
+        
+        // Add error notification
+        const errorNotification = {
+          id: Date.now().toString(),
+          title: 'Error Creating Assignment',
+          message: error.error || 'Failed to create assignment. Please try again.',
+          date: new Date().toISOString(),
+          read: false,
+          type: 'error' as const
+        };
+        setNotifications(prev => [errorNotification, ...prev]);
+      }
+    } catch (error) {
+      console.error('Error creating assignment:', error);
+      
+      // Add error notification
+      const errorNotification = {
+        id: Date.now().toString(),
+        title: 'Error Creating Assignment',
+        message: 'Network error. Please check your connection and try again.',
+        date: new Date().toISOString(),
+        read: false,
+        type: 'error' as const
+      };
+      setNotifications(prev => [errorNotification, ...prev]);
+    }
+  };
+
+  const handleViewStudent = (student: any) => {
+    // For now, just show a notification - in production, this would open a detailed view
+    const notification = {
+      id: Date.now().toString(),
+      title: 'Student Details',
+      message: `Viewing details for ${student.fullName}`,
+      date: new Date().toISOString(),
+      read: false,
+      type: 'info' as const
+    };
+    setNotifications(prev => [notification, ...prev]);
+  };
+
+  const handleAssignToStudent = (student: any) => {
+    // For now, just show a notification - in production, this would open assignment modal
+    const notification = {
+      id: Date.now().toString(),
+      title: 'Assign to Student',
+      message: `Assigning modules/assignments to ${student.fullName}`,
+      date: new Date().toISOString(),
+      read: false,
+      type: 'info' as const
+    };
+    setNotifications(prev => [notification, ...prev]);
+  };
+
+  const handleRemoveStudent = async (studentId: string) => {
+    if (confirm('Are you sure you want to remove this student?')) {
+      try {
+        const response = await fetch(`/api/teacher/students/${studentId}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          setStudents(prev => prev.filter(s => s.id !== studentId));
+          
+          const notification = {
+            id: Date.now().toString(),
+            title: 'Student Removed',
+            message: 'Student has been removed from your class.',
+            date: new Date().toISOString(),
+            read: false,
+            type: 'success' as const
+          };
+          setNotifications(prev => [notification, ...prev]);
+          
+          // Refresh dashboard data
+          loadDashboardData();
+        } else {
+          const error = await response.json();
+          const errorNotification = {
+            id: Date.now().toString(),
+            title: 'Error Removing Student',
+            message: error.error || 'Failed to remove student. Please try again.',
+            date: new Date().toISOString(),
+            read: false,
+            type: 'error' as const
+          };
+          setNotifications(prev => [errorNotification, ...prev]);
+        }
+      } catch (error) {
+        console.error('Error removing student:', error);
+        const errorNotification = {
+          id: Date.now().toString(),
+          title: 'Error Removing Student',
+          message: 'Network error. Please check your connection and try again.',
+          date: new Date().toISOString(),
+          read: false,
+          type: 'error' as const
+        };
+        setNotifications(prev => [errorNotification, ...prev]);
+      }
+    }
+  };
+
+  const handleViewModule = (module: any) => {
+    // For now, just show a notification - in production, this would open a detailed view
+    const notification = {
+      id: Date.now().toString(),
+      title: 'Module Details',
+      message: `Viewing details for ${module.title}`,
+      date: new Date().toISOString(),
+      read: false,
+      type: 'info' as const
+    };
+    setNotifications(prev => [notification, ...prev]);
+  };
+
+  const handleAssignModule = (module: any) => {
+    // For now, just show a notification - in production, this would open assignment modal
+    const notification = {
+      id: Date.now().toString(),
+      title: 'Assign Module',
+      message: `Assigning ${module.title} to students`,
+      date: new Date().toISOString(),
+      read: false,
+      type: 'info' as const
+    };
+    setNotifications(prev => [notification, ...prev]);
+  };
+
+  const handleViewSubmissions = (assignment: any) => {
+    const notification = {
+      id: Date.now().toString(),
+      title: 'View Submissions',
+      message: `Viewing submissions for ${assignment.title}`,
+      date: new Date().toISOString(),
+      read: false,
+      type: 'info' as const
+    };
+    setNotifications(prev => [notification, ...prev]);
+  };
+
+  const handleGradeAssignment = (assignment: any) => {
+    const notification = {
+      id: Date.now().toString(),
+      title: 'Grade Assignment',
+      message: `Grading ${assignment.title} submissions`,
+      date: new Date().toISOString(),
+      read: false,
+      type: 'info' as const
+    };
+    setNotifications(prev => [notification, ...prev]);
+  };
+
+  const handleEditAssignment = (assignment: any) => {
+    const notification = {
+      id: Date.now().toString(),
+      title: 'Edit Assignment',
+      message: `Editing ${assignment.title}`,
+      date: new Date().toISOString(),
+      read: false,
+      type: 'info' as const
+    };
+    setNotifications(prev => [notification, ...prev]);
+  };
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -361,36 +1007,38 @@ export default function TeacherDashboard() {
 
   return (
     <div 
-      className="dashboard-container min-h-screen relative overflow-hidden"
+      className="dashboard-container min-h-screen relative"
     >
       {/* Background Elements */}
-      <VantaBackground>
-        <ScrollProgress />
+      {/* Temporarily disabled for debugging */}
+      {/* <VantaBackground>
+        <ScrollProgress /> */}
       
-      {/* Responsive Sidebar */}
-      <div className={`${isNotificationOpen ? 'blur-sm' : ''} transition-all duration-300`}>
-        <Sidebar 
-          activeTab={activeTab} 
-          onTabChange={setActiveTab}
-          isOpen={isSidebarOpen}
-          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-          navItems={navItems}
-          role="teacher"
-        />
-      </div>
+      {/* Sidebar Component - Let it handle its own responsive behavior */}
+      <Sidebar 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab}
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        navItems={navItems}
+        role="teacher"
+      />
       
       {/* Main Content Area */}
-      <div className="dashboard-main relative min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
+      <div className={`dashboard-main relative min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 transition-all duration-300 ${
+        isMobile ? (isSidebarOpen ? 'ml-0' : 'ml-0') : 'ml-20'
+      }`}>
         {/* Background Pattern */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%239C92AC%22%20fill-opacity%3D%220.05%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%239C92AC%22%20fill-opacity%3D%220.05%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40 pointer-events-none"></div>
         
         {/* Top Bar */}
-        <div className="relative z-10 flex items-center justify-between w-full px-4 sm:px-6 py-3 sm:py-4 bg-white/80 backdrop-blur-sm border-b border-gray-200/50">
+        <div className="relative z-10 flex items-center justify-between w-full px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-gray-200/50">
           {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-blue-500/5"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-blue-500/5 pointer-events-none"></div>
           
           {/* Animated Border */}
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent pointer-events-none"></div>
+          
           {/* Search Bar - Hidden on mobile, shown on tablet+ */}
           <div className="hidden sm:flex flex-1 items-center max-w-md">
             <motion.div 
@@ -404,21 +1052,43 @@ export default function TeacherDashboard() {
               <input
                 type="text"
                 placeholder="Search students, assignments..."
-                className="w-full pl-10 pr-4 py-3 rounded-full border-0 bg-white/60 backdrop-blur-sm text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:bg-white/80 transition-all duration-200 text-sm shadow-sm"
+                className="w-full pl-10 pr-4 py-3 rounded-full border-0 bg-white text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:bg-white transition-all duration-200 text-sm shadow-sm"
               />
             </motion.div>
           </div>
           
-          {/* Mobile: Logo and User Info */}
-          <div className="flex sm:hidden items-center flex-1 justify-center ml-12">
-            <span className="text-lg font-bold text-gray-800">Teacher Dashboard</span>
-          </div>
+          {/* Mobile: Hamburger Menu and Logo - Only show if sidebar is not open */}
+          {isMobile && (
+            <div className="flex sm:hidden items-center flex-1">
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="p-2 rounded-lg bg-white border border-gray-200/50 hover:bg-gray-50 transition-all duration-200 shadow-sm mr-3"
+              >
+                <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <span className="text-lg font-bold text-gray-800">Teacher Dashboard</span>
+            </div>
+          )}
           
           {/* User Actions */}
           <div className="flex items-center gap-2 sm:gap-4">
+            {/* Refresh Button */}
+            <motion.button
+              onClick={loadDashboardData}
+              className="p-2 rounded-full bg-white border border-gray-200/50 hover:bg-gray-50 transition-all duration-200 shadow-sm"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title="Refresh Data"
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </motion.button>
             {/* Notification Bell */}
             <motion.button
-              className="relative p-2 rounded-full bg-white/60 backdrop-blur-sm border border-gray-200/50 hover:bg-white/80 transition-all duration-200 shadow-sm"
+              className="relative p-2 rounded-full bg-white border border-gray-200/50 hover:bg-gray-50 transition-all duration-200 shadow-sm"
               onClick={handleNotificationClick}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -442,7 +1112,7 @@ export default function TeacherDashboard() {
               {/* Pulsing Effect */}
               {unreadCount > 0 && (
                 <motion.div
-                  className="absolute inset-0 rounded-full bg-red-500/20"
+                  className="absolute inset-0 rounded-full bg-red-500/20 pointer-events-none"
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 />
@@ -451,7 +1121,7 @@ export default function TeacherDashboard() {
             
             {/* User Profile Section */}
             <motion.div 
-              className="bg-white/60 backdrop-blur-sm rounded-xl p-3 shadow-sm border border-gray-200/50 flex items-center gap-3 hover:bg-white/80 transition-all duration-200 cursor-pointer"
+              className="bg-white rounded-xl p-3 shadow-sm border border-gray-200/50 flex items-center gap-3 hover:bg-gray-50 transition-all duration-200 cursor-pointer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setIsAvatarSelectorOpen(true)}
@@ -474,7 +1144,7 @@ export default function TeacherDashboard() {
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
                 
                 {/* Glow Effect */}
-                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-purple-500/20 to-pink-500/20 opacity-0 hover:opacity-100 transition-opacity duration-200"></div>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-purple-500/20 to-pink-500/20 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
               </motion.div>
               
               {/* User Info */}
@@ -526,7 +1196,7 @@ export default function TeacherDashboard() {
                             </svg>
                           </div>
                           {/* Glow Effect */}
-                          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500/30 to-pink-500/30 blur-lg"></div>
+                          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500/30 to-pink-500/30 blur-lg pointer-events-none"></div>
                         </motion.div>
                         
                         <div>
@@ -549,7 +1219,7 @@ export default function TeacherDashboard() {
                         <TiltCard className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 shadow-sm border border-purple-200/50 min-w-[140px] min-h-[100px] flex flex-col justify-center">
                         <ScrollCounter
                           from={0}
-                          to={stats.totalStudents || 0}
+                          to={teacherStats.totalStudents || 0}
                           duration={2}
                           className="text-3xl font-bold text-purple-600"
                         />
@@ -560,7 +1230,7 @@ export default function TeacherDashboard() {
                         <TiltCard className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 shadow-sm border border-blue-200/50 min-w-[140px] min-h-[100px] flex flex-col justify-center">
                         <ScrollCounter
                           from={0}
-                          to={stats.activeStudents || 0}
+                          to={teacherStats.activeStudents || 0}
                           duration={2}
                           className="text-3xl font-bold text-blue-600"
                         />
@@ -571,7 +1241,7 @@ export default function TeacherDashboard() {
                         <TiltCard className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 shadow-sm border border-green-200/50 min-w-[140px] min-h-[100px] flex flex-col justify-center">
                         <ScrollCounter
                           from={0}
-                          to={stats.averageProgress || 0}
+                          to={teacherStats.averageProgress || 0}
                           duration={2}
                           className="text-3xl font-bold text-green-600"
                         />
@@ -582,7 +1252,7 @@ export default function TeacherDashboard() {
                         <TiltCard className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-6 shadow-sm border border-purple-200/50 min-w-[140px] min-h-[100px] flex flex-col justify-center">
                         <ScrollCounter
                           from={0}
-                          to={stats.totalXpAcrossStudents || 0}
+                          to={teacherStats.totalXpAcrossStudents || 0}
                           duration={2}
                           className="text-3xl font-bold text-purple-600"
                         />
@@ -596,7 +1266,7 @@ export default function TeacherDashboard() {
                   <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {/* Quick Actions */}
                     <StaggerItem>
-                      <TiltCard className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm p-6 border border-gray-200/50">
+                      <TiltCard className="bg-white rounded-xl shadow-sm p-6 border border-gray-200/50">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                         <div className="space-y-3">
                           <MagneticButton className="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 text-sm font-medium shadow-lg">
@@ -614,16 +1284,16 @@ export default function TeacherDashboard() {
 
                     {/* Class Overview */}
                     <StaggerItem>
-                      <TiltCard className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm p-6 border border-gray-200/50">
+                      <TiltCard className="bg-white rounded-xl shadow-sm p-6 border border-gray-200/50">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Class Overview</h3>
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Total Assignments</span>
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">{stats.totalAssignments || 0}</span>
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">{teacherStats.totalAssignments || 0}</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Average Score</span>
-                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">{stats.averageScore || 0}%</span>
+                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">{teacherStats.averageScore || 0}%</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Active Modules</span>
@@ -635,7 +1305,7 @@ export default function TeacherDashboard() {
 
                     {/* Recent Activity */}
                     <StaggerItem>
-                      <TiltCard className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm p-6 border border-gray-200/50">
+                      <TiltCard className="bg-white rounded-xl shadow-sm p-6 border border-gray-200/50">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
                         <div className="space-y-3">
                           <div className="text-sm text-gray-600">
@@ -658,62 +1328,736 @@ export default function TeacherDashboard() {
           )}
 
           {activeTab === 'students' && (
+            <div className="space-y-6">
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">My Students</h2>
-                  <div className="text-center text-gray-500 py-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">My Students</h2>
+                  <div className="flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddStudentForm(true)}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      <span>Add Student</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowBulkImportForm(true)}
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                      </svg>
+                      <span>Bulk Import</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Students Table */}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">XP</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {students.map((student) => (
+                        <tr key={student.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10">
+                                <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                                  {student.fullName.charAt(0)}
+                                </div>
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">{student.fullName}</div>
+                                <div className="text-sm text-gray-500">{student.email}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{student.classGrade}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                <div 
+                                  className="bg-blue-600 h-2 rounded-full" 
+                                  style={{ width: `${(student.totalModulesCompleted / 10) * 100}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-sm text-gray-600">{student.totalModulesCompleted}/10</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{student.totalXpEarned}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              student.onboardingCompleted 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {student.onboardingCompleted ? 'Active' : 'Pending'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <button 
+                                type="button"
+                                onClick={() => handleViewStudent(student)}
+                                className="text-blue-600 hover:text-blue-900 hover:underline"
+                              >
+                                View
+                              </button>
+                              <button 
+                                type="button"
+                                onClick={() => handleAssignToStudent(student)}
+                                className="text-green-600 hover:text-green-900 hover:underline"
+                              >
+                                Assign
+                              </button>
+                              <button 
+                                type="button"
+                                onClick={() => handleRemoveStudent(student.id)}
+                                className="text-red-600 hover:text-red-900 hover:underline"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {students.length === 0 && (
+                  <div className="text-center py-12">
                     <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                     </svg>
-                    <p>Student management interface coming soon...</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No students yet</h3>
+                    <p className="text-gray-500 mb-4">Add your first student to get started</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddStudentForm(true)}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Add Student
+                    </button>
+                  </div>
+                )}
                               </div>
                             </div>
               )}
               
               {activeTab === 'modules' && (
+            <div className="space-y-6">
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Learning Modules</h2>
-                  <div className="text-center text-gray-500 py-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Learning Modules</h2>
+                  <div className="flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateModuleForm(true)}
+                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      <span>Create Module</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAssignModuleForm(true)}
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span>Assign Module</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Module Filters */}
+                <div className="mb-6 flex flex-wrap gap-4">
+                  <select className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="">All Subjects</option>
+                    <option value="mathematics">Mathematics</option>
+                    <option value="science">Science</option>
+                    <option value="english">English</option>
+                    <option value="history">History</option>
+                  </select>
+                  <select className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="">All Grades</option>
+                    <option value="6">Grade 6</option>
+                    <option value="7">Grade 7</option>
+                    <option value="8">Grade 8</option>
+                    <option value="9">Grade 9</option>
+                  </select>
+                  <select className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="">All Difficulty</option>
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
+                </div>
+
+                {/* Modules Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {modules.map((module) => (
+                    <div key={module.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900">{module.title}</h3>
+                          <p className="text-sm text-gray-500">{module.subject} • {module.grade}</p>
+                        </div>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          module.difficulty === 'beginner' ? 'bg-green-100 text-green-800' :
+                          module.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {module.difficulty}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-2 mb-4">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Duration:</span>
+                          <span className="text-gray-900">{module.duration} min</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Points:</span>
+                          <span className="text-gray-900">{module.points} XP</span>
+                        </div>
+                      </div>
+
+                      <div className="flex space-x-2">
+                        <button 
+                          type="button"
+                          onClick={() => handleViewModule(module)}
+                          className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-700 transition-colors"
+                        >
+                          View Details
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleAssignModule(module)}
+                          className="flex-1 bg-green-600 text-white px-3 py-2 rounded-md text-sm hover:bg-green-700 transition-colors"
+                        >
+                          Assign
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {modules.length === 0 && (
+                  <div className="text-center py-12">
                     <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                     </svg>
-                    <p>Module management interface coming soon...</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No modules available</h3>
+                    <p className="text-gray-500 mb-4">Create your first learning module</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateModuleForm(true)}
+                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                      Create Module
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {activeTab === 'assignments' && (
+            <div className="space-y-6">
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Assignments</h2>
-                  <div className="text-center text-gray-500 py-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Assignments</h2>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => setShowCreateAssignmentForm(true)}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      <span>Create Assignment</span>
+                    </button>
+                    <button
+                      onClick={() => setShowBulkAssignForm(true)}
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                      </svg>
+                      <span>Bulk Assign</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Assignment Tabs */}
+                <div className="mb-6">
+                  <div className="border-b border-gray-200">
+                    <nav className="-mb-px flex space-x-8">
+                      <button className="border-b-2 border-blue-500 py-2 px-1 text-sm font-medium text-blue-600">
+                        Active Assignments
+                      </button>
+                      <button className="border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700">
+                        Completed
+                      </button>
+                      <button className="border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700">
+                        Drafts
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+
+                {/* Assignments List */}
+                <div className="space-y-4">
+                  {assignments.map((assignment) => (
+                    <div key={assignment.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900">{assignment.title}</h3>
+                          <p className="text-sm text-gray-500">{assignment.subject} • {assignment.grade}</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                            assignment.status === 'active' ? 'bg-green-100 text-green-800' :
+                            assignment.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {assignment.status}
+                          </span>
+                          <button className="text-gray-400 hover:text-gray-600">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-gray-900">{assignment.assignedTo}</div>
+                          <div className="text-sm text-gray-500">Assigned</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-green-600">{assignment.submitted}</div>
+                          <div className="text-sm text-gray-500">Submitted</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-blue-600">{assignment.assignedTo - assignment.submitted}</div>
+                          <div className="text-sm text-gray-500">Pending</div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <div className="text-sm text-gray-500">
+                          Due: {new Date(assignment.dueDate).toLocaleDateString()}
+                        </div>
+                        <div className="flex space-x-2">
+                          <button 
+                            onClick={() => handleViewSubmissions(assignment)}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline"
+                          >
+                            View Submissions
+                          </button>
+                          <button 
+                            onClick={() => handleGradeAssignment(assignment)}
+                            className="text-green-600 hover:text-green-800 text-sm font-medium hover:underline"
+                          >
+                            Grade
+                          </button>
+                          <button 
+                            onClick={() => handleEditAssignment(assignment)}
+                            className="text-gray-600 hover:text-gray-800 text-sm font-medium hover:underline"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {students.length === 0 && (
+                  <div className="text-center py-12">
                     <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <p>Assignment management interface coming soon...</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No assignments yet</h3>
+                    <p className="text-gray-500 mb-4">Create your first assignment for your students</p>
+                    <button
+                      onClick={() => setShowCreateAssignmentForm(true)}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Create Assignment
+                    </button>
+                  </div>
+                )}
                   </div>
             </div>
           )}
 
           {activeTab === 'analytics' && (
+            <div className="space-y-6">
+              {/* Analytics Overview Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Analytics</h2>
-                  <div className="text-center text-gray-500 py-8">
-                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-500">Total Students</p>
+                      <p className="text-2xl font-semibold text-gray-900">{analytics?.overview?.totalStudents || teacherStats.totalStudents}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-500">Active Students</p>
+                      <p className="text-2xl font-semibold text-gray-900">{analytics?.overview?.activeStudents || teacherStats.activeStudents}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
-                    <p>Analytics interface coming soon...</p>
+            </div>
+            </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-500">Avg Progress</p>
+                      <p className="text-2xl font-semibold text-gray-900">{analytics?.overview?.averageProgress || teacherStats.averageProgress}%</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-500">Assignments</p>
+                      <p className="text-2xl font-semibold text-gray-900">{analytics?.overview?.totalModules || teacherStats.totalAssignments}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Charts Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Student Progress Chart */}
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Student Progress</h3>
+                  <div className="h-64 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="space-y-2">
+                        <div className="text-2xl font-bold text-blue-600">{analytics?.overview?.averageProgress || 0}%</div>
+                        <div className="text-sm text-gray-500">Average Student Progress</div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-1000" 
+                            style={{ width: `${analytics?.overview?.averageProgress || 0}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Assignment Completion Chart */}
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Assignment Completion</h3>
+                  <div className="h-64 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="space-y-4">
+                        <div className="text-2xl font-bold text-green-600">{analytics?.overview?.averageScore || 0}%</div>
+                        <div className="text-sm text-gray-500">Average Assignment Score</div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="bg-green-50 p-3 rounded-lg">
+                            <div className="font-semibold text-green-800">Completed</div>
+                            <div className="text-green-600">{analytics?.overview?.totalStudents || 0}</div>
+                          </div>
+                          <div className="bg-blue-50 p-3 rounded-lg">
+                            <div className="font-semibold text-blue-800">Total XP</div>
+                            <div className="text-blue-600">{analytics?.overview?.totalXp || 0}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Top Performing Students */}
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performing Students</h3>
+                <div className="space-y-4">
+                  {analytics?.topStudents?.slice(0, 5).map((student: any, index: number) => (
+                    <div key={student.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                            {student.name.charAt(0)}
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                          <div className="text-sm text-gray-500">{student.classGrade}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-gray-900">{student.xp} XP</div>
+                          <div className="text-sm text-gray-500">{student.modulesCompleted} modules</div>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-yellow-800">#{index + 1}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recent Activity */}
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                <div className="space-y-4">
+                  {analytics?.recentActivity?.map((activity: any) => (
+                    <div key={activity.id} className="flex items-center p-4 bg-gray-50 rounded-lg">
+                      <div className="flex-shrink-0">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          activity.type === 'completion' ? 'bg-green-100' :
+                          activity.type === 'submission' ? 'bg-blue-100' :
+                          'bg-purple-100'
+                        }`}>
+                          <svg className={`w-4 h-4 ${
+                            activity.type === 'completion' ? 'text-green-600' :
+                            activity.type === 'submission' ? 'text-blue-600' :
+                            'text-purple-600'
+                          }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="ml-4 flex-1">
+                        <div className="text-sm font-medium text-gray-900">{activity.action}</div>
+                        <div className="text-sm text-gray-500">{activity.student} • {activity.module}</div>
+                      </div>
+                      <div className="text-sm text-gray-500">{activity.time}</div>
+                    </div>
+                  ))}
+                </div>
             </div>
             </div>
           )}
 
           {activeTab === 'settings' && (
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Settings</h2>
-                  <div className="text-center text-gray-500 py-8">
-                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <p>Settings interface coming soon...</p>
+            <div className="space-y-6">
+              {/* Profile Settings */}
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile Settings</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                    <input
+                      type="text"
+                      value={teacherProfile.name || ''}
+                      onChange={(e) => setTeacherProfile(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input
+                      type="email"
+                      value={teacherProfile.email}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                      readOnly
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Subject Specialization</label>
+                    <input
+                      type="text"
+                      value={teacherProfile.profile?.subjectSpecialization || ''}
+                      onChange={(e) => setTeacherProfile(prev => ({ 
+                        ...prev, 
+                        profile: { ...prev.profile, subjectSpecialization: e.target.value }
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                      placeholder="Enter your subject specialization"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Experience (Years)</label>
+                    <input
+                      type="number"
+                      value={teacherProfile.profile?.experienceYears || ''}
+                      onChange={(e) => setTeacherProfile(prev => ({ 
+                        ...prev, 
+                        profile: { ...prev.profile, experienceYears: parseInt(e.target.value) || 0 }
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                      placeholder="Enter years of experience"
+                      min="0"
+                    />
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <button 
+                    onClick={handleSaveProfile}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    Save Profile
+                  </button>
+                </div>
+              </div>
+
+              {/* Notification Settings */}
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Notification Settings</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Email Notifications</div>
+                      <div className="text-sm text-gray-500">Receive notifications via email</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Student Progress Updates</div>
+                      <div className="text-sm text-gray-500">Get notified when students complete modules</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Assignment Submissions</div>
+                      <div className="text-sm text-gray-500">Get notified when students submit assignments</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Class Settings */}
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Class Settings</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Default Grade Level</label>
+                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900">
+                      <option value="6">Grade 6</option>
+                      <option value="7">Grade 7</option>
+                      <option value="8">Grade 8</option>
+                      <option value="9">Grade 9</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Default Subject</label>
+                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900">
+                      <option value="mathematics">Mathematics</option>
+                      <option value="science">Science</option>
+                      <option value="english">English</option>
+                      <option value="history">History</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Privacy Settings */}
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Privacy Settings</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Profile Visibility</div>
+                      <div className="text-sm text-gray-500">Allow other teachers to see your profile</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Student Data Sharing</div>
+                      <div className="text-sm text-gray-500">Share anonymous student progress with organization</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Actions */}
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Actions</h3>
+                <div className="space-y-4">
+                  <button className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="text-sm font-medium text-gray-900">Change Password</div>
+                    <div className="text-sm text-gray-500">Update your account password</div>
+                  </button>
+                  <button className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="text-sm font-medium text-gray-900">Download Data</div>
+                    <div className="text-sm text-gray-500">Export your account data</div>
+                  </button>
+                  <button className="w-full text-left px-4 py-3 border border-red-200 rounded-lg hover:bg-red-50 transition-colors text-red-600">
+                    <div className="text-sm font-medium">Delete Account</div>
+                    <div className="text-sm text-red-500">Permanently delete your account</div>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -801,7 +2145,7 @@ export default function TeacherDashboard() {
                 <select
                   value={subjectSpecialization}
                   onChange={(e) => setSubjectSpecialization(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                   required
                 >
                   <option value="">Select Subject</option>
@@ -823,7 +2167,7 @@ export default function TeacherDashboard() {
                 <select
                   value={experienceYears}
                   onChange={(e) => setExperienceYears(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
                   required
                 >
                   <option value="">Select Experience</option>
@@ -1074,8 +2418,430 @@ export default function TeacherDashboard() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Add Student Modal */}
+      <Dialog
+        open={showAddStudentForm}
+        onClose={() => setShowAddStudentForm(false)}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-md rounded-2xl bg-white p-6">
+            <Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">
+              Add New Student
+            </Dialog.Title>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const studentData = {
+                fullName: formData.get('fullName'),
+                email: formData.get('email'),
+                classGrade: formData.get('classGrade'),
+                schoolName: formData.get('schoolName')
+              };
+              handleAddStudent(studentData);
+            }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name
+                </label>
+                <input
+                  name="fullName"
+                  type="text"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Class Grade
+                </label>
+                <select
+                  name="classGrade"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                >
+                  <option value="">Select Grade</option>
+                  <option value="Grade 6">Grade 6</option>
+                  <option value="Grade 7">Grade 7</option>
+                  <option value="Grade 8">Grade 8</option>
+                  <option value="Grade 9">Grade 9</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  School Name
+                </label>
+                <input
+                  name="schoolName"
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAddStudentForm(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Add Student
+                </button>
+              </div>
+            </form>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
+
+      {/* Bulk Import Modal */}
+      <Dialog
+        open={showBulkImportForm}
+        onClose={() => setShowBulkImportForm(false)}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-md rounded-2xl bg-white p-6">
+            <Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">
+              Bulk Import Students
+            </Dialog.Title>
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                </svg>
+                <p className="text-sm text-gray-500 mb-2">Upload CSV or Excel file</p>
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  className="hidden"
+                  id="bulk-import-file"
+                />
+                <label
+                  htmlFor="bulk-import-file"
+                  className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer"
+                >
+                  Choose File
+                </label>
+              </div>
+              <div className="text-sm text-gray-500">
+                <p>File should contain columns: fullName, email, classGrade, schoolName</p>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowBulkImportForm(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    // Handle bulk import logic here
+                    setShowBulkImportForm(false);
+                  }}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                >
+                  Import Students
+                </button>
+              </div>
+            </div>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
+
+      {/* Create Module Modal */}
+      <Dialog
+        open={showCreateModuleForm}
+        onClose={() => setShowCreateModuleForm(false)}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-md rounded-2xl bg-white p-6">
+            <Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">
+              Create Learning Module
+            </Dialog.Title>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const moduleData = {
+                title: formData.get('title'),
+                subject: formData.get('subject'),
+                grade: formData.get('grade'),
+                difficulty: formData.get('difficulty'),
+                duration: parseInt(formData.get('duration') as string),
+                points: parseInt(formData.get('points') as string),
+                description: formData.get('description')
+              };
+              handleCreateModule(moduleData);
+            }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Module Title
+                </label>
+                <input
+                  name="title"
+                  type="text"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Subject
+                  </label>
+                  <select
+                    name="subject"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+                  >
+                    <option value="">Select Subject</option>
+                    <option value="Mathematics">Mathematics</option>
+                    <option value="Science">Science</option>
+                    <option value="English">English</option>
+                    <option value="History">History</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Grade
+                  </label>
+                  <select
+                    name="grade"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+                  >
+                    <option value="">Select Grade</option>
+                    <option value="Grade 6">Grade 6</option>
+                    <option value="Grade 7">Grade 7</option>
+                    <option value="Grade 8">Grade 8</option>
+                    <option value="Grade 9">Grade 9</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Difficulty
+                  </label>
+                  <select
+                    name="difficulty"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+                  >
+                    <option value="">Select Difficulty</option>
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Duration (minutes)
+                  </label>
+                  <input
+                    name="duration"
+                    type="number"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Points
+                </label>
+                <input
+                  name="points"
+                  type="number"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  name="description"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModuleForm(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                >
+                  Create Module
+                </button>
+              </div>
+            </form>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
+
+      {/* Create Assignment Modal */}
+      <Dialog
+        open={showCreateAssignmentForm}
+        onClose={() => setShowCreateAssignmentForm(false)}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-md rounded-2xl bg-white p-6">
+            <Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">
+              Create Assignment
+            </Dialog.Title>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const assignmentData = {
+                title: formData.get('title'),
+                subject: formData.get('subject'),
+                grade: formData.get('grade'),
+                dueDate: formData.get('dueDate'),
+                description: formData.get('description'),
+                instructions: formData.get('instructions'),
+                points: parseInt(formData.get('points') as string)
+              };
+              handleCreateAssignment(assignmentData);
+            }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Assignment Title
+                </label>
+                <input
+                  name="title"
+                  type="text"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Subject
+                  </label>
+                  <select
+                    name="subject"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  >
+                    <option value="">Select Subject</option>
+                    <option value="Mathematics">Mathematics</option>
+                    <option value="Science">Science</option>
+                    <option value="English">English</option>
+                    <option value="History">History</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Grade
+                  </label>
+                  <select
+                    name="grade"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  >
+                    <option value="">Select Grade</option>
+                    <option value="Grade 6">Grade 6</option>
+                    <option value="Grade 7">Grade 7</option>
+                    <option value="Grade 8">Grade 8</option>
+                    <option value="Grade 9">Grade 9</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Due Date
+                  </label>
+                  <input
+                    name="dueDate"
+                    type="date"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Points
+                  </label>
+                  <input
+                    name="points"
+                    type="number"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  name="description"
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Instructions
+                </label>
+                <textarea
+                  name="instructions"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateAssignmentForm(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Create Assignment
+                </button>
+              </div>
+            </form>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
       
-      </VantaBackground>
+      {/* </VantaBackground> */}
     </div>
   );
 } 
