@@ -3,6 +3,47 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWindowSize } from '@/lib/hooks/useWindowSize';
+import Sidebar from '../student/components/Sidebar';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Dialog } from '@headlessui/react';
+import { saveAs } from 'file-saver';
+import { motion, AnimatePresence } from 'framer-motion';
+import { TypewriterText, StaggeredText, GradientText, CharacterAnimation } from '../../components/TextAnimations';
+import { TiltCard, MagneticButton } from '../../components/InteractiveElements';
+import { StaggerContainer, StaggerItem } from '../../components/PageTransitions';
+import { ScrollFade, ScrollCounter, ParallaxScroll, ScrollProgress } from '../../components/ScrollAnimations';
+import { FloatingParticles, MorphingBlob } from '../../components/FloatingElements';
+import ConsistentLoadingPage from '../../components/ConsistentLoadingPage';
+
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  organizationId?: string;
+  isIndependent?: boolean;
+  createdAt: string;
+  isActive?: boolean;
+  studentProfile?: {
+    fullName: string;
+    classGrade: string;
+    schoolName: string;
+    uniqueId: string;
+    onboardingCompleted: boolean;
+  };
+  parentProfile?: {
+    fullName: string;
+    linkedStudentId: string;
+    onboardingCompleted: boolean;
+  };
+  progress?: {
+    totalModulesCompleted: number;
+    totalXpEarned: number;
+    learningStreak: number;
+    badgesEarned: number;
+  };
+}
 
 interface Organization {
   _id: string;
@@ -45,6 +86,23 @@ interface DashboardStats {
   rejectedOrganizations: number;
   totalAuditLogs: number;
   criticalAlerts: number;
+  totalUsers: number;
+  totalStudents: number;
+  totalTeachers: number;
+  totalParents: number;
+  totalAdmins: number;
+  recentActivity: number;
+}
+
+interface UserManagementState {
+  users: User[];
+  loading: boolean;
+  error: string | null;
+  selectedRole: string;
+  searchTerm: string;
+  currentPage: number;
+  totalPages: number;
+  totalUsers: number;
 }
 
 export default function PlatformSuperAdminDashboard() {
@@ -52,6 +110,16 @@ export default function PlatformSuperAdminDashboard() {
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [userManagement, setUserManagement] = useState<UserManagementState>({
+    users: [],
+    loading: false,
+    error: null,
+    selectedRole: 'all',
+    searchTerm: '',
+    currentPage: 1,
+    totalPages: 1,
+    totalUsers: 0
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [language, setLanguage] = useState('English (USA)');
@@ -62,19 +130,71 @@ export default function PlatformSuperAdminDashboard() {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [userAvatar, setUserAvatar] = useState<string>('/avatars/Group.svg');
   const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [showOrgForm, setShowOrgForm] = useState(false);
+  const [userFormData, setUserFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'student',
+    organizationId: ''
+  });
+  const [orgFormData, setOrgFormData] = useState({
+    organizationName: '',
+    organizationType: 'school',
+    industry: '',
+    address: '',
+    city: '',
+    state: '',
+    country: 'India',
+    phoneNumber: '',
+    website: '',
+    description: '',
+    employeeCount: '1-10'
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const logoutTriggered = useRef(false);
   const { width: windowWidth } = useWindowSize();
   const isMobile = windowWidth < 1024;
 
-  // PSA-specific navigation items
+  // Super Admin navigation items
   const navItems = [
     { id: 'overview', label: 'Overview', icon: '/icons/overview.png' },
+    { id: 'users', label: 'Manage Users', icon: '/icons/profile.png' },
     { id: 'organizations', label: 'Organizations', icon: '/icons/rewards.png' },
-    { id: 'audit-logs', label: 'Audit Logs', icon: '/icons/report.png' },
+    { id: 'reports', label: 'Reports', icon: '/icons/report.png' },
+    { id: 'audit-logs', label: 'Audit Logs', icon: '/icons/settings.png' },
     { id: 'system', label: 'System Settings', icon: '/icons/settings.png' },
   ];
+
+  // Avatar utility functions
+  const AVAILABLE_AVATARS = [
+    '/avatars/Group.svg',
+    '/avatars/Group-1.svg',
+    '/avatars/Group-2.svg',
+    '/avatars/Group-3.svg',
+    '/avatars/Group-4.svg',
+    '/avatars/Group-5.svg',
+    '/avatars/Group-6.svg',
+    '/avatars/Group-7.svg',
+    '/avatars/Group-8.svg'
+  ];
+
+  function getRandomAvatar(userId?: string): string {
+    if (!userId) return AVAILABLE_AVATARS[0];
+    
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      const char = userId.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    const randomIndex = Math.abs(hash) % AVAILABLE_AVATARS.length;
+    return AVAILABLE_AVATARS[randomIndex];
+  }
 
   useEffect(() => {
     const savedLang = localStorage.getItem('lang');
@@ -129,6 +249,22 @@ export default function PlatformSuperAdminDashboard() {
             }
           } catch (error) {
             console.error('Error fetching audit logs:', error);
+          }
+
+          // Fetch users for management
+          try {
+            const usersResponse = await fetch('/api/admin/users?limit=10');
+            if (usersResponse.ok) {
+              const usersData = await usersResponse.json();
+              setUserManagement(prev => ({
+                ...prev,
+                users: usersData.users || [],
+                totalUsers: usersData.totalUsers || 0,
+                totalPages: usersData.totalPages || 1
+              }));
+            }
+          } catch (error) {
+            console.error('Error fetching users:', error);
           }
         } else {
           router.push('/login');
@@ -220,79 +356,213 @@ export default function PlatformSuperAdminDashboard() {
     }
   };
 
+  const handleUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userFormData),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserManagement(prev => ({
+          ...prev,
+          users: [data.user, ...prev.users]
+        }));
+        setShowUserForm(false);
+        setUserFormData({
+          name: '',
+          email: '',
+          password: '',
+          role: 'student',
+          organizationId: ''
+        });
+        alert('User created successfully!');
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      alert('Error creating user');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOrgSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/admin/organizations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(orgFormData),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setOrganizations(prev => [data.organization, ...prev]);
+        setShowOrgForm(false);
+        setOrgFormData({
+          organizationName: '',
+          organizationType: 'school',
+          industry: '',
+          address: '',
+          city: '',
+          state: '',
+          country: 'India',
+          phoneNumber: '',
+          website: '',
+          description: '',
+          employeeCount: '1-10'
+        });
+        alert('Organization created successfully!');
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating organization:', error);
+      alert('Error creating organization');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUserAction = async (userId: string, action: string) => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId, action }),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        // Refresh users list
+        const usersResponse = await fetch('/api/admin/users?limit=10');
+        if (usersResponse.ok) {
+          const usersData = await usersResponse.json();
+          setUserManagement(prev => ({
+            ...prev,
+            users: usersData.users || []
+          }));
+        }
+        alert(`User ${action} successfully!`);
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error(`Error ${action} user:`, error);
+      alert(`Error ${action} user`);
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
+      <ConsistentLoadingPage
+        type="dashboard"
+        title="Loading Super Admin Dashboard"
+        subtitle="Setting up your administrative interface..."
+        tips={[
+          'Loading user management tools',
+          'Preparing organization controls',
+          'Setting up system analytics'
+        ]}
+      />
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Enhanced Header */}
+      <motion.div 
+        className="bg-white/80 backdrop-blur-sm shadow-lg border-b border-white/20"
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6 }}
+      >
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">Platform Super Admin</h1>
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-red-600 to-red-700 rounded-full flex items-center justify-center">
+                <span className="text-white text-lg font-bold">SA</span>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  Super Admin Dashboard
+                </h1>
+                <p className="text-sm text-gray-500">Platform Management Center</p>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-500">
-                Welcome, {user?.name}
+              <div className="text-sm text-gray-600">
+                Welcome, <span className="font-semibold text-gray-900">{user?.name}</span>
               </div>
-              <button
+              <motion.button
                 onClick={() => {
                   document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                   router.push('/login');
                 }}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:from-red-700 hover:to-red-800"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 Logout
-              </button>
+              </motion.button>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <div className="flex">
-        {/* Sidebar */}
-        <div className={`${isSidebarOpen ? 'block' : 'hidden'} lg:block w-64 bg-white shadow-sm`}>
-          <div className="p-4">
-            <nav className="space-y-2">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md ${
-                    activeTab === item.id
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <img src={item.icon} alt={item.label} className="w-5 h-5 mr-3" />
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </div>
+        {/* Enhanced Sidebar */}
+        <Sidebar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          isOpen={isSidebarOpen}
+          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+          navItems={navItems}
+          role="admin"
+        />
 
         {/* Main Content */}
         <div className="flex-1 p-6">
           {activeTab === 'overview' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-900">Overview</h2>
+            <StaggerContainer className="space-y-6">
+              <StaggerItem>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                    Platform Overview
+                  </h2>
+                  <div className="text-sm text-gray-500">
+                    Last updated: {new Date().toLocaleString()}
+                  </div>
+                </div>
+              </StaggerItem>
               
-              {/* Stats Cards */}
+              {/* Enhanced Stats Cards */}
               {dashboardStats && (
+                <StaggerItem>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="bg-white p-6 rounded-lg shadow">
+                    <TiltCard className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-white/20">
                     <div className="flex items-center">
-                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl">
                         <img src="/icons/rewards.png" alt="Organizations" className="w-6 h-6" />
                       </div>
                       <div className="ml-4">
@@ -300,11 +570,11 @@ export default function PlatformSuperAdminDashboard() {
                         <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalOrganizations}</p>
                       </div>
                     </div>
-                  </div>
+                    </TiltCard>
 
-                  <div className="bg-white p-6 rounded-lg shadow">
+                    <TiltCard className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-white/20">
                     <div className="flex items-center">
-                      <div className="p-2 bg-yellow-100 rounded-lg">
+                        <div className="p-3 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl">
                         <img src="/icons/report.png" alt="Pending" className="w-6 h-6" />
                       </div>
                       <div className="ml-4">
@@ -312,11 +582,11 @@ export default function PlatformSuperAdminDashboard() {
                         <p className="text-2xl font-bold text-gray-900">{dashboardStats.pendingApprovals}</p>
                       </div>
                     </div>
-                  </div>
+                    </TiltCard>
 
-                  <div className="bg-white p-6 rounded-lg shadow">
+                    <TiltCard className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-white/20">
                     <div className="flex items-center">
-                      <div className="p-2 bg-green-100 rounded-lg">
+                        <div className="p-3 bg-gradient-to-r from-green-500 to-green-600 rounded-xl">
                         <img src="/icons/overview.png" alt="Approved" className="w-6 h-6" />
                       </div>
                       <div className="ml-4">
@@ -324,11 +594,11 @@ export default function PlatformSuperAdminDashboard() {
                         <p className="text-2xl font-bold text-gray-900">{dashboardStats.approvedOrganizations}</p>
                       </div>
                     </div>
-                  </div>
+                    </TiltCard>
 
-                  <div className="bg-white p-6 rounded-lg shadow">
+                    <TiltCard className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-white/20">
                     <div className="flex items-center">
-                      <div className="p-2 bg-red-100 rounded-lg">
+                        <div className="p-3 bg-gradient-to-r from-red-500 to-red-600 rounded-xl">
                         <img src="/icons/settings.png" alt="Critical" className="w-6 h-6" />
                       </div>
                       <div className="ml-4">
@@ -336,12 +606,14 @@ export default function PlatformSuperAdminDashboard() {
                         <p className="text-2xl font-bold text-gray-900">{dashboardStats.criticalAlerts}</p>
                       </div>
                     </div>
+                    </TiltCard>
                   </div>
-                </div>
+                </StaggerItem>
               )}
 
               {/* Recent Organizations */}
-              <div className="bg-white rounded-lg shadow">
+              <StaggerItem>
+                <TiltCard className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h3 className="text-lg font-medium text-gray-900">Recent Organizations</h3>
                 </div>
@@ -397,14 +669,353 @@ export default function PlatformSuperAdminDashboard() {
                     </tbody>
                   </table>
                 </div>
+                </TiltCard>
+              </StaggerItem>
+            </StaggerContainer>
+          )}
+
+          {activeTab === 'users' && (
+            <StaggerContainer className="space-y-6">
+              <StaggerItem>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                    User Management
+                  </h2>
+                  <MagneticButton
+                    onClick={() => setShowUserForm(true)}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    + Add User
+                  </MagneticButton>
               </div>
+              </StaggerItem>
+
+              {/* User Form Modal */}
+              {showUserForm && (
+                <Dialog open={showUserForm} onClose={() => setShowUserForm(false)} className="relative z-50">
+                  <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+                  <div className="fixed inset-0 flex items-center justify-center p-4">
+                    <Dialog.Panel className="mx-auto max-w-md rounded-xl bg-white p-6 shadow-2xl">
+                      <Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">Add New User</Dialog.Title>
+                      <form onSubmit={handleUserSubmit} className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                          <input
+                            type="text"
+                            required
+                            value={userFormData.name}
+                            onChange={(e) => setUserFormData(prev => ({ ...prev, name: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
             </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                          <input
+                            type="email"
+                            required
+                            value={userFormData.email}
+                            onChange={(e) => setUserFormData(prev => ({ ...prev, email: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                          <input
+                            type="password"
+                            required
+                            value={userFormData.password}
+                            onChange={(e) => setUserFormData(prev => ({ ...prev, password: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                          <select
+                            value={userFormData.role}
+                            onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="student">Student</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="parent">Parent</option>
+                            <option value="organization">Organization</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </div>
+                        <div className="flex justify-end space-x-3 pt-4">
+                          <button
+                            type="button"
+                            onClick={() => setShowUserForm(false)}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                          >
+                            {isSubmitting ? 'Creating...' : 'Create User'}
+                          </button>
+                        </div>
+                      </form>
+                    </Dialog.Panel>
+                  </div>
+                </Dialog>
+              )}
+
+              {/* Users List */}
+              <StaggerItem>
+                <TiltCard className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20">
+                  <div className="px-6 py-4 border-b border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900">All Users</h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {userManagement.users.map((user) => (
+                          <tr key={user._id}>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <img
+                                  src={getRandomAvatar(user._id)}
+                                  alt={user.name}
+                                  className="w-8 h-8 rounded-full mr-3"
+                                />
+                                <div>
+                                  <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                                  <div className="text-sm text-gray-500">{user.email}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                {user.role}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                user.isActive ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'
+                              }`}>
+                                {user.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(user.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => handleUserAction(user._id, 'activate')}
+                                  className="text-green-600 hover:text-green-900"
+                                >
+                                  Activate
+                                </button>
+                                <button
+                                  onClick={() => handleUserAction(user._id, 'deactivate')}
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  Deactivate
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </TiltCard>
+              </StaggerItem>
+            </StaggerContainer>
           )}
 
           {activeTab === 'organizations' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-900">Organizations</h2>
-              <div className="bg-white rounded-lg shadow">
+            <StaggerContainer className="space-y-6">
+              <StaggerItem>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                    Organizations
+                  </h2>
+                  <MagneticButton
+                    onClick={() => setShowOrgForm(true)}
+                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    + Add Organization
+                  </MagneticButton>
+                </div>
+              </StaggerItem>
+
+              {/* Organization Form Modal */}
+              {showOrgForm && (
+                <Dialog open={showOrgForm} onClose={() => setShowOrgForm(false)} className="relative z-50">
+                  <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+                  <div className="fixed inset-0 flex items-center justify-center p-4">
+                    <Dialog.Panel className="mx-auto max-w-2xl rounded-xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+                      <Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">Add New Organization</Dialog.Title>
+                      <form onSubmit={handleOrgSubmit} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
+                            <input
+                              type="text"
+                              required
+                              value={orgFormData.organizationName}
+                              onChange={(e) => setOrgFormData(prev => ({ ...prev, organizationName: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                            <select
+                              value={orgFormData.organizationType}
+                              onChange={(e) => setOrgFormData(prev => ({ ...prev, organizationType: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            >
+                              <option value="school">School</option>
+                              <option value="college">College</option>
+                              <option value="university">University</option>
+                              <option value="training_center">Training Center</option>
+                              <option value="edtech_company">EdTech Company</option>
+                              <option value="ngo">NGO</option>
+                              <option value="government">Government</option>
+                              <option value="corporate">Corporate</option>
+                              <option value="other">Other</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
+                            <input
+                              type="text"
+                              required
+                              value={orgFormData.industry}
+                              onChange={(e) => setOrgFormData(prev => ({ ...prev, industry: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Employee Count</label>
+                            <select
+                              value={orgFormData.employeeCount}
+                              onChange={(e) => setOrgFormData(prev => ({ ...prev, employeeCount: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            >
+                              <option value="1-10">1-10</option>
+                              <option value="11-50">11-50</option>
+                              <option value="51-200">51-200</option>
+                              <option value="201-500">201-500</option>
+                              <option value="501-1000">501-1000</option>
+                              <option value="1000+">1000+</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                          <input
+                            type="text"
+                            required
+                            value={orgFormData.address}
+                            onChange={(e) => setOrgFormData(prev => ({ ...prev, address: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                            <input
+                              type="text"
+                              required
+                              value={orgFormData.city}
+                              onChange={(e) => setOrgFormData(prev => ({ ...prev, city: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                            <input
+                              type="text"
+                              required
+                              value={orgFormData.state}
+                              onChange={(e) => setOrgFormData(prev => ({ ...prev, state: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                            <input
+                              type="text"
+                              required
+                              value={orgFormData.country}
+                              onChange={(e) => setOrgFormData(prev => ({ ...prev, country: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                            <input
+                              type="tel"
+                              required
+                              value={orgFormData.phoneNumber}
+                              onChange={(e) => setOrgFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                            <input
+                              type="url"
+                              value={orgFormData.website}
+                              onChange={(e) => setOrgFormData(prev => ({ ...prev, website: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                          <textarea
+                            value={orgFormData.description}
+                            onChange={(e) => setOrgFormData(prev => ({ ...prev, description: e.target.value }))}
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-3 pt-4">
+                          <button
+                            type="button"
+                            onClick={() => setShowOrgForm(false)}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50"
+                          >
+                            {isSubmitting ? 'Creating...' : 'Create Organization'}
+                          </button>
+                        </div>
+                      </form>
+                    </Dialog.Panel>
+                  </div>
+                </Dialog>
+              )}
+
+              {/* Organizations List */}
+              <StaggerItem>
+                <TiltCard className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h3 className="text-lg font-medium text-gray-900">All Organizations</h3>
                 </div>
@@ -460,14 +1071,53 @@ export default function PlatformSuperAdminDashboard() {
                     </tbody>
                   </table>
                 </div>
+                </TiltCard>
+              </StaggerItem>
+            </StaggerContainer>
+          )}
+
+          {activeTab === 'reports' && (
+            <StaggerContainer className="space-y-6">
+              <StaggerItem>
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  System Reports
+                </h2>
+              </StaggerItem>
+              <StaggerItem>
+                <TiltCard className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Analytics & Reports</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <h4 className="font-medium text-blue-900 mb-2">User Analytics</h4>
+                      <p className="text-sm text-blue-700">View detailed user engagement metrics, login patterns, and activity reports.</p>
               </div>
+                    <div className="p-4 bg-green-50 rounded-lg">
+                      <h4 className="font-medium text-green-900 mb-2">Organization Reports</h4>
+                      <p className="text-sm text-green-700">Track organization growth, approval rates, and performance metrics.</p>
             </div>
+                    <div className="p-4 bg-purple-50 rounded-lg">
+                      <h4 className="font-medium text-purple-900 mb-2">System Performance</h4>
+                      <p className="text-sm text-purple-700">Monitor system health, response times, and resource utilization.</p>
+                    </div>
+                    <div className="p-4 bg-orange-50 rounded-lg">
+                      <h4 className="font-medium text-orange-900 mb-2">Security Reports</h4>
+                      <p className="text-sm text-orange-700">Review security events, failed login attempts, and access patterns.</p>
+                    </div>
+                  </div>
+                </TiltCard>
+              </StaggerItem>
+            </StaggerContainer>
           )}
 
           {activeTab === 'audit-logs' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-900">Audit Logs</h2>
-              <div className="bg-white rounded-lg shadow">
+            <StaggerContainer className="space-y-6">
+              <StaggerItem>
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  Audit Logs
+                </h2>
+              </StaggerItem>
+              <StaggerItem>
+                <TiltCard className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
                 </div>
@@ -486,9 +1136,16 @@ export default function PlatformSuperAdminDashboard() {
                       {auditLogs.map((log) => (
                         <tr key={log._id}>
                           <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <img
+                                  src={getRandomAvatar(log.userId.email)}
+                                  alt={log.userId.name}
+                                  className="w-8 h-8 rounded-full mr-3"
+                                />
                             <div>
                               <div className="text-sm font-medium text-gray-900">{log.userId.name}</div>
                               <div className="text-sm text-gray-500">{log.userId.email}</div>
+                                </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{log.action}</td>
@@ -506,17 +1163,42 @@ export default function PlatformSuperAdminDashboard() {
                     </tbody>
                   </table>
                 </div>
-              </div>
-            </div>
+                </TiltCard>
+              </StaggerItem>
+            </StaggerContainer>
           )}
 
           {activeTab === 'system' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-900">System Settings</h2>
-              <div className="bg-white rounded-lg shadow p-6">
-                <p className="text-gray-600">System settings and configuration options will be available here.</p>
+            <StaggerContainer className="space-y-6">
+              <StaggerItem>
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  System Settings
+                </h2>
+              </StaggerItem>
+              <StaggerItem>
+                <TiltCard className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Platform Configuration</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium text-gray-900 mb-2">Security Settings</h4>
+                      <p className="text-sm text-gray-600">Configure authentication, password policies, and access controls.</p>
               </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium text-gray-900 mb-2">Email Configuration</h4>
+                      <p className="text-sm text-gray-600">Set up email templates, SMTP settings, and notification preferences.</p>
             </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium text-gray-900 mb-2">Backup & Recovery</h4>
+                      <p className="text-sm text-gray-600">Manage data backups, recovery procedures, and system maintenance.</p>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium text-gray-900 mb-2">API Management</h4>
+                      <p className="text-sm text-gray-600">Configure API endpoints, rate limiting, and third-party integrations.</p>
+                    </div>
+                  </div>
+                </TiltCard>
+              </StaggerItem>
+            </StaggerContainer>
           )}
         </div>
       </div>

@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 export interface ITeacher {
   _id: string;
   userId: string;
+  organizationId?: string;
   fullName: string;
   email: string;
   phoneNumber?: string;
@@ -32,6 +33,11 @@ const teacherSchema = new mongoose.Schema<ITeacher>({
     type: String, 
     required: true, 
     unique: true 
+  },
+  organizationId: {
+    type: String,
+    ref: 'Organization',
+    required: false
   },
   fullName: { 
     type: String, 

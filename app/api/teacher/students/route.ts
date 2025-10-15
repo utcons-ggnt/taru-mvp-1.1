@@ -144,17 +144,29 @@ export async function POST(request: NextRequest) {
 
     console.log('Validation passed, proceeding to create user and student records');
 
+    // Generate secure password
+    const generateSecurePassword = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+      let password = '';
+      for (let i = 0; i < 12; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+    };
+
+    const securePassword = generateSecurePassword();
+
     // Create new user
     const newUser = new User({
       name: fullName,
       email,
-      password: 'temp123', // Temporary password - should be changed on first login
+      password: securePassword,
       role: 'student',
       profile: {
         classGrade,
         schoolName: schoolName || 'Not specified'
       },
-      onboardingCompleted: false
+      firstTimeLogin: true // Mark for password change on first login
     });
 
     const savedUser = await newUser.save();
@@ -207,6 +219,7 @@ export async function POST(request: NextRequest) {
         userId: savedUser._id.toString(),
         fullName: savedUser.name,
         email: savedUser.email,
+        password: securePassword, // Include the generated password
         classGrade,
         schoolName: schoolName || 'Not specified',
         uniqueId: savedStudent.uniqueId,
@@ -225,16 +238,36 @@ export async function POST(request: NextRequest) {
     console.error('Error adding student:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     console.error('Error type:', typeof error);
+    console.error('Error message:', error instanceof Error ? error.message : 'No message');
+    
+    // Handle specific error types
+    let errorMessage = 'Failed to add student';
+    let statusCode = 500;
+    
+    if (error instanceof Error) {
+      if (error.message.includes('duplicate') || error.message.includes('E11000')) {
+        errorMessage = 'A student with this email already exists';
+        statusCode = 409;
+      } else if (error.message.includes('validation')) {
+        errorMessage = 'Invalid data provided: ' + error.message;
+        statusCode = 400;
+      } else if (error.message.includes('MongoDB') || error.message.includes('connection')) {
+        errorMessage = 'Database connection failed';
+        statusCode = 500;
+      } else {
+        errorMessage = error.message;
+      }
+    }
     
     // Ensure we always return JSON, never HTML
     try {
       return NextResponse.json(
         { 
-          error: 'Failed to add student', 
+          error: errorMessage,
           details: error instanceof Error ? error.message : 'Unknown error',
           type: typeof error
         },
-        { status: 500 }
+        { status: statusCode }
       );
     } catch (responseError) {
       console.error('Failed to create JSON response:', responseError);

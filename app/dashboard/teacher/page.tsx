@@ -64,6 +64,7 @@ interface StudentData {
   userId: string;
   fullName: string;
   email: string;
+  password?: string; // Include password for teacher-created accounts
   classGrade: string;
   schoolName: string;
   uniqueId: string;
@@ -246,6 +247,9 @@ export default function TeacherDashboard() {
   const [showAssignModuleForm, setShowAssignModuleForm] = useState(false);
   const [showCreateAssignmentForm, setShowCreateAssignmentForm] = useState(false);
   const [showBulkAssignForm, setShowBulkAssignForm] = useState(false);
+  const [showCredentialsModal, setShowCredentialsModal] = useState(false);
+  const [newStudentCredentials, setNewStudentCredentials] = useState<StudentData | null>(null);
+  const [allStudentCredentials, setAllStudentCredentials] = useState<StudentData[]>([]);
   
   // Additional state for real data
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -604,6 +608,12 @@ export default function TeacherDashboard() {
         setStudents(prev => [...prev, result.student]);
         setShowAddStudentForm(false);
         
+        // Show credentials modal if password is provided
+        if (result.student.password) {
+          setNewStudentCredentials(result.student);
+          setShowCredentialsModal(true);
+        }
+        
         // Add success notification
         const newNotification = {
           id: Date.now().toString(),
@@ -629,11 +639,12 @@ export default function TeacherDashboard() {
         console.error('Response status:', response.status);
         console.error('Response headers:', response.headers);
         
-        // Add error notification
+        // Add error notification with more specific error message
+        const errorMessage = error.error || error.details || 'Failed to add student. Please try again.';
         const errorNotification = {
           id: Date.now().toString(),
           title: 'Error Adding Student',
-          message: error.error || 'Failed to add student. Please try again.',
+          message: errorMessage,
           date: new Date().toISOString(),
           read: false,
           type: 'error' as const
@@ -648,11 +659,12 @@ export default function TeacherDashboard() {
         type: typeof error
       });
       
-      // Add error notification
+      // Add error notification with more specific error message
+      const errorMessage = error instanceof Error ? error.message : 'Network error. Please check your connection and try again.';
       const errorNotification = {
         id: Date.now().toString(),
         title: 'Error Adding Student',
-        message: 'Network error. Please check your connection and try again.',
+        message: errorMessage,
         date: new Date().toISOString(),
         read: false,
         type: 'error' as const
@@ -905,6 +917,160 @@ export default function TeacherDashboard() {
         const errorNotification = {
           id: Date.now().toString(),
           title: 'Error Removing Student',
+          message: 'Network error. Please check your connection and try again.',
+          date: new Date().toISOString(),
+          read: false,
+          type: 'error' as const
+        };
+        setNotifications(prev => [errorNotification, ...prev]);
+      }
+    }
+  };
+
+  const handleExportCredentials = async () => {
+    try {
+      const response = await fetch('/api/teacher/students/export-credentials');
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `student_credentials_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Add success notification
+        const newNotification = {
+          id: Date.now().toString(),
+          title: 'Credentials Exported',
+          message: 'Student credentials have been exported to CSV file.',
+          date: new Date().toISOString(),
+          read: false,
+          type: 'success' as const
+        };
+        setNotifications(prev => [newNotification, ...prev]);
+      } else {
+        throw new Error('Failed to export credentials');
+      }
+    } catch (error) {
+      console.error('Error exporting credentials:', error);
+      const errorNotification = {
+        id: Date.now().toString(),
+        title: 'Export Failed',
+        message: 'Failed to export student credentials. Please try again.',
+        date: new Date().toISOString(),
+        read: false,
+        type: 'error' as const
+      };
+      setNotifications(prev => [errorNotification, ...prev]);
+    }
+  };
+
+  const handleViewAllCredentials = async () => {
+    try {
+      const response = await fetch('/api/teacher/students/credentials');
+      
+      if (response.ok) {
+        const result = await response.json();
+        setAllStudentCredentials(result.credentials);
+        setNewStudentCredentials(null); // Clear single student credentials
+        setShowCredentialsModal(true);
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch credentials`);
+      }
+    } catch (error) {
+      console.error('Error fetching credentials:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch student credentials. Please try again.';
+      const errorNotification = {
+        id: Date.now().toString(),
+        title: 'Error',
+        message: errorMessage,
+        date: new Date().toISOString(),
+        read: false,
+        type: 'error' as const
+      };
+      setNotifications(prev => [errorNotification, ...prev]);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      const newNotification = {
+        id: Date.now().toString(),
+        title: 'Copied',
+        message: 'Text copied to clipboard',
+        date: new Date().toISOString(),
+        read: false,
+        type: 'success' as const
+      };
+      setNotifications(prev => [newNotification, ...prev]);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+  };
+
+  const handleResetPassword = async (studentId: string) => {
+    if (confirm('Are you sure you want to reset this student\'s password? They will need to use the new password to log in.')) {
+      try {
+        const response = await fetch('/api/teacher/students/reset-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ studentId }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          
+          // Update the student credentials in the modal
+          setAllStudentCredentials(prev => 
+            prev.map(student => 
+              student.id === studentId 
+                ? { ...student, password: result.student.newPassword }
+                : student
+            )
+          );
+
+          // Update the main students list
+          setStudents(prev => 
+            prev.map(student => 
+              student.id === studentId 
+                ? { ...student, password: result.student.newPassword }
+                : student
+            )
+          );
+
+          const newNotification = {
+            id: Date.now().toString(),
+            title: 'Password Reset',
+            message: `Password reset for ${result.student.fullName}. New password: ${result.student.newPassword}`,
+            date: new Date().toISOString(),
+            read: false,
+            type: 'success' as const
+          };
+          setNotifications(prev => [newNotification, ...prev]);
+        } else {
+          const error = await response.json();
+          const errorNotification = {
+            id: Date.now().toString(),
+            title: 'Reset Failed',
+            message: error.error || 'Failed to reset password. Please try again.',
+            date: new Date().toISOString(),
+            read: false,
+            type: 'error' as const
+          };
+          setNotifications(prev => [errorNotification, ...prev]);
+        }
+      } catch (error) {
+        console.error('Error resetting password:', error);
+        const errorNotification = {
+          id: Date.now().toString(),
+          title: 'Reset Failed',
           message: 'Network error. Please check your connection and try again.',
           date: new Date().toISOString(),
           read: false,
@@ -1269,13 +1435,22 @@ export default function TeacherDashboard() {
                       <TiltCard className="bg-white rounded-xl shadow-sm p-6 border border-gray-200/50">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                         <div className="space-y-3">
-                          <MagneticButton className="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 text-sm font-medium shadow-lg">
+                          <MagneticButton 
+                            onClick={() => setShowAddStudentForm(true)}
+                            className="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 text-sm font-medium shadow-lg"
+                          >
                             Add New Student
                           </MagneticButton>
-                          <MagneticButton className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 text-sm font-medium shadow-lg">
+                          <MagneticButton 
+                            onClick={() => setShowCreateAssignmentForm(true)}
+                            className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 text-sm font-medium shadow-lg"
+                          >
                             Create Assignment
                           </MagneticButton>
-                          <MagneticButton className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 text-sm font-medium shadow-lg">
+                          <MagneticButton 
+                            onClick={() => setActiveTab('analytics')}
+                            className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 text-sm font-medium shadow-lg"
+                          >
                             View Reports
                           </MagneticButton>
                         </div>
@@ -1352,6 +1527,26 @@ export default function TeacherDashboard() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
                       </svg>
                       <span>Bulk Import</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleViewAllCredentials}
+                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                      </svg>
+                      <span>View Credentials</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleExportCredentials}
+                      className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span>Export CSV</span>
                     </button>
                   </div>
                 </div>
@@ -2837,6 +3032,182 @@ export default function TeacherDashboard() {
                 </button>
               </div>
             </form>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
+
+      {/* Student Credentials Modal */}
+      <Dialog
+        open={showCredentialsModal}
+        onClose={() => {
+          setShowCredentialsModal(false);
+          setNewStudentCredentials(null);
+          setAllStudentCredentials([]);
+        }}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-4xl w-full rounded-2xl bg-white p-6 max-h-[90vh] overflow-y-auto">
+            <Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">
+              {newStudentCredentials ? 'New Student Credentials' : 'All Student Credentials'}
+            </Dialog.Title>
+            
+            {newStudentCredentials ? (
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h3 className="text-lg font-medium text-green-800 mb-3">Student Added Successfully!</h3>
+                  <p className="text-green-700 mb-4">Please share these credentials with the student:</p>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between bg-white rounded-lg p-3 border">
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Name:</label>
+                        <p className="text-gray-900">{newStudentCredentials.fullName}</p>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(newStudentCredentials.fullName)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between bg-white rounded-lg p-3 border">
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Email:</label>
+                        <p className="text-gray-900">{newStudentCredentials.email}</p>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(newStudentCredentials.email)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between bg-white rounded-lg p-3 border">
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Password:</label>
+                        <p className="text-gray-900 font-mono">{newStudentCredentials.password}</p>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(newStudentCredentials.password || '')}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between bg-white rounded-lg p-3 border">
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Student ID:</label>
+                        <p className="text-gray-900">{newStudentCredentials.uniqueId}</p>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(newStudentCredentials.uniqueId)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-yellow-800 text-sm">
+                      <strong>Important:</strong> The student should change their password on first login. 
+                      They can access the platform at the login page using these credentials.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <p className="text-gray-600">All student login credentials for your class</p>
+                  <button
+                    onClick={handleExportCredentials}
+                    className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Export CSV</span>
+                  </button>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {allStudentCredentials.map((student) => (
+                        <tr key={student.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {student.fullName}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {student.email}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                            {student.password}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {student.classGrade}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              student.onboardingCompleted 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {student.onboardingCompleted ? 'Active' : 'Pending'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => copyToClipboard(`${student.email}\n${student.password}`)}
+                                className="text-blue-600 hover:text-blue-900 hover:underline"
+                              >
+                                Copy
+                              </button>
+                              <button
+                                onClick={() => handleResetPassword(student.id)}
+                                className="text-red-600 hover:text-red-900 hover:underline"
+                              >
+                                Reset Password
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex justify-end pt-4">
+              <button
+                onClick={() => {
+                  setShowCredentialsModal(false);
+                  setNewStudentCredentials(null);
+                  setAllStudentCredentials([]);
+                }}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+              >
+                Close
+              </button>
+            </div>
           </Dialog.Panel>
         </div>
       </Dialog>

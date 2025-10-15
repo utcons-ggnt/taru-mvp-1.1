@@ -74,7 +74,8 @@ export async function GET(request: NextRequest) {
       learningModePreference: student.learningModePreference,
       interestsOutsideClass: student.interestsOutsideClass,
       preferredCareerDomains: student.preferredCareerDomains,
-      onboardingCompleted: student.onboardingCompleted
+      onboardingCompleted: student.onboardingCompleted,
+      interestAssessmentCompleted: student.interestAssessmentCompleted
     });
 
   } catch (error) {

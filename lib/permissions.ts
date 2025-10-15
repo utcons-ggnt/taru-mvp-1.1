@@ -45,7 +45,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'students', actions: ['read', 'export'] },
     { resource: 'reports', actions: ['read', 'export', 'generate'] },
     { resource: 'audit_logs', actions: ['read'] },
-    { resource: 'invitations', actions: ['create', 'read', 'manage'] }
+    { resource: 'invitations', actions: ['create', 'read', 'manage'] },
+    { resource: 'organization_users', actions: ['read', 'create', 'update', 'delete'] }
   ],
   
   admin: [
@@ -181,4 +182,86 @@ export function canAccessDashboard(role: UserRole, dashboardPath: string): boole
 
   const expectedRoute = getDashboardRoute(role);
   return dashboardPath === expectedRoute;
+}
+
+// Organization-level access control functions
+export function canAccessOrganizationData(
+  userRole: UserRole,
+  userOrganizationId: string | undefined,
+  targetOrganizationId: string | undefined
+): boolean {
+  // Platform Super Admin can access all organizations
+  if (userRole === 'platform_super_admin') {
+    return true;
+  }
+
+  // Organization admins can only access their own organization's data
+  if (userRole === 'organization') {
+    return userOrganizationId === targetOrganizationId;
+  }
+
+  // Teachers and students can only access their own organization's data
+  if (userRole === 'teacher' || userRole === 'student') {
+    return userOrganizationId === targetOrganizationId;
+  }
+
+  // Parents can access their child's organization data
+  if (userRole === 'parent') {
+    return userOrganizationId === targetOrganizationId;
+  }
+
+  // Regular admins can access all data (for backward compatibility)
+  if (userRole === 'admin') {
+    return true;
+  }
+
+  return false;
+}
+
+// Check if user can manage users within their organization
+export function canManageOrganizationUsers(
+  userRole: UserRole,
+  userOrganizationId: string | undefined,
+  targetUserOrganizationId: string | undefined
+): boolean {
+  // Platform Super Admin can manage all users
+  if (userRole === 'platform_super_admin') {
+    return true;
+  }
+
+  // Organization admins can manage users within their organization
+  if (userRole === 'organization') {
+    return userOrganizationId === targetUserOrganizationId;
+  }
+
+  // Regular admins can manage all users (for backward compatibility)
+  if (userRole === 'admin') {
+    return true;
+  }
+
+  return false;
+}
+
+// Check if user can create users within their organization
+export function canCreateOrganizationUsers(
+  userRole: UserRole,
+  userOrganizationId: string | undefined,
+  targetOrganizationId: string | undefined
+): boolean {
+  // Platform Super Admin can create users in any organization
+  if (userRole === 'platform_super_admin') {
+    return true;
+  }
+
+  // Organization admins can create users within their organization
+  if (userRole === 'organization') {
+    return userOrganizationId === targetOrganizationId;
+  }
+
+  // Regular admins can create users in any organization (for backward compatibility)
+  if (userRole === 'admin') {
+    return true;
+  }
+
+  return false;
 }

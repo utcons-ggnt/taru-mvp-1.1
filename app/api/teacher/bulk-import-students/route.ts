@@ -45,12 +45,22 @@ export async function POST(request: NextRequest) {
       total: students.length
     };
 
+    // Generate secure password function
+    const generateSecurePassword = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+      let password = '';
+      for (let i = 0; i < 12; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+    };
+
     for (let i = 0; i < students.length; i++) {
       const studentData = students[i];
       
       try {
-        // Validate required fields
-        const requiredFields = ['fullName', 'dateOfBirth', 'gender', 'classGrade', 'schoolName'];
+        // Validate required fields - now including email
+        const requiredFields = ['fullName', 'email', 'dateOfBirth', 'gender', 'classGrade', 'schoolName'];
         const missingFields = requiredFields.filter(field => !studentData[field]);
         
         if (missingFields.length > 0) {
@@ -58,6 +68,17 @@ export async function POST(request: NextRequest) {
             index: i,
             fullName: studentData.fullName || 'Unknown',
             error: `Missing required fields: ${missingFields.join(', ')}`
+          });
+          continue;
+        }
+
+        // Check if user already exists
+        const existingUser = await User.findOne({ email: studentData.email });
+        if (existingUser) {
+          results.failed.push({
+            index: i,
+            fullName: studentData.fullName,
+            error: 'User with this email already exists'
           });
           continue;
         }
@@ -78,9 +99,28 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
+        // Generate secure password
+        const securePassword = generateSecurePassword();
+
+        // Create new user
+        const newUser = new User({
+          name: studentData.fullName,
+          email: studentData.email,
+          password: securePassword,
+          role: 'student',
+          profile: {
+            classGrade: studentData.classGrade,
+            schoolName: studentData.schoolName || 'Not specified'
+          },
+          onboardingCompleted: false,
+          firstTimeLogin: true
+        });
+
+        const savedUser = await newUser.save();
+
         // Create new student record
         const newStudent = new Student({
-          userId: user._id.toString(),
+          userId: savedUser._id,
           teacherId: user._id.toString(),
           fullName: studentData.fullName,
           nickname: studentData.nickname || studentData.fullName.split(' ')[0],
@@ -98,7 +138,7 @@ export async function POST(request: NextRequest) {
           guardian: studentData.guardian || {
             name: 'Guardian Name',
             contactNumber: '0000000000',
-            email: 'guardian@email.com'
+            email: studentData.email
           },
           location: studentData.location || 'Not specified',
           consentForDataUsage: studentData.consentForDataUsage || false,
@@ -118,6 +158,8 @@ export async function POST(request: NextRequest) {
         results.successful.push({
           index: i,
           fullName: studentData.fullName,
+          email: studentData.email,
+          password: securePassword,
           uniqueId: newStudent.uniqueId,
           id: newStudent._id.toString()
         });

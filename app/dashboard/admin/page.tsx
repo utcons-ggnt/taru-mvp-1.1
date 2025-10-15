@@ -15,6 +15,1187 @@ import { ScrollFade, ScrollCounter, ParallaxScroll, ScrollProgress } from '../..
 import { FloatingParticles, MorphingBlob } from '../../components/VantaBackground';
 import ConsistentLoadingPage from '../../components/ConsistentLoadingPage';
 
+// User Management Interface Component
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  organizationId?: string;
+  isIndependent?: boolean;
+  createdAt: string;
+  isActive?: boolean;
+  studentProfile?: {
+    fullName: string;
+    classGrade: string;
+    schoolName: string;
+    uniqueId: string;
+    onboardingCompleted: boolean;
+  };
+  parentProfile?: {
+    fullName: string;
+    linkedStudentId: string;
+    onboardingCompleted: boolean;
+  };
+  progress?: {
+    totalModulesCompleted: number;
+    totalXpEarned: number;
+    learningStreak: number;
+    badgesEarned: number;
+  };
+}
+
+interface UserManagementState {
+  users: User[];
+  loading: boolean;
+  searchTerm: string;
+  roleFilter: string;
+  currentPage: number;
+  totalPages: number;
+  selectedUsers: string[];
+  showCreateModal: boolean;
+  showEditModal: boolean;
+  editingUser: User | null;
+  showBulkActions: boolean;
+}
+
+function UserManagementInterface({ onTabChange }: { onTabChange: (tab: string) => void }) {
+  const [state, setState] = useState<UserManagementState>({
+    users: [],
+    loading: true,
+    searchTerm: '',
+    roleFilter: 'all',
+    currentPage: 1,
+    totalPages: 1,
+    selectedUsers: [],
+    showCreateModal: false,
+    showEditModal: false,
+    editingUser: null,
+    showBulkActions: false
+  });
+
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    role: 'student',
+    password: '',
+    classGrade: '',
+    schoolName: '',
+    organizationId: ''
+  });
+
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    roleBreakdown: {} as Record<string, number>
+  });
+
+  // Fetch users data
+  const fetchUsers = useCallback(async () => {
+    setState(prev => ({ ...prev, loading: true }));
+    try {
+      const params = new URLSearchParams({
+        page: state.currentPage.toString(),
+        limit: '10',
+        ...(state.roleFilter !== 'all' && { role: state.roleFilter })
+      });
+
+      const response = await fetch(`/api/admin/users?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        setState(prev => ({
+          ...prev,
+          users: data.users,
+          totalPages: data.pagination.pages,
+          loading: false
+        }));
+        setStats({
+          totalUsers: data.statistics.totalUsers,
+          roleBreakdown: data.statistics.roleBreakdown
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setState(prev => ({ ...prev, loading: false }));
+    }
+  }, [state.currentPage, state.roleFilter]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // Handle user actions
+  const handleUserAction = async (userId: string, action: string, data?: any) => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action, data })
+      });
+
+      if (response.ok) {
+        await fetchUsers(); // Refresh the list
+        return true;
+      }
+    } catch (error) {
+      console.error('Error performing user action:', error);
+    }
+    return false;
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      try {
+        const response = await fetch(`/api/admin/users?userId=${userId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          await fetchUsers();
+        }
+      } catch (error) {
+        console.error('Error deleting user:', error);
+      }
+    }
+  };
+
+  const handleCreateUser = async () => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser)
+      });
+
+      if (response.ok) {
+        setState(prev => ({ ...prev, showCreateModal: false }));
+        setNewUser({ name: '', email: '', role: 'student', password: '', classGrade: '', schoolName: '', organizationId: '' });
+        await fetchUsers();
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+    }
+  };
+
+  const filteredUsers = state.users.filter(user => 
+    user.name.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(state.searchTerm.toLowerCase())
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="space-y-6"
+    >
+      {/* Header Section */}
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+            <p className="text-gray-600 mt-1">Manage all users across the platform</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setState(prev => ({ ...prev, showBulkActions: !prev.showBulkActions }))}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Bulk Actions
+            </button>
+            <button
+              onClick={() => onTabChange('users')}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Add New User
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+            <div className="text-2xl font-bold text-blue-600">{stats.totalUsers}</div>
+            <div className="text-sm text-blue-700">Total Users</div>
+          </div>
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+            <div className="text-2xl font-bold text-green-600">{stats.roleBreakdown.student || 0}</div>
+            <div className="text-sm text-green-700">Students</div>
+          </div>
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+            <div className="text-2xl font-bold text-purple-600">{stats.roleBreakdown.teacher || 0}</div>
+            <div className="text-sm text-purple-700">Teachers</div>
+          </div>
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+            <div className="text-2xl font-bold text-orange-600">{stats.roleBreakdown.parent || 0}</div>
+            <div className="text-sm text-orange-700">Parents</div>
+          </div>
+        </div>
+
+        {/* Filters and Search */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Search users by name or email..."
+              value={state.searchTerm}
+              onChange={(e) => setState(prev => ({ ...prev, searchTerm: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+          </div>
+          <select
+            value={state.roleFilter}
+            onChange={(e) => setState(prev => ({ ...prev, roleFilter: e.target.value, currentPage: 1 }))}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          >
+            <option value="all">All Roles</option>
+            <option value="student">Students</option>
+            <option value="teacher">Teachers</option>
+            <option value="parent">Parents</option>
+            <option value="admin">Admins</option>
+          </select>
+        </div>
+
+        {/* Bulk Actions */}
+        {state.showBulkActions && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200"
+          >
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-gray-700">
+                {state.selectedUsers.length} users selected
+              </span>
+              <div className="flex gap-2">
+                <button className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+                  Export
+                </button>
+                <button className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">
+                  Activate
+                </button>
+                <button className="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">
+                  Deactivate
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Users Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {state.loading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+            <p className="text-gray-500 mt-2">Loading users...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300"
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setState(prev => ({ ...prev, selectedUsers: filteredUsers.map(u => u._id) }));
+                        } else {
+                          setState(prev => ({ ...prev, selectedUsers: [] }));
+                        }
+                      }}
+                    />
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredUsers.map((user) => (
+                  <tr key={user._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300"
+                        checked={state.selectedUsers.includes(user._id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setState(prev => ({ ...prev, selectedUsers: [...prev.selectedUsers, user._id] }));
+                          } else {
+                            setState(prev => ({ ...prev, selectedUsers: prev.selectedUsers.filter(id => id !== user._id) }));
+                          }
+                        }}
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium">
+                          {user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                          <div className="text-sm text-gray-500">{user.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        user.role === 'student' ? 'bg-blue-100 text-blue-800' :
+                        user.role === 'teacher' ? 'bg-purple-100 text-purple-800' :
+                        user.role === 'parent' ? 'bg-orange-100 text-orange-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        user.organizationId ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {user.organizationId ? 'Organization' : 'Independent'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        user.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {user.isActive !== false ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {user.progress ? (
+                        <div>
+                          <div>{user.progress.totalModulesCompleted} modules</div>
+                          <div className="text-xs text-gray-500">{user.progress.totalXpEarned} XP</div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setState(prev => ({ ...prev, showEditModal: true, editingUser: user }))}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleUserAction(user._id, user.isActive !== false ? 'deactivate' : 'activate')}
+                          className="text-green-600 hover:text-green-900"
+                        >
+                          {user.isActive !== false ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user._id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {state.totalPages > 1 && (
+          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => setState(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))}
+                disabled={state.currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setState(prev => ({ ...prev, currentPage: Math.min(prev.totalPages, prev.currentPage + 1) }))}
+                disabled={state.currentPage === state.totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Showing page <span className="font-medium">{state.currentPage}</span> of{' '}
+                  <span className="font-medium">{state.totalPages}</span>
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                  <button
+                    onClick={() => setState(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))}
+                    disabled={state.currentPage === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setState(prev => ({ ...prev, currentPage: Math.min(prev.totalPages, prev.currentPage + 1) }))}
+                    disabled={state.currentPage === state.totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Create User Modal */}
+      {state.showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Create New User</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={newUser.name}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="student">Student</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="parent">Parent</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Organization</label>
+                <select
+                  value={newUser.organizationId}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, organizationId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="">Independent User</option>
+                  {/* Organization options would be loaded from API */}
+                </select>
+              </div>
+              {newUser.role === 'student' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Class Grade</label>
+                    <input
+                      type="text"
+                      value={newUser.classGrade}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, classGrade: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">School Name</label>
+                    <input
+                      type="text"
+                      value={newUser.schoolName}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, schoolName: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex gap-3">
+              <button
+                onClick={() => setState(prev => ({ ...prev, showCreateModal: false }))}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateUser}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Create User
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// Module Management Interface Component
+interface Module {
+  _id: string;
+  moduleId: string;
+  title: string;
+  subject: string;
+  grade: string;
+  difficulty: string;
+  duration: number;
+  points: number;
+  description: string;
+  content: string;
+  learningObjectives: string[];
+  prerequisites: string[];
+  tags: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  completionStats?: {
+    totalAttempts: number;
+    completedAttempts: number;
+    completionRate: number;
+    avgScore: number;
+  };
+}
+
+interface ModuleManagementState {
+  modules: Module[];
+  loading: boolean;
+  searchTerm: string;
+  subjectFilter: string;
+  gradeFilter: string;
+  difficultyFilter: string;
+  statusFilter: string;
+  currentPage: number;
+  totalPages: number;
+  selectedModules: string[];
+  showCreateModal: boolean;
+  showEditModal: boolean;
+  editingModule: Module | null;
+  showBulkActions: boolean;
+}
+
+function ModuleManagementInterface() {
+  const [state, setState] = useState<ModuleManagementState>({
+    modules: [],
+    loading: true,
+    searchTerm: '',
+    subjectFilter: 'all',
+    gradeFilter: 'all',
+    difficultyFilter: 'all',
+    statusFilter: 'all',
+    currentPage: 1,
+    totalPages: 1,
+    selectedModules: [],
+    showCreateModal: false,
+    showEditModal: false,
+    editingModule: null,
+    showBulkActions: false
+  });
+
+  const [newModule, setNewModule] = useState({
+    title: '',
+    subject: '',
+    grade: '',
+    difficulty: '',
+    duration: 30,
+    points: 100,
+    description: '',
+    content: '',
+    learningObjectives: [] as string[],
+    prerequisites: [] as string[],
+    tags: [] as string[],
+    isActive: true
+  });
+
+  const [stats, setStats] = useState({
+    totalModules: 0,
+    activeModules: 0,
+    totalPoints: 0,
+    avgDuration: 0,
+    subjectBreakdown: {} as Record<string, number>,
+    gradeBreakdown: {} as Record<string, number>,
+    difficultyBreakdown: {} as Record<string, number>
+  });
+
+  // Fetch modules data
+  const fetchModules = useCallback(async () => {
+    setState(prev => ({ ...prev, loading: true }));
+    try {
+      const params = new URLSearchParams({
+        page: state.currentPage.toString(),
+        limit: '10',
+        ...(state.subjectFilter !== 'all' && { subject: state.subjectFilter }),
+        ...(state.gradeFilter !== 'all' && { grade: state.gradeFilter }),
+        ...(state.difficultyFilter !== 'all' && { difficulty: state.difficultyFilter }),
+        ...(state.statusFilter !== 'all' && { status: state.statusFilter })
+      });
+
+      const response = await fetch(`/api/admin/modules?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        setState(prev => ({
+          ...prev,
+          modules: data.modules,
+          totalPages: data.pagination.pages,
+          loading: false
+        }));
+        setStats({
+          totalModules: data.statistics.totalModules,
+          activeModules: data.statistics.activeModules,
+          totalPoints: data.statistics.totalPoints,
+          avgDuration: data.statistics.avgDuration,
+          subjectBreakdown: data.statistics.subjectBreakdown,
+          gradeBreakdown: data.statistics.gradeBreakdown,
+          difficultyBreakdown: data.statistics.difficultyBreakdown
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching modules:', error);
+      setState(prev => ({ ...prev, loading: false }));
+    }
+  }, [state.currentPage, state.subjectFilter, state.gradeFilter, state.difficultyFilter, state.statusFilter]);
+
+  useEffect(() => {
+    fetchModules();
+  }, [fetchModules]);
+
+  // Handle module actions
+  const handleModuleAction = async (moduleId: string, action: string, data?: any) => {
+    try {
+      const response = await fetch('/api/admin/modules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moduleId, action, data })
+      });
+
+      if (response.ok) {
+        await fetchModules(); // Refresh the list
+        return true;
+      }
+    } catch (error) {
+      console.error('Error performing module action:', error);
+    }
+    return false;
+  };
+
+  const handleDeleteModule = async (moduleId: string) => {
+    if (confirm('Are you sure you want to delete this module? This action cannot be undone.')) {
+      try {
+        const response = await fetch(`/api/admin/modules?moduleId=${moduleId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          await fetchModules();
+        }
+      } catch (error) {
+        console.error('Error deleting module:', error);
+      }
+    }
+  };
+
+  const handleCreateModule = async () => {
+    try {
+      const response = await fetch('/api/admin/modules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newModule)
+      });
+
+      if (response.ok) {
+        setState(prev => ({ ...prev, showCreateModal: false }));
+        setNewModule({
+          title: '',
+          subject: '',
+          grade: '',
+          difficulty: '',
+          duration: 30,
+          points: 100,
+          description: '',
+          content: '',
+          learningObjectives: [],
+          prerequisites: [],
+          tags: [],
+          isActive: true
+        });
+        await fetchModules();
+      }
+    } catch (error) {
+      console.error('Error creating module:', error);
+    }
+  };
+
+  const filteredModules = state.modules.filter(module => 
+    module.title.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
+    module.description.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
+    module.subject.toLowerCase().includes(state.searchTerm.toLowerCase())
+  );
+
+  const subjects = ['Mathematics', 'Science', 'English', 'History', 'Geography', 'Computer Science', 'Art', 'Music', 'Physical Education'];
+  const grades = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'];
+  const difficulties = ['Beginner', 'Intermediate', 'Advanced', 'Expert'];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="space-y-6"
+    >
+      {/* Header Section */}
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Module Management</h2>
+            <p className="text-gray-600 mt-1">Create, edit, and manage learning modules</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setState(prev => ({ ...prev, showBulkActions: !prev.showBulkActions }))}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Bulk Actions
+            </button>
+            <button
+              onClick={() => setState(prev => ({ ...prev, showCreateModal: true }))}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Create Module
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+            <div className="text-2xl font-bold text-blue-600">{stats.totalModules}</div>
+            <div className="text-sm text-blue-700">Total Modules</div>
+          </div>
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+            <div className="text-2xl font-bold text-green-600">{stats.activeModules}</div>
+            <div className="text-sm text-green-700">Active Modules</div>
+          </div>
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+            <div className="text-2xl font-bold text-purple-600">{stats.totalPoints}</div>
+            <div className="text-sm text-purple-700">Total Points</div>
+          </div>
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+            <div className="text-2xl font-bold text-orange-600">{Math.round(stats.avgDuration)}</div>
+            <div className="text-sm text-orange-700">Avg Duration (min)</div>
+          </div>
+        </div>
+
+        {/* Filters and Search */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <div className="md:col-span-2">
+            <input
+              type="text"
+              placeholder="Search modules by title, description, or subject..."
+              value={state.searchTerm}
+              onChange={(e) => setState(prev => ({ ...prev, searchTerm: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+          </div>
+          <select
+            value={state.subjectFilter}
+            onChange={(e) => setState(prev => ({ ...prev, subjectFilter: e.target.value, currentPage: 1 }))}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          >
+            <option value="all">All Subjects</option>
+            {subjects.map(subject => (
+              <option key={subject} value={subject}>{subject}</option>
+            ))}
+          </select>
+          <select
+            value={state.gradeFilter}
+            onChange={(e) => setState(prev => ({ ...prev, gradeFilter: e.target.value, currentPage: 1 }))}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          >
+            <option value="all">All Grades</option>
+            {grades.map(grade => (
+              <option key={grade} value={grade}>{grade}</option>
+            ))}
+          </select>
+          <select
+            value={state.difficultyFilter}
+            onChange={(e) => setState(prev => ({ ...prev, difficultyFilter: e.target.value, currentPage: 1 }))}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          >
+            <option value="all">All Levels</option>
+            {difficulties.map(difficulty => (
+              <option key={difficulty} value={difficulty}>{difficulty}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Bulk Actions */}
+        {state.showBulkActions && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200"
+          >
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-gray-700">
+                {state.selectedModules.length} modules selected
+              </span>
+              <div className="flex gap-2">
+                <button className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+                  Export
+                </button>
+                <button className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">
+                  Activate
+                </button>
+                <button className="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">
+                  Deactivate
+                </button>
+                <button className="px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200">
+                  Duplicate
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Modules Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {state.loading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+            <p className="text-gray-500 mt-2">Loading modules...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300"
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setState(prev => ({ ...prev, selectedModules: filteredModules.map(m => m._id) }));
+                        } else {
+                          setState(prev => ({ ...prev, selectedModules: [] }));
+                        }
+                      }}
+                    />
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Module</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Difficulty</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Performance</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredModules.map((module) => (
+                  <tr key={module._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300"
+                        checked={state.selectedModules.includes(module._id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setState(prev => ({ ...prev, selectedModules: [...prev.selectedModules, module._id] }));
+                          } else {
+                            setState(prev => ({ ...prev, selectedModules: prev.selectedModules.filter(id => id !== module._id) }));
+                          }
+                        }}
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{module.title}</div>
+                        <div className="text-sm text-gray-500">{module.points} points • {module.duration} min</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {module.subject}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {module.grade}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        module.difficulty === 'Beginner' ? 'bg-green-100 text-green-800' :
+                        module.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                        module.difficulty === 'Advanced' ? 'bg-orange-100 text-orange-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {module.difficulty}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        module.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {module.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {module.completionStats ? (
+                        <div>
+                          <div>{module.completionStats.completionRate}% completion</div>
+                          <div className="text-xs text-gray-500">{module.completionStats.totalAttempts} attempts</div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">No data</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setState(prev => ({ ...prev, showEditModal: true, editingModule: module }))}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleModuleAction(module.moduleId, module.isActive ? 'deactivate' : 'activate')}
+                          className="text-green-600 hover:text-green-900"
+                        >
+                          {module.isActive ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button
+                          onClick={() => handleModuleAction(module.moduleId, 'duplicate')}
+                          className="text-purple-600 hover:text-purple-900"
+                        >
+                          Duplicate
+                        </button>
+                        <button
+                          onClick={() => handleDeleteModule(module.moduleId)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {state.totalPages > 1 && (
+          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => setState(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))}
+                disabled={state.currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setState(prev => ({ ...prev, currentPage: Math.min(prev.totalPages, prev.currentPage + 1) }))}
+                disabled={state.currentPage === state.totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Showing page <span className="font-medium">{state.currentPage}</span> of{' '}
+                  <span className="font-medium">{state.totalPages}</span>
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                  <button
+                    onClick={() => setState(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))}
+                    disabled={state.currentPage === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setState(prev => ({ ...prev, currentPage: Math.min(prev.totalPages, prev.currentPage + 1) }))}
+                    disabled={state.currentPage === state.totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Create Module Modal */}
+      {state.showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Create New Module</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={newModule.title}
+                    onChange={(e) => setNewModule(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                  <select
+                    value={newModule.subject}
+                    onChange={(e) => setNewModule(prev => ({ ...prev, subject: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">Select Subject</option>
+                    {subjects.map(subject => (
+                      <option key={subject} value={subject}>{subject}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Grade</label>
+                  <select
+                    value={newModule.grade}
+                    onChange={(e) => setNewModule(prev => ({ ...prev, grade: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">Select Grade</option>
+                    {grades.map(grade => (
+                      <option key={grade} value={grade}>{grade}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
+                  <select
+                    value={newModule.difficulty}
+                    onChange={(e) => setNewModule(prev => ({ ...prev, difficulty: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">Select Difficulty</option>
+                    {difficulties.map(difficulty => (
+                      <option key={difficulty} value={difficulty}>{difficulty}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
+                  <input
+                    type="number"
+                    value={newModule.duration}
+                    onChange={(e) => setNewModule(prev => ({ ...prev, duration: parseInt(e.target.value) || 30 }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
+                  <input
+                    type="number"
+                    value={newModule.points}
+                    onChange={(e) => setNewModule(prev => ({ ...prev, points: parseInt(e.target.value) || 100 }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={newModule.description}
+                  onChange={(e) => setNewModule(prev => ({ ...prev, description: e.target.value }))}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                <textarea
+                  value={newModule.content}
+                  onChange={(e) => setNewModule(prev => ({ ...prev, content: e.target.value }))}
+                  rows={6}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Enter the module content here..."
+                />
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={newModule.isActive}
+                  onChange={(e) => setNewModule(prev => ({ ...prev, isActive: e.target.checked }))}
+                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                />
+                <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+                  Active (available to students)
+                </label>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex gap-3">
+              <button
+                onClick={() => setState(prev => ({ ...prev, showCreateModal: false }))}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateModule}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Create Module
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 // Add custom hook for responsive behavior
 function useWindowSize() {
   const [windowSize, setWindowSize] = useState({
@@ -44,6 +1225,7 @@ interface AdminProfile {
   name: string;
   email: string;
   role: string;
+  organizationId?: string;
   _id?: string;
   avatar?: string;
 }
@@ -90,10 +1272,6 @@ export default function AdminDashboard() {
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [organizationType, setOrganizationType] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [language, setLanguage] = useState('English (USA)');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -134,7 +1312,7 @@ export default function AdminDashboard() {
         const response = await fetch('/api/auth/me');
         if (response.ok) {
           const userData = await response.json();
-          if (userData.user.role !== 'admin') {
+          if (userData.user.role !== 'admin' && userData.user.role !== 'organization' && userData.user.role !== 'platform_super_admin') {
             router.push('/login');
             return;
           }
@@ -142,9 +1320,6 @@ export default function AdminDashboard() {
           // Show onboarding if profile is incomplete
           if (!userData.user.profile?.organizationType || !userData.user.profile?.contactEmail) {
             setShowOnboarding(true);
-            setOrganizationType(userData.user.profile?.organizationType || '');
-            setContactEmail(userData.user.profile?.contactEmail || '');
-            setContactPhone(userData.user.profile?.contactPhone || '');
           } else {
             // Fetch dashboard statistics
             try {
@@ -171,26 +1346,9 @@ export default function AdminDashboard() {
     fetchUserAndStats();
   }, [router]);
 
-  const handleProfileSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const response = await fetch('/api/user/preferences', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          organizationType,
-          contactEmail,
-          contactPhone
-        })
-      });
-      if (response.ok) {
-        setShowOnboarding(false);
-        window.location.reload();
-      }
-    } finally {
-      setSaving(false);
-    }
+  const handleCompleteOnboarding = () => {
+    // Redirect to organization onboarding page
+    router.push('/organization-onboarding');
   };
 
   const handleLogout = async () => {
@@ -697,6 +1855,49 @@ export default function AdminDashboard() {
                                 cursor={false}
                               />
                             </motion.div>
+                            
+                            {/* Organization Information */}
+                            {user.role === 'organization' && user.organizationId && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5, duration: 0.6 }}
+                                className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm font-medium text-blue-900">Organization Admin</div>
+                                    <div className="text-xs text-blue-700">Managing users within your organization</div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                            
+                            {user.role === 'platform_super_admin' && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5, duration: 0.6 }}
+                                className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                    </svg>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm font-medium text-purple-900">Platform Super Admin</div>
+                                    <div className="text-xs text-purple-700">Full access to all organizations and users</div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
                           </div>
                         </motion.div>
                         
@@ -797,13 +1998,34 @@ export default function AdminDashboard() {
                     <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                       <div className="space-y-3">
-                        <button className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
+                        <button 
+                          onClick={() => setActiveTab('users')}
+                          className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                        >
                           Add New User
                         </button>
-                        <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                        <button 
+                          onClick={() => setActiveTab('content')}
+                          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                        >
                           Create Module
                         </button>
-                        <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
+                        <button 
+                          onClick={async () => {
+                            try {
+                              const response = await fetch('/api/admin/clear-cache', { method: 'POST' });
+                              if (response.ok) {
+                                alert('System cache cleared successfully!');
+                              } else {
+                                alert('Failed to clear system cache');
+                              }
+                            } catch (error) {
+                              console.error('Error clearing cache:', error);
+                              alert('Error clearing system cache');
+                            }
+                          }}
+                          className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                        >
                           System Backup
                         </button>
                       </div>
@@ -851,15 +2073,7 @@ export default function AdminDashboard() {
               )}
               
               {activeTab === 'users' && (
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Manage Users</h2>
-                  <div className="text-center text-gray-500 py-8">
-                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                    </svg>
-                    <p>User management interface coming soon...</p>
-                  </div>
-                </div>
+                <UserManagementInterface onTabChange={setActiveTab} />
               )}
               
               {activeTab === 'content' && (
@@ -973,66 +2187,36 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <Dialog.Panel className="mx-auto max-w-md rounded-2xl bg-white p-6">
             <Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">
-              Complete Your Profile
+              Complete Your Organization Profile
             </Dialog.Title>
             
-            <form onSubmit={handleProfileSave} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Organization Type
-                </label>
-                <select
-                  value={organizationType}
-                  onChange={(e) => setOrganizationType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  required
-                >
-                  <option value="">Select Organization Type</option>
-                  <option value="school">School</option>
-                  <option value="college">College</option>
-                  <option value="university">University</option>
-                  <option value="training">Training Institute</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Contact Email
-                </label>
-                <input
-                  type="email"
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Enter contact email"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Contact Phone
-                </label>
-                <input
-                  type="tel"
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Enter contact phone"
-                />
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <p className="text-gray-600 mb-6">
+                  To get started, please complete your organization profile with detailed information about your institution.
+                </p>
               </div>
               
               <div className="flex gap-3 pt-4">
-        <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                <button
+                  onClick={handleCompleteOnboarding}
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
                 >
-                  {saving ? 'Saving...' : 'Save Profile'}
-        </button>
+                  Complete Profile
+                </button>
+                <button
+                  onClick={() => setShowOnboarding(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+                >
+                  Skip for Now
+                </button>
               </div>
-            </form>
+            </div>
           </Dialog.Panel>
         </div>
       </Dialog>
@@ -1084,7 +2268,9 @@ export default function AdminDashboard() {
                       {user.name}
                     </span>
                     <span className="text-xs text-gray-600">
-                      Admin
+                      {user.role === 'platform_super_admin' ? 'Platform Super Admin' : 
+                       user.role === 'organization' ? 'Organization Admin' : 
+                       user.role === 'admin' ? 'Admin' : user.role}
                     </span>
                   </div>
                 </div>

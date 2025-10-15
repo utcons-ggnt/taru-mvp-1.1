@@ -187,7 +187,7 @@ async function cleanupAndReseed() {
       });
       studentUsers.push(user);
       
-      const student =       // Generate real unique student ID using centralized generator
+      // Generate real unique student ID using centralized generator
       const { StudentKeyGenerator } = require('../lib/studentKeyGenerator');
       const realUniqueId = StudentKeyGenerator.generateDeterministic(user._id.toString(), s.fullName);
       

@@ -5,6 +5,8 @@ import User from '@/models/User';
 import Student from '@/models/Student';
 import Parent from '@/models/Parent';
 import StudentProgress from '@/models/StudentProgress';
+import Organization from '@/models/Organization';
+import { canAccessOrganizationData, canManageOrganizationUsers, canCreateOrganizationUsers } from '@/lib/permissions';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -39,9 +41,9 @@ export async function GET(request: NextRequest) {
     // Connect to database
     await connectDB();
 
-    // Get user and verify they are an admin
+    // Get user and verify they are an admin, organization, or platform super admin
     const user = await User.findById(decoded.userId);
-    if (!user || user.role !== 'admin') {
+    if (!user || (user.role !== 'admin' && user.role !== 'organization' && user.role !== 'platform_super_admin')) {
       return NextResponse.json(
         { error: 'Only administrators can access this endpoint' },
         { status: 403 }
@@ -54,10 +56,22 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
 
-    // Build query
+    // Build query with organization-level filtering
     const query: Record<string, unknown> = {};
     if (role && role !== 'all') {
       query.role = role;
+    }
+
+    // Apply organization-level filtering
+    if (user.role === 'organization') {
+      // Organization admins can only see users from their organization
+      query.organizationId = user.organizationId;
+    } else if (user.role === 'platform_super_admin') {
+      // Platform Super Admin can see all users
+      // No additional filtering needed
+    } else if (user.role === 'admin') {
+      // Regular admin can see all users (for backward compatibility)
+      // No additional filtering needed
     }
 
     // Get users
@@ -170,9 +184,9 @@ export async function PUT(request: NextRequest) {
     // Connect to database
     await connectDB();
 
-    // Get user and verify they are an admin
+    // Get user and verify they are an admin, organization, or platform super admin
     const user = await User.findById(decoded.userId);
-    if (!user || user.role !== 'admin') {
+    if (!user || (user.role !== 'admin' && user.role !== 'organization' && user.role !== 'platform_super_admin')) {
       return NextResponse.json(
         { error: 'Only administrators can modify users' },
         { status: 403 }
@@ -193,6 +207,14 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
+      );
+    }
+
+    // Check if user can manage this target user based on organization boundaries
+    if (!canManageOrganizationUsers(user.role, user.organizationId, targetUser.organizationId)) {
+      return NextResponse.json(
+        { error: 'You can only manage users within your organization' },
+        { status: 403 }
       );
     }
 
@@ -255,6 +277,122 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+export async function POST(request: NextRequest) {
+  try {
+    // Get token from HTTP-only cookie
+    const token = request.cookies.get('auth-token')?.value;
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authorization token required' },
+        { status: 401 }
+      );
+    }
+
+    // Verify token
+    let decoded: DecodedToken;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid token' },
+        { status: 401 }
+      );
+    }
+
+    // Connect to database
+    await connectDB();
+
+    // Get user and verify they are an admin, organization, or platform super admin
+    const user = await User.findById(decoded.userId);
+    if (!user || (user.role !== 'admin' && user.role !== 'organization' && user.role !== 'platform_super_admin')) {
+      return NextResponse.json(
+        { error: 'Only administrators can create users' },
+        { status: 403 }
+      );
+    }
+
+    const { name, email, role, password, classGrade, schoolName, organizationId } = await request.json();
+
+    // Validate required fields
+    if (!name || !email || !role || !password) {
+      return NextResponse.json(
+        { error: 'Name, email, role, and password are required' },
+        { status: 400 }
+      );
+    }
+
+    // Determine target organization ID
+    let targetOrganizationId = organizationId;
+    if (user.role === 'organization') {
+      // Organization admins can only create users within their organization
+      targetOrganizationId = user.organizationId;
+    }
+
+    // Check if user can create users in the target organization
+    if (!canCreateOrganizationUsers(user.role, user.organizationId, targetOrganizationId)) {
+      return NextResponse.json(
+        { error: 'You can only create users within your organization' },
+        { status: 403 }
+      );
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'User with this email already exists' },
+        { status: 400 }
+      );
+    }
+
+    // Create new user
+    const newUser = new User({
+      name,
+      email,
+      role,
+      password, // In production, this should be hashed
+      organizationId: targetOrganizationId,
+      isIndependent: !targetOrganizationId // Independent if no organization
+    });
+
+    await newUser.save();
+
+    // Create role-specific profile if needed
+    if (role === 'student' && classGrade && schoolName) {
+      const student = new Student({
+        userId: newUser._id.toString(),
+        organizationId: targetOrganizationId,
+        fullName: name,
+        classGrade,
+        schoolName,
+        uniqueId: `STU${Date.now()}`, // Generate unique ID
+        onboardingCompleted: false
+      });
+      await student.save();
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'User created successfully',
+      user: {
+        _id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        isActive: newUser.isActive,
+        createdAt: newUser.createdAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Admin user creation error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     // Get token from HTTP-only cookie
@@ -280,9 +418,9 @@ export async function DELETE(request: NextRequest) {
     // Connect to database
     await connectDB();
 
-    // Get user and verify they are an admin
+    // Get user and verify they are an admin, organization, or platform super admin
     const user = await User.findById(decoded.userId);
-    if (!user || user.role !== 'admin') {
+    if (!user || (user.role !== 'admin' && user.role !== 'organization' && user.role !== 'platform_super_admin')) {
       return NextResponse.json(
         { error: 'Only administrators can delete users' },
         { status: 403 }
@@ -312,6 +450,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
+      );
+    }
+
+    // Check if user can manage this target user based on organization boundaries
+    if (!canManageOrganizationUsers(user.role, user.organizationId, targetUser.organizationId)) {
+      return NextResponse.json(
+        { error: 'You can only delete users within your organization' },
+        { status: 403 }
       );
     }
 

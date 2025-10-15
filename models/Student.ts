@@ -6,9 +6,14 @@ const studentSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  organizationId: {
+    type: String,
+    ref: 'Organization',
+    required: false
+  },
   teacherId: {
     type: String,
-    required: true,
+    required: false,
     ref: 'User'
   },
   uniqueId: {

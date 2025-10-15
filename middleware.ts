@@ -23,6 +23,7 @@ export async function middleware(request: NextRequest) {
     '/dashboard/parent', 
     '/dashboard/teacher',
     '/dashboard/admin',
+    '/dashboard/organization-admin',
     '/dashboard/platform-super-admin'
   ];
 
@@ -61,7 +62,12 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/dashboard/teacher') && decoded.role !== 'teacher') {
       return NextResponse.redirect(new URL('/login', request.url));
     }
-    if (pathname.startsWith('/dashboard/admin') && decoded.role !== 'organization' && decoded.role !== 'admin') {
+    // Admin dashboard is now restricted to admin role only
+    if (pathname.startsWith('/dashboard/admin') && decoded.role !== 'admin') {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    // Organization admin dashboard is restricted to organization role only
+    if (pathname.startsWith('/dashboard/organization-admin') && decoded.role !== 'organization') {
       return NextResponse.redirect(new URL('/login', request.url));
     }
     if (pathname.startsWith('/dashboard/platform-super-admin') && decoded.role !== 'platform_super_admin') {
@@ -121,6 +127,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Super admin login page is accessible without authentication
+  if (pathname.startsWith('/super-admin-login')) {
+    return NextResponse.next();
+  }
+
   return NextResponse.next();
 }
 
@@ -157,6 +168,7 @@ export const config = {
     '/skill-assessment',
     '/subject-selection',
     '/modules/:path*',
-    '/invite/:path*'
+    '/invite/:path*',
+    '/super-admin-login'
   ]
 };

@@ -11,6 +11,8 @@ export interface IUser extends mongoose.Document {
   profile: Record<string, any>;
   avatar?: string;
   firstTimeLogin: boolean;
+  organizationId?: string; // For users associated with organizations
+  isIndependent: boolean; // For users not associated with any organization
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -76,6 +78,15 @@ const userSchema = new mongoose.Schema<IUser>({
   firstTimeLogin: {
     type: Boolean,
     default: true,
+  },
+  organizationId: {
+    type: String,
+    ref: 'Organization',
+    required: false
+  },
+  isIndependent: {
+    type: Boolean,
+    default: true // Default to independent users
   }
 }, {
   timestamps: true

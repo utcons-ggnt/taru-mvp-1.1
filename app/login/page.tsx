@@ -64,10 +64,29 @@ export default function Login() {
         }
       }
 
-      // Check if student needs to complete diagnostic assessment
+      // Check if student needs to complete assessments
       if (data.requiresAssessment && data.user.role === 'student') {
-        router.push('/diagnostic-assessment');
-        return;
+        // Check which assessment needs to be completed first
+        try {
+          const studentResponse = await fetch('/api/student/profile');
+          if (studentResponse.ok) {
+            const studentData = await studentResponse.json();
+            if (!studentData.interestAssessmentCompleted) {
+              // Interest assessment needs to be completed first
+              router.push('/interest-assessment');
+              return;
+            } else {
+              // Interest assessment is completed, check diagnostic assessment
+              router.push('/diagnostic-assessment');
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('Error checking student assessment status:', error);
+          // Fallback to diagnostic assessment
+          router.push('/diagnostic-assessment');
+          return;
+        }
       }
 
       // Redirect based on user role after onboarding and assessment checks
@@ -78,9 +97,11 @@ export default function Login() {
       } else if (data.user.role === 'teacher') {
         router.push('/dashboard/teacher');
       } else if (data.user.role === 'organization') {
-        router.push('/dashboard/admin');
+        router.push('/dashboard/organization-admin');
       } else if (data.user.role === 'admin') {
         router.push('/dashboard/admin');
+      } else if (data.user.role === 'platform_super_admin') {
+        router.push('/dashboard/platform-super-admin');
       } else {
         throw new Error('Unknown user role');
       }
@@ -270,6 +291,19 @@ export default function Login() {
            animate={{ x: 0, opacity: 1 }}
            transition={{ duration: 0.8 }}
          >
+
+          {/* Super Admin Login Button - Top Right */}
+          <motion.button
+            onClick={() => router.push('/super-admin-login')}
+            className="absolute top-6 right-6 z-10 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:from-red-700 hover:to-red-800"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            🔐 Super Admin
+          </motion.button>
 
           {/* Main Content Container */}
           <div className="relative w-full h-full">

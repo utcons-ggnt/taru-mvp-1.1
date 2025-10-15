@@ -14,13 +14,8 @@ interface DecodedToken {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 Starting student onboarding...');
-    console.log('🔍 JWT_SECRET exists:', !!process.env.JWT_SECRET);
-    console.log('🔍 MONGODB_URI exists:', !!process.env.MONGODB_URI);
-
     // Get token from HTTP-only cookie
     const token = request.cookies.get('auth-token')?.value;
-    console.log('🔍 Token exists:', !!token);
     
     if (!token) {
       return NextResponse.json(
@@ -33,9 +28,8 @@ export async function POST(request: NextRequest) {
     let decoded: DecodedToken;
     try {
       decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
-      console.log('🔍 Token verified, userId:', decoded.userId);
     } catch (error) {
-      console.error('🔍 Token verification failed:', error);
+      console.error('Token verification failed:', error);
       return NextResponse.json(
         { error: 'Invalid token' },
         { status: 401 }
@@ -44,11 +38,9 @@ export async function POST(request: NextRequest) {
 
     // Connect to database
     try {
-      console.log('🔍 Connecting to database...');
       await connectDB();
-      console.log('🔍 Database connected successfully');
     } catch (dbError) {
-      console.error('🔍 Database connection error:', dbError);
+      console.error('Database connection error:', dbError);
       return NextResponse.json(
         { error: 'Database connection failed. Please check your MongoDB configuration.' },
         { status: 500 }
@@ -56,15 +48,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request data (handle both JSON and FormData)
-    console.log('🔍 Parsing request data...');
     const contentType = request.headers.get('content-type') || '';
     let data: any = {};
     
     if (contentType.includes('application/json')) {
-      console.log('🔍 Parsing JSON data...');
       data = await request.json();
     } else {
-      console.log('🔍 Parsing FormData...');
       const formData = await request.formData();
       // Convert FormData to object
       for (const [key, value] of formData.entries()) {
@@ -104,22 +93,9 @@ export async function POST(request: NextRequest) {
       // Accept uniqueId from form data if provided
       const uniqueId = data.uniqueId as string | null;
 
-      console.log('🔍 Form data extracted successfully');
-      console.log('🔍 Required fields check:', {
-        fullName: !!fullName,
-        dateOfBirth: !!dateOfBirth,
-        gender: !!gender,
-        classGrade: !!classGrade,
-        schoolId: !!schoolId,
-        languagePreference: !!languagePreference,
-        guardianName: !!guardianName,
-        guardianContactNumber: !!guardianContactNumber
-      });
-
       // Validate required fields
       if (!fullName || !dateOfBirth || !gender || !classGrade || !schoolId || 
           !languagePreference || !guardianName || !guardianContactNumber) {
-        console.log('🔍 Missing required fields');
         return NextResponse.json({ 
           error: 'Missing required fields' 
         }, { status: 400 });
@@ -166,8 +142,7 @@ export async function POST(request: NextRequest) {
         ...(uniqueId ? { uniqueId } : {})
       };
 
-      console.log('🔍 Updating user profile...');
-      // Update user profile in database with basic information only
+      // Update user profile in database with basic information
       const result = await User.findByIdAndUpdate(
         decoded.userId,
         { 
@@ -182,36 +157,52 @@ export async function POST(request: NextRequest) {
       );
 
       if (!result) {
-        console.log('🔍 User not found');
         return NextResponse.json({ 
           error: 'User not found' 
         }, { status: 404 });
       }
 
-      console.log('🔍 Creating student record...');
-      // Create student record in students collection
-      const student = await Student.create({
-        userId: decoded.userId,
-        ...studentProfile
-      });
+      // Check if student record already exists (created by teacher)
+      let student = await Student.findOne({ userId: decoded.userId });
+      
+      if (student) {
+        // Update existing student record with onboarding data
+        student = await Student.findByIdAndUpdate(
+          student._id,
+          {
+            ...studentProfile,
+            onboardingCompleted: true,
+            onboardingCompletedAt: new Date(),
+            updatedAt: new Date()
+          },
+          { new: true }
+        );
+      } else {
+        // Create new student record in students collection
+        student = await Student.create({
+          userId: decoded.userId,
+          teacherId: null, // Self-registered students don't have a teacher initially
+          ...studentProfile
+        });
+      }
 
-      // Initialize student progress record
-      console.log('🔍 Initializing student progress...');
-      await StudentProgress.create({
-        userId: decoded.userId,
-        studentId: decoded.userId,
-        moduleProgress: [],
-        pathProgress: [],
-        totalXpEarned: 0,
-        totalModulesCompleted: 0,
-        totalTimeSpent: 0,
-        badgesEarned: [],
-        currentModule: null,
-        currentPath: null
-      });
-
-      console.log('🔍 Student onboarding completed successfully');
-      console.log('🔍 Unique ID generated:', student.uniqueId);
+      // Initialize student progress record (if it doesn't exist)
+      const existingProgress = await StudentProgress.findOne({ userId: decoded.userId });
+      
+      if (!existingProgress) {
+        await StudentProgress.create({
+          userId: decoded.userId,
+          studentId: decoded.userId,
+          moduleProgress: [],
+          pathProgress: [],
+          totalXpEarned: 0,
+          totalModulesCompleted: 0,
+          totalTimeSpent: 0,
+          badgesEarned: [],
+          currentModule: null,
+          currentPath: null
+        });
+      }
 
       // Generate new token with assessment requirement (since onboarding is now complete)
       const newToken = jwt.sign(
@@ -234,7 +225,6 @@ export async function POST(request: NextRequest) {
         uniqueId: student.uniqueId
       };
       
-      console.log('🔍 Preparing success response:', responseData);
       const response = NextResponse.json(responseData);
 
       // Update the auth token cookie
@@ -246,25 +236,17 @@ export async function POST(request: NextRequest) {
         path: '/'
       });
 
-      console.log('🔍 Returning success response with status 200');
       return response;
 
     } catch (parseError) {
-      console.error('🔍 Form data parsing error:', parseError);
-      console.error('🔍 Error details:', {
-        message: parseError instanceof Error ? parseError.message : 'Unknown error',
-        stack: parseError instanceof Error ? parseError.stack : 'No stack trace'
-      });
+      console.error('Form data parsing error:', parseError);
       return NextResponse.json({ 
         error: `Invalid form data format: ${parseError instanceof Error ? parseError.message : 'Unknown error'}` 
       }, { status: 400 });
     }
 
   } catch (error) {
-    console.error('🔍 Student onboarding error:', error);
-    console.error('🔍 Error type:', typeof error);
-    console.error('🔍 Error constructor:', error?.constructor?.name);
-    console.error('🔍 Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('Student onboarding error:', error);
     
     // Ensure we always return a proper error response
     let errorMessage = 'Internal server error. Please try again later.';
@@ -272,8 +254,6 @@ export async function POST(request: NextRequest) {
     
     // Provide more specific error messages
     if (error instanceof Error) {
-      console.error('🔍 Error message:', error.message);
-      
       if (error.message.includes('MongoDB') || error.message.includes('connection')) {
         errorMessage = 'Database connection failed. Please check your MongoDB configuration.';
         statusCode = 500;
@@ -289,13 +269,10 @@ export async function POST(request: NextRequest) {
     }
     
     // Always return a proper error response with error field
-    const errorResponse = NextResponse.json({ 
+    return NextResponse.json({ 
       success: false,
       error: errorMessage,
       timestamp: new Date().toISOString()
     }, { status: statusCode });
-    
-    console.error('🔍 Returning error response:', { error: errorMessage, status: statusCode });
-    return errorResponse;
   }
 } 

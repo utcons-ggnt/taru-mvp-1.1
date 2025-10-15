@@ -58,14 +58,23 @@ export async function POST(request: NextRequest) {
       const studentProfile = await Student.findOne({ userId: user._id.toString() });
       requiresOnboarding = !studentProfile?.onboardingCompleted;
       
-      // If onboarding is completed, check if assessment is completed
+      // If onboarding is completed, check if assessments are completed
       if (studentProfile?.onboardingCompleted) {
-        const assessmentResponse = await AssessmentResponse.findOne({
-          uniqueId: studentProfile.uniqueId,
-          assessmentType: 'diagnostic',
-          isCompleted: true
-        });
-        requiresAssessment = !assessmentResponse;
+        // Check if interest assessment is completed first
+        const interestAssessmentCompleted = studentProfile.interestAssessmentCompleted;
+        
+        // If interest assessment is completed, check if diagnostic assessment is completed
+        if (interestAssessmentCompleted) {
+          const assessmentResponse = await AssessmentResponse.findOne({
+            uniqueId: studentProfile.uniqueId,
+            assessmentType: 'diagnostic',
+            isCompleted: true
+          });
+          requiresAssessment = !assessmentResponse;
+        } else {
+          // Interest assessment is not completed, so assessment is required
+          requiresAssessment = true;
+        }
       }
     } else if (user.role === 'parent') {
       const parentProfile = await Parent.findOne({ userId: user._id.toString() });

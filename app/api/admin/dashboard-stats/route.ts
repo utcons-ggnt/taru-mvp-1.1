@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     // Connect to database
     await connectDB();
 
-    // Get user and verify they are an admin
+    // Get user and verify they are an admin (admin dashboard is now admin-only)
     const user = await User.findById(decoded.userId);
     if (!user || user.role !== 'admin') {
       return NextResponse.json(
