@@ -228,6 +228,7 @@ export async function POST(request: NextRequest) {
         userId: savedUser._id.toString(),
         fullName: savedUser.name,
         email: savedUser.email,
+        password: securePassword, // Include password in student object for frontend
         classGrade,
         schoolName: schoolName || 'Not specified',
         uniqueId: savedStudent.uniqueId,

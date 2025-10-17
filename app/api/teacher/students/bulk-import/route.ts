@@ -45,11 +45,25 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
+        // Generate secure password
+        const generateSecurePassword = () => {
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+          let password = '';
+          for (let i = 0; i < 12; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          return password;
+        };
+
+        const securePassword = generateSecurePassword();
+
         // Create new user
         const newUser = new User({
           name: fullName,
           email,
+          password: securePassword,
           role: 'student',
+          firstTimeLogin: true, // Mark for password change on first login
           onboardingCompleted: false
         });
 
@@ -78,6 +92,7 @@ export async function POST(request: NextRequest) {
           id: newStudent._id.toString(),
           fullName: newUser.name,
           email: newUser.email,
+          password: securePassword, // Include password for credentials display
           classGrade,
           uniqueId: newStudent.uniqueId
         });

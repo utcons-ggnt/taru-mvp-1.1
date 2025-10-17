@@ -33,7 +33,7 @@ interface Branch {
 }
 
 interface Teacher {
-  _id: string;
+  id: string;
   fullName: string;
   email: string;
   subjectSpecialization: string;
@@ -48,6 +48,7 @@ interface Student {
   userId: string;
   fullName: string;
   email: string;
+  password?: string; // Include password for credential display
   classGrade: string;
   schoolName: string;
   uniqueId: string;
@@ -745,16 +746,11 @@ export default function OrganizationAdminDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showStudentForm, setShowStudentForm] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
-  const [showCredentialsModal, setShowCredentialsModal] = useState(false);
   const [newCredentials, setNewCredentials] = useState<any>(null);
+  const [newStudentCredentials, setNewStudentCredentials] = useState<Student | null>(null);
+  const [allStudentCredentials, setAllStudentCredentials] = useState<Student[]>([]);
   const [showRemoveConfirmModal, setShowRemoveConfirmModal] = useState(false);
   const [teacherToRemove, setTeacherToRemove] = useState<any>(null);
-  const [studentFormData, setStudentFormData] = useState({
-    name: '',
-    email: '',
-    classGrade: '',
-    schoolName: ''
-  });
   const [bulkImportData, setBulkImportData] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [branchesLoading, setBranchesLoading] = useState(false);
@@ -947,9 +943,6 @@ export default function OrganizationAdminDashboard() {
         if (showQuickBranchForm) {
           setShowQuickBranchForm(false);
         }
-        if (showCredentialsModal) {
-          setShowCredentialsModal(false);
-        }
         if (showRemoveConfirmModal) {
           setShowRemoveConfirmModal(false);
           setTeacherToRemove(null);
@@ -957,11 +950,11 @@ export default function OrganizationAdminDashboard() {
       }
     };
 
-    if (showQuickBranchForm || showCredentialsModal || showRemoveConfirmModal) {
+    if (showQuickBranchForm || showRemoveConfirmModal) {
       document.addEventListener('keydown', handleEscapeKey);
       return () => document.removeEventListener('keydown', handleEscapeKey);
     }
-  }, [showQuickBranchForm, showCredentialsModal, showRemoveConfirmModal]);
+  }, [showQuickBranchForm, showRemoveConfirmModal]);
 
 
   useEffect(() => {
@@ -1280,7 +1273,6 @@ Please share these credentials with the teacher. They can use this password perm
             password: data.credentials.password,
             loginUrl: data.credentials.loginUrl
           });
-          setShowCredentialsModal(true);
         }
         
         setTeacherInviteData({
@@ -1307,6 +1299,7 @@ Please share these credentials with the teacher. They can use this password perm
 
   const handleShowTeacherCredentials = async (teacherId: string) => {
     try {
+      console.log('handleShowTeacherCredentials called with teacherId:', teacherId);
       const response = await fetch(`/api/organization/teacher-credentials?teacherId=${teacherId}`, {
         credentials: 'include'
       });
@@ -1315,20 +1308,7 @@ Please share these credentials with the teacher. They can use this password perm
         const data = await response.json();
         
         if (data.credentials) {
-          // Display credentials in alert as primary method
-          const credentialsText = `Teacher Credentials
-
-Name: ${data.credentials.name}
-Email: ${data.credentials.email}
-User ID: ${data.credentials.id}
-Password: ${data.credentials.password}
-Login URL: ${data.credentials.loginUrl}
-
-Note: This is a permanent password. The teacher can use it indefinitely or change it later if desired.`;
-
-          alert(credentialsText);
-          
-          // Also set modal state as backup
+          console.log('Setting teacher credentials for display below table');
           setNewCredentials({
             type: 'teacher',
             name: data.credentials.name,
@@ -1337,7 +1317,6 @@ Note: This is a permanent password. The teacher can use it indefinitely or chang
             password: data.credentials.password,
             loginUrl: data.credentials.loginUrl
           });
-          setShowCredentialsModal(true);
         } else {
           alert('No credentials found for this teacher');
         }
@@ -1376,7 +1355,7 @@ Note: This is a permanent password. The teacher can use it indefinitely or chang
         
         // Update the teachers list by removing the teacher
         setTeachers(prevTeachers => 
-          prevTeachers.filter(teacher => teacher._id !== teacherToRemove._id)
+          prevTeachers.filter(teacher => teacher.id !== teacherToRemove.id)
         );
         
         // Update dashboard stats
@@ -1399,8 +1378,47 @@ Note: This is a permanent password. The teacher can use it indefinitely or chang
     }
   };
 
-  const handleStudentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('Copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+      alert('Failed to copy to clipboard');
+    }
+  };
+
+  const handleShowStudentCredentials = async (studentId: string) => {
+    try {
+      console.log('Fetching credentials for student:', studentId);
+      const response = await fetch(`/api/organization/student-credentials?studentId=${studentId}`, {
+        credentials: 'include'
+      });
+      
+      console.log('Response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Credentials data:', data);
+        
+        if (data.credentials) {
+          console.log('Setting credentials for display below table');
+          setNewStudentCredentials(data.credentials);
+        } else {
+          alert('No credentials found for this student');
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('API Error:', errorData);
+        alert(`Error: ${errorData.error || 'Failed to fetch credentials'}`);
+      }
+    } catch (error) {
+      console.error('Error fetching student credentials:', error);
+      alert('Error fetching student credentials');
+    }
+  };
+
+  const handleStudentSubmit = async (studentData: any) => {
     setIsSubmitting(true);
 
     try {
@@ -1409,7 +1427,12 @@ Note: This is a permanent password. The teacher can use it indefinitely or chang
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(studentFormData),
+        body: JSON.stringify({
+          name: studentData.name,
+          email: studentData.email,
+          classGrade: studentData.classGrade,
+          schoolName: studentData.schoolName
+        }),
         credentials: 'include'
       });
 
@@ -1418,24 +1441,9 @@ Note: This is a permanent password. The teacher can use it indefinitely or chang
         setShowStudentForm(false);
         
         // Show credentials if provided
-        if (data.credentials) {
-          setNewCredentials({
-            type: 'student',
-            name: data.credentials.name,
-            email: data.credentials.email,
-            id: data.credentials.id,
-            password: data.credentials.password,
-            loginUrl: data.credentials.loginUrl
-          });
-          setShowCredentialsModal(true);
+        if (data.student && data.student.password) {
+          setNewStudentCredentials(data.student);
         }
-        
-        setStudentFormData({
-          name: '',
-          email: '',
-          classGrade: '',
-          schoolName: ''
-        });
         
         // Refresh students list
         fetchStudents();
@@ -1875,63 +1883,91 @@ Note: This is a permanent password. The teacher can use it indefinitely or chang
                 <Dialog open={showStudentForm} onClose={() => setShowStudentForm(false)} className="relative z-50">
                   <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
                   <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
-                    <Dialog.Panel className="mx-auto max-w-md rounded-xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto my-8 scroll-smooth">
-                      <Dialog.Title className="text-xl font-semibold text-gray-900 mb-6 border-b border-gray-200 pb-3">Add New Student</Dialog.Title>
-                      <form onSubmit={handleStudentSubmit} className="space-y-6 pb-4">
+                    <Dialog.Panel className="mx-auto max-w-md rounded-2xl bg-white p-6">
+                      <Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">Add New Student</Dialog.Title>
+                      <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        const studentData = {
+                          name: formData.get('name'),
+                          email: formData.get('email'),
+                          classGrade: formData.get('classGrade'),
+                          schoolName: formData.get('schoolName')
+                        };
+                        handleStudentSubmit(studentData);
+                      }} className="space-y-4">
                         <div>
-                          <label className="block text-sm font-semibold text-gray-800 mb-2">Name</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Full Name
+                          </label>
                           <input
+                            name="name"
                             type="text"
                             required
-                            value={studentFormData.name}
-                            onChange={(e) => setStudentFormData(prev => ({ ...prev, name: e.target.value }))}
-                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 placeholder-gray-400 text-gray-900"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-800 mb-2">Email</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Email
+                          </label>
                           <input
+                            name="email"
                             type="email"
                             required
-                            value={studentFormData.email}
-                            onChange={(e) => setStudentFormData(prev => ({ ...prev, email: e.target.value }))}
-                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 placeholder-gray-400 text-gray-900"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-800 mb-2">Class Grade</label>
-                          <input
-                            type="text"
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Class Grade
+                          </label>
+                          <select
+                            name="classGrade"
                             required
-                            value={studentFormData.classGrade}
-                            onChange={(e) => setStudentFormData(prev => ({ ...prev, classGrade: e.target.value }))}
-                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 placeholder-gray-400 text-gray-900"
-                          />
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                          >
+                            <option value="">Select Grade</option>
+                            <option value="Pre-K">Pre-K</option>
+                            <option value="Kindergarten">Kindergarten</option>
+                            <option value="Grade 1">Grade 1</option>
+                            <option value="Grade 2">Grade 2</option>
+                            <option value="Grade 3">Grade 3</option>
+                            <option value="Grade 4">Grade 4</option>
+                            <option value="Grade 5">Grade 5</option>
+                            <option value="Grade 6">Grade 6</option>
+                            <option value="Grade 7">Grade 7</option>
+                            <option value="Grade 8">Grade 8</option>
+                            <option value="Grade 9">Grade 9</option>
+                            <option value="Grade 10">Grade 10</option>
+                            <option value="Grade 11">Grade 11</option>
+                            <option value="Grade 12">Grade 12</option>
+                          </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-800 mb-2">School Name</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            School Name
+                          </label>
                           <input
+                            name="schoolName"
                             type="text"
-                            required
-                            value={studentFormData.schoolName}
-                            onChange={(e) => setStudentFormData(prev => ({ ...prev, schoolName: e.target.value }))}
-                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 placeholder-gray-400 text-gray-900"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
                           />
                         </div>
-                        <div className="flex justify-end space-x-3 pt-4">
+                        <div className="flex gap-3 pt-4">
                           <button
                             type="button"
                             onClick={() => setShowStudentForm(false)}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all duration-200"
+                            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
                           >
                             Cancel
                           </button>
                           <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 shadow-sm hover:shadow-md transition-all duration-200"
+                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                           >
-                            {isSubmitting ? 'Creating...' : 'Create Student'}
+                            {isSubmitting ? 'Adding...' : 'Add Student'}
                           </button>
                         </div>
                       </form>
@@ -2196,6 +2232,12 @@ Note: This is a permanent password. The teacher can use it indefinitely or chang
                                     Edit
                                   </button>
                                   <button
+                                    className="text-green-600 hover:text-green-900"
+                                    onClick={() => handleShowStudentCredentials(student.id)}
+                                  >
+                                    Show Credentials
+                                  </button>
+                                  <button
                                     className="text-red-600 hover:text-red-900"
                                     onClick={() => {
                                       // TODO: Implement delete student
@@ -2215,6 +2257,100 @@ Note: This is a permanent password. The teacher can use it indefinitely or chang
                 </TiltCard>
               </StaggerItem>
             </StaggerContainer>
+          )}
+
+          {/* Student Credentials Display - Below Table */}
+          {activeTab === 'users' && newStudentCredentials && (
+            <div className="mt-6">
+              <TiltCard className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900">Student Login Credentials</h3>
+                  <button
+                    onClick={() => setNewStudentCredentials(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="text-lg font-medium text-green-800 mb-3">Student Login Credentials</h4>
+                  <p className="text-green-700 mb-4">Please share these credentials with the student:</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white rounded-lg p-4 border">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Name:</label>
+                          <p className="text-gray-900 font-medium">{newStudentCredentials.fullName}</p>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(newStudentCredentials.fullName)}
+                          className="text-blue-600 hover:text-blue-800 px-3 py-1 border border-blue-300 rounded hover:bg-blue-50"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 border">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Email:</label>
+                          <p className="text-gray-900 font-medium">{newStudentCredentials.email}</p>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(newStudentCredentials.email)}
+                          className="text-blue-600 hover:text-blue-800 px-3 py-1 border border-blue-300 rounded hover:bg-blue-50"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 border">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Password:</label>
+                          <p className="text-gray-900 font-mono font-medium">{newStudentCredentials.password}</p>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(newStudentCredentials.password || '')}
+                          className="text-blue-600 hover:text-blue-800 px-3 py-1 border border-blue-300 rounded hover:bg-blue-50"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 border">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Student ID:</label>
+                          <p className="text-gray-900 font-medium">{newStudentCredentials.uniqueId}</p>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(newStudentCredentials.uniqueId)}
+                          className="text-blue-600 hover:text-blue-800 px-3 py-1 border border-blue-300 rounded hover:bg-blue-50"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-yellow-800 text-sm">
+                      <strong>Important:</strong> This is a permanent password that has been set for the student. 
+                      The student can use these credentials to login and should change their password on first login. 
+                      They can access the platform at the login page using these credentials.
+                    </p>
+                  </div>
+                </div>
+              </TiltCard>
+            </div>
           )}
 
           {activeTab === 'content' && (
@@ -2754,7 +2890,7 @@ Note: This is a permanent password. The teacher can use it indefinitely or chang
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {(teachers || []).map((teacher) => (
-                          <tr key={teacher._id || Math.random()}>
+                          <tr key={teacher.id || Math.random()}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div>
                               <div className="text-sm font-medium text-gray-900">{teacher.fullName}</div>
@@ -2774,7 +2910,11 @@ Note: This is a permanent password. The teacher can use it indefinitely or chang
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex space-x-2">
                               <button
-                                onClick={() => handleShowTeacherCredentials(teacher._id)}
+                                onClick={() => {
+                                  console.log('Teacher data:', teacher);
+                                  console.log('Teacher ID:', teacher.id);
+                                  handleShowTeacherCredentials(teacher.id);
+                                }}
                                 className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md text-xs font-medium"
                               >
                                 Show Credentials
@@ -2794,90 +2934,97 @@ Note: This is a permanent password. The teacher can use it indefinitely or chang
                 </div>
               </div>
 
-              {/* Teacher Credentials Display - Only show on teachers tab */}
-              {showCredentialsModal && newCredentials && (
-                <div 
-                  style={{
-                    backgroundColor: '#1f2937',
-                    color: 'white',
-                    padding: '20px',
-                    borderRadius: '10px',
-                    border: '3px solid #3b82f6',
-                    marginTop: '20px'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>
-                      {newCredentials.type === 'teacher' ? 'Teacher Credentials' : 'Student Credentials'}
-                    </h3>
-                    <button
-                      onClick={() => setShowCredentialsModal(false)}
-                      style={{
-                        background: '#ef4444',
-                        color: 'white',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '600'
-                      }}
-                    >
-                      ✕ Close
-                    </button>
-                  </div>
-                  
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                    gap: '15px',
-                    marginBottom: '15px'
-                  }}>
-                    <div>
-                      <strong>Name:</strong> <span style={{ fontFamily: 'monospace', backgroundColor: '#374151', padding: '2px 6px', borderRadius: '3px' }}>{newCredentials.name}</span>
-                    </div>
-                    <div>
-                      <strong>Email:</strong> <span style={{ fontFamily: 'monospace', backgroundColor: '#374151', padding: '2px 6px', borderRadius: '3px' }}>{newCredentials.email}</span>
-                    </div>
-                    <div>
-                      <strong>User ID:</strong> <span style={{ fontFamily: 'monospace', backgroundColor: '#374151', padding: '2px 6px', borderRadius: '3px' }}>{newCredentials.id}</span>
-                    </div>
-                    <div>
-                      <strong>Password:</strong> 
-                      <span style={{ fontFamily: 'monospace', backgroundColor: '#374151', padding: '2px 6px', borderRadius: '3px', marginRight: '8px' }}>{newCredentials.password}</span>
+              {/* Teacher Credentials Display - Below Table */}
+              {activeTab === 'teachers' && newCredentials && newCredentials.type === 'teacher' && (
+                <div className="mt-6">
+                  <TiltCard className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-semibold text-gray-900">Teacher Login Credentials</h3>
                       <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(newCredentials.password);
-                          alert('Password copied to clipboard!');
-                        }}
-                        style={{
-                          background: '#10b981',
-                          color: 'white',
-                          border: 'none',
-                          padding: '4px 8px',
-                          borderRadius: '3px',
-                          cursor: 'pointer',
-                          fontSize: '12px'
-                        }}
+                        onClick={() => setNewCredentials(null)}
+                        className="text-gray-400 hover:text-gray-600"
                       >
-                        📋 Copy
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
                     </div>
-                  </div>
-                  
-                  <div style={{ 
-                    backgroundColor: '#374151', 
-                    padding: '10px', 
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}>
-                    <strong>Login URL:</strong> <span style={{ fontFamily: 'monospace' }}>{newCredentials.loginUrl}</span>
-                    <br />
-                    <strong>Note:</strong> {newCredentials.type === 'teacher' 
-                      ? 'This is a permanent password. The teacher can use it indefinitely or change it later if desired.'
-                      : 'Please share these credentials with the student.'
-                    }
-                  </div>
+                    
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <h4 className="text-lg font-medium text-green-800 mb-3">Teacher Login Credentials</h4>
+                      <p className="text-green-700 mb-4">Please share these credentials with the teacher:</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white rounded-lg p-4 border">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <label className="text-sm font-medium text-gray-600">Name:</label>
+                              <p className="text-gray-900 font-medium">{newCredentials.name}</p>
+                            </div>
+                            <button
+                              onClick={() => copyToClipboard(newCredentials.name)}
+                              className="text-blue-600 hover:text-blue-800 px-3 py-1 border border-blue-300 rounded hover:bg-blue-50"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-white rounded-lg p-4 border">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <label className="text-sm font-medium text-gray-600">Email:</label>
+                              <p className="text-gray-900 font-medium">{newCredentials.email}</p>
+                            </div>
+                            <button
+                              onClick={() => copyToClipboard(newCredentials.email)}
+                              className="text-blue-600 hover:text-blue-800 px-3 py-1 border border-blue-300 rounded hover:bg-blue-50"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-white rounded-lg p-4 border">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <label className="text-sm font-medium text-gray-600">Password:</label>
+                              <p className="text-gray-900 font-mono font-medium">{newCredentials.password}</p>
+                            </div>
+                            <button
+                              onClick={() => copyToClipboard(newCredentials.password || '')}
+                              className="text-blue-600 hover:text-blue-800 px-3 py-1 border border-blue-300 rounded hover:bg-blue-50"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-white rounded-lg p-4 border">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <label className="text-sm font-medium text-gray-600">User ID:</label>
+                              <p className="text-gray-900 font-medium">{newCredentials.id}</p>
+                            </div>
+                            <button
+                              onClick={() => copyToClipboard(newCredentials.id)}
+                              className="text-blue-600 hover:text-blue-800 px-3 py-1 border border-blue-300 rounded hover:bg-blue-50"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-yellow-800 text-sm">
+                          <strong>Important:</strong> This is a permanent password that has been set for the teacher. 
+                          The teacher can use these credentials to login and should change their password on first login. 
+                          They can access the platform at the login page using these credentials.
+                        </p>
+                      </div>
+                    </div>
+                  </TiltCard>
                 </div>
               )}
 

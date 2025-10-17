@@ -36,6 +36,9 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const teacherId = searchParams.get('teacherId');
+    
+    console.log('Received teacherId:', teacherId);
+    console.log('URL:', request.url);
 
     if (!teacherId) {
       return NextResponse.json({ error: 'Teacher ID is required' }, { status: 400 });
