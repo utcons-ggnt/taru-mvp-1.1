@@ -45,7 +45,10 @@ export async function GET(request: NextRequest) {
 
     // Get teachers from these branches
     const teachers = await Teacher.find({ 
-      schoolId: { $in: branchIds },
+      $or: [
+        { schoolId: { $in: branchIds } },
+        { organizationId: organization._id.toString() }
+      ],
       isActive: true 
     }).sort({ createdAt: -1 });
 

@@ -134,6 +134,7 @@ export default function StudentOnboarding() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [autoFilledFields, setAutoFilledFields] = useState<{[key: string]: boolean}>({});
+  const [isOrganizationStudent, setIsOrganizationStudent] = useState(false);
   const router = useRouter();
 
 
@@ -214,6 +215,25 @@ export default function StudentOnboarding() {
           if (registrationData?.email) autoFilled.guardianEmail = true;
           
           setAutoFilledFields(autoFilled);
+          
+          // Check if student is from an organization
+          try {
+            const profileResponse = await fetch('/api/student/profile');
+            if (profileResponse.ok) {
+              const profileData = await profileResponse.json();
+              setIsOrganizationStudent(profileData.isOrganizationStudent || false);
+              
+              // If student is from organization, pre-fill school name
+              if (profileData.isOrganizationStudent && profileData.schoolName) {
+                setFormData(prev => ({
+                  ...prev,
+                  schoolName: profileData.schoolName
+                }));
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching student profile:', error);
+          }
           
           console.log('🔍 Pre-filled form data:', {
             userData: user,
@@ -653,7 +673,7 @@ export default function StudentOnboarding() {
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          School Name (Auto-filled)
+          School Name {isOrganizationStudent ? '(Pre-filled by your organization)' : '(Auto-filled)'}
         </label>
         <input
           type="text"
@@ -661,6 +681,11 @@ export default function StudentOnboarding() {
           disabled
           className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
         />
+        {isOrganizationStudent && (
+          <p className="mt-1 text-xs text-gray-500">
+            This field is pre-filled by your organization and cannot be changed.
+          </p>
+        )}
       </div>
 
       <div>
@@ -1070,15 +1095,25 @@ export default function StudentOnboarding() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        School Name
+                        School Name {isOrganizationStudent && <span className="text-sm text-gray-500">(Pre-filled by your organization)</span>}
                       </label>
                       <input
                         type="text"
                         value={formData.schoolName}
                         onChange={(e) => handleInputChange('schoolName', e.target.value)}
                         placeholder="Enter school name"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
+                        disabled={isOrganizationStudent}
+                        className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 ${
+                          isOrganizationStudent 
+                            ? 'bg-gray-50 text-gray-500 cursor-not-allowed' 
+                            : 'bg-white'
+                        }`}
                       />
+                      {isOrganizationStudent && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          This field is pre-filled by your organization and cannot be changed.
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">

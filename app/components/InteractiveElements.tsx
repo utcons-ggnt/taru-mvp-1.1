@@ -10,6 +10,7 @@ interface MagneticButtonProps {
   onClick?: () => void;
   magnetStrength?: number;
   springConfig?: { stiffness: number; damping: number };
+  disabled?: boolean;
 }
 
 export const MagneticButton: React.FC<MagneticButtonProps> = ({
@@ -17,7 +18,8 @@ export const MagneticButton: React.FC<MagneticButtonProps> = ({
   className = '',
   onClick,
   magnetStrength = 0.3,
-  springConfig = { stiffness: 300, damping: 30 }
+  springConfig = { stiffness: 300, damping: 30 },
+  disabled = false
 }) => {
   const ref = React.useRef<HTMLButtonElement>(null);
   const x = useMotionValue(0);
@@ -26,7 +28,7 @@ export const MagneticButton: React.FC<MagneticButtonProps> = ({
   const springY = useSpring(y, springConfig);
 
   const handleMouseMove = (event: React.MouseEvent) => {
-    if (!ref.current) return;
+    if (!ref.current || disabled) return;
     
     const rect = ref.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -51,9 +53,10 @@ export const MagneticButton: React.FC<MagneticButtonProps> = ({
       style={{ x: springX, y: springY }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      onClick={onClick}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      whileHover={disabled ? {} : { scale: 1.05 }}
+      whileTap={disabled ? {} : { scale: 0.95 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
       {children}

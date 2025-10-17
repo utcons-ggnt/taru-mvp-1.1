@@ -49,13 +49,33 @@ export async function GET(request: NextRequest) {
       isActive: true 
     });
 
-    // Get student statistics (students linked to teachers in this organization)
-    const teacherIds = await Teacher.find({ 
-      schoolId: { $in: await Branch.find({ organizationId: organization._id.toString() }).distinct('_id') }
-    }).distinct('userId');
-    
+    // Get student statistics (students from this organization)
     const totalStudents = await Student.countDocuments({ 
-      onboardingCompleted: true 
+      organizationId: organization._id.toString()
+    });
+
+    // Get active students (completed onboarding)
+    const activeStudents = await Student.countDocuments({ 
+      organizationId: organization._id.toString(),
+      onboardingCompleted: true
+    });
+
+    // Get pending students (not completed onboarding)
+    const pendingStudents = await Student.countDocuments({ 
+      organizationId: organization._id.toString(),
+      onboardingCompleted: false
+    });
+
+    // Get students who completed assessments
+    const studentsWithAssessments = await Student.countDocuments({ 
+      organizationId: organization._id.toString(),
+      assessmentCompleted: true
+    });
+
+    // Get students who completed diagnostic
+    const studentsWithDiagnostic = await Student.countDocuments({ 
+      organizationId: organization._id.toString(),
+      diagnosticCompleted: true
     });
 
     // Get pending invitations
@@ -64,10 +84,20 @@ export async function GET(request: NextRequest) {
       status: 'pending'
     });
 
+    // Calculate completion rates
+    const assessmentCompletionRate = totalStudents > 0 ? Math.round((studentsWithAssessments / totalStudents) * 100) : 0;
+    const diagnosticCompletionRate = totalStudents > 0 ? Math.round((studentsWithDiagnostic / totalStudents) * 100) : 0;
+
     return NextResponse.json({
       totalBranches,
       totalTeachers,
       totalStudents,
+      activeStudents,
+      pendingStudents,
+      studentsWithAssessments,
+      studentsWithDiagnostic,
+      assessmentCompletionRate,
+      diagnosticCompletionRate,
       pendingInvitations
     });
 

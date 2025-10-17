@@ -3,7 +3,15 @@ import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import Student from '@/models/Student';
 import User from '@/models/User';
-import mongoose from 'mongoose';
+import Organization from '@/models/Organization';
+import AuditLog from '@/models/AuditLog';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+interface DecodedToken {
+  userId: string;
+  [key: string]: unknown;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,24 +24,27 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify JWT token
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-            let decoded: any;
+    let decoded: any;
     try {
       decoded = jwt.verify(token, JWT_SECRET);
     } catch (jwtError) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    // Check if user is a teacher
+    // Check if user is an organization admin
     const user = await User.findById(decoded.userId);
-    if (!user || user.role !== 'teacher') {
+    if (!user || user.role !== 'organization') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const teacherId = user._id.toString();
+    // Get organization
+    const organization = await Organization.findOne({ userId: user._id.toString() });
+    if (!organization) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+    }
 
-    // Get students with their user information
-    const students = await Student.find({ teacherId })
+    // Get students in this organization
+    const students = await Student.find({ organizationId: organization._id.toString() })
       .sort({ createdAt: -1 });
 
     // Get user information for each student
@@ -71,7 +82,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('POST /api/teacher/students called');
+    console.log('POST /api/organization/students called');
     
     try {
       await connectDB();
@@ -91,21 +102,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify JWT token
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-            let decoded: any;
+    let decoded: any;
     try {
       decoded = jwt.verify(token, JWT_SECRET);
     } catch (jwtError) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    // Check if user is a teacher
+    // Check if user is an organization admin
     const user = await User.findById(decoded.userId);
-    if (!user || user.role !== 'teacher') {
+    if (!user || user.role !== 'organization') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const teacherId = user._id.toString();
+    // Get organization
+    const organization = await Organization.findOne({ userId: user._id.toString() });
+    if (!organization) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+    }
+
+    if (organization.approvalStatus !== 'approved') {
+      return NextResponse.json({ error: 'Organization must be approved to create students' }, { status: 403 });
+    }
 
     let body;
     try {
@@ -118,11 +136,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { fullName, email, classGrade, schoolName } = body;
+
+    const { name, email, classGrade, schoolName } = body;
 
     // Validate required fields
-    console.log('Validating fields:', { fullName, email, classGrade, schoolName });
-    if (!fullName || !email || !classGrade) {
+    console.log('Validating fields:', { name, email, classGrade, schoolName });
+    if (!name || !email || !classGrade) {
       console.log('Validation failed - missing required fields');
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -144,7 +163,7 @@ export async function POST(request: NextRequest) {
 
     console.log('Validation passed, proceeding to create user and student records');
 
-    // Generate secure password
+    // Generate secure password (same as teacher creation)
     const generateSecurePassword = () => {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
       let password = '';
@@ -158,7 +177,7 @@ export async function POST(request: NextRequest) {
 
     // Create new user
     const newUser = new User({
-      name: fullName,
+      name,
       email,
       password: securePassword,
       role: 'student',
@@ -175,8 +194,8 @@ export async function POST(request: NextRequest) {
     // Create student record with all required fields
     const newStudent = new Student({
       userId: savedUser._id,
-      teacherId: teacherId, // Use the authenticated teacher's ID
-      fullName,
+      organizationId: organization._id.toString(),
+      fullName: name,
       classGrade,
       schoolName: schoolName || 'Not specified',
       schoolId: `SCH${Date.now()}`,
@@ -202,6 +221,20 @@ export async function POST(request: NextRequest) {
     const savedStudent = await newStudent.save();
     console.log('Student saved successfully:', savedStudent._id);
 
+    // Log audit
+    await AuditLog.create({
+      userId: user._id.toString(),
+      userRole: user.role,
+      organizationId: organization._id.toString(),
+      action: 'CREATE_STUDENT',
+      resource: 'Student',
+      resourceId: savedStudent._id.toString(),
+      details: {
+        newValues: { name, email, classGrade, schoolName }
+      },
+      severity: 'medium'
+    });
+
     // Verify the data was saved correctly
     const verifyUser = await User.findById(savedUser._id);
     const verifyStudent = await Student.findById(savedStudent._id);
@@ -215,7 +248,7 @@ export async function POST(request: NextRequest) {
     const loginUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login`;
 
     return NextResponse.json({
-      message: 'Student added successfully',
+      message: 'Student created successfully',
       credentials: {
         id: savedUser._id.toString(),
         name: savedUser.name,
@@ -243,13 +276,13 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error adding student:', error);
+    console.error('Error creating student:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     console.error('Error type:', typeof error);
     console.error('Error message:', error instanceof Error ? error.message : 'No message');
     
     // Handle specific error types
-    let errorMessage = 'Failed to add student';
+    let errorMessage = 'Failed to create student';
     let statusCode = 500;
     
     if (error instanceof Error) {
@@ -276,94 +309,6 @@ export async function POST(request: NextRequest) {
           type: typeof error
         },
         { status: statusCode }
-      );
-    } catch (responseError) {
-      console.error('Failed to create JSON response:', responseError);
-      // Fallback response
-      return new Response(
-        JSON.stringify({ 
-          error: 'Internal server error',
-          details: 'Failed to process request'
-        }),
-        { 
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    console.log('DELETE /api/teacher/students called');
-    
-    try {
-      await connectDB();
-      console.log('Database connected successfully');
-    } catch (dbError) {
-      console.error('Database connection failed:', dbError);
-      return NextResponse.json(
-        { error: 'Database connection failed', details: dbError instanceof Error ? dbError.message : 'Unknown database error' },
-        { status: 500 }
-      );
-    }
-
-    // Extract student ID from URL
-    const url = new URL(request.url);
-    const pathParts = url.pathname.split('/');
-    const studentId = pathParts[pathParts.length - 1];
-    
-    console.log('Attempting to delete student with ID:', studentId);
-    
-    if (!studentId) {
-      return NextResponse.json(
-        { error: 'Student ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Find the student first
-    const student = await Student.findById(studentId);
-    if (!student) {
-      console.log('Student not found with ID:', studentId);
-      return NextResponse.json(
-        { error: 'Student not found' },
-        { status: 404 }
-      );
-    }
-
-    console.log('Found student:', student.fullName);
-
-    // Delete the student record
-    await Student.findByIdAndDelete(studentId);
-    console.log('Student record deleted successfully');
-
-    // Also delete the associated user record
-    if (student.userId) {
-      await User.findByIdAndDelete(student.userId);
-      console.log('Associated user record deleted successfully');
-    }
-
-    return NextResponse.json({
-      message: 'Student deleted successfully',
-      deletedStudentId: studentId
-    });
-
-  } catch (error) {
-    console.error('Error deleting student:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    console.error('Error type:', typeof error);
-    
-    // Ensure we always return JSON, never HTML
-    try {
-      return NextResponse.json(
-        { 
-          error: 'Failed to delete student', 
-          details: error instanceof Error ? error.message : 'Unknown error',
-          type: typeof error
-        },
-        { status: 500 }
       );
     } catch (responseError) {
       console.error('Failed to create JSON response:', responseError);

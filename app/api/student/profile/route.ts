@@ -75,7 +75,9 @@ export async function GET(request: NextRequest) {
       interestsOutsideClass: student.interestsOutsideClass,
       preferredCareerDomains: student.preferredCareerDomains,
       onboardingCompleted: student.onboardingCompleted,
-      interestAssessmentCompleted: student.interestAssessmentCompleted
+      interestAssessmentCompleted: student.interestAssessmentCompleted,
+      organizationId: student.organizationId,
+      isOrganizationStudent: !!student.organizationId
     });
 
   } catch (error) {
