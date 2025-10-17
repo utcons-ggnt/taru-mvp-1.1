@@ -440,7 +440,7 @@ function ModuleManagementInterface() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {(filteredModules || []).map((module) => (
-                  <tr key={module._id || Math.random()} className="hover:bg-gray-50">
+                  <tr key={module._id || Math.random()}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <input
                         type="checkbox"
@@ -2093,7 +2093,7 @@ Please share these credentials with the teacher. They can use this password perm
 
 
               <StaggerItem>
-                <TiltCard className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-6">
+                <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-6">
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 border-b border-gray-200 pb-3">Student Management</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-4 bg-blue-50 rounded-lg">
@@ -2109,12 +2109,12 @@ Please share these credentials with the teacher. They can use this password perm
                       <p className="text-sm text-purple-700">Download student login credentials as CSV file.</p>
                     </div>
                   </div>
-                </TiltCard>
+                </div>
               </StaggerItem>
 
               {/* Students Table */}
               <StaggerItem>
-                <TiltCard className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-6">
+                <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-6">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                     <h3 className="text-xl font-semibold text-gray-900">Organization Students</h3>
                     <div className="text-sm text-gray-600">
@@ -2167,7 +2167,7 @@ Please share these credentials with the teacher. They can use this password perm
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {students.map((student) => (
-                            <tr key={student.id} className="hover:bg-gray-50">
+                            <tr key={student.id}>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
                                   <div className="flex-shrink-0 h-10 w-10">
@@ -2254,7 +2254,7 @@ Please share these credentials with the teacher. They can use this password perm
                       </table>
                     </div>
                   )}
-                </TiltCard>
+                </div>
               </StaggerItem>
             </StaggerContainer>
           )}

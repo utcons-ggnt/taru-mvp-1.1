@@ -14,6 +14,7 @@ import { TiltCard, MagneticButton } from '../../components/InteractiveElements';
 import { StaggerContainer, StaggerItem } from '../../components/PageTransitions';
 import { ScrollFade, ScrollCounter, ParallaxScroll, ScrollProgress } from '../../components/ScrollAnimations';
 import { FloatingParticles, MorphingBlob } from '../../components/FloatingElements';
+import VantaBackground from '../../components/VantaBackground';
 import ConsistentLoadingPage from '../../components/ConsistentLoadingPage';
 
 interface User {
@@ -158,6 +159,12 @@ export default function PlatformSuperAdminDashboard() {
   const logoutTriggered = useRef(false);
   const { width: windowWidth } = useWindowSize();
   const isMobile = windowWidth < 1024;
+
+  // Handle logout
+  const handleLogout = () => {
+    document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    router.push('/login');
+  };
 
   // Super Admin navigation items
   const navItems = [
@@ -489,60 +496,148 @@ export default function PlatformSuperAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Enhanced Header */}
-      <motion.div 
-        className="bg-white/80 backdrop-blur-sm shadow-lg border-b border-white/20"
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6 }}
-      >
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-red-600 to-red-700 rounded-full flex items-center justify-center">
-                <span className="text-white text-lg font-bold">SA</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  Super Admin Dashboard
-                </h1>
-                <p className="text-sm text-gray-500">Platform Management Center</p>
-              </div>
+    <div 
+      className="dashboard-container min-h-screen relative"
+    >
+      {/* Background Elements */}
+      {/* Temporarily disabled for debugging */}
+      {/* <VantaBackground>
+        <ScrollProgress /> */}
+      
+      {/* Sidebar Component - Let it handle its own responsive behavior */}
+      <Sidebar 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab}
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        navItems={navItems}
+        role="admin"
+      />
+      
+      {/* Main Content Area */}
+      <div className={`dashboard-main relative min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 transition-all duration-300 ${
+        isMobile ? (isSidebarOpen ? 'ml-0' : 'ml-0') : 'ml-20'
+      }`}>
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%239C92AC%22%20fill-opacity%3D%220.05%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40 pointer-events-none"></div>
+        
+        {/* Top Bar */}
+        <div className="relative z-10 flex items-center justify-between w-full px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-gray-200/50 shadow-sm">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                Platform Super Admin
+              </h1>
+              <p className="text-sm text-gray-600 hidden sm:block">
+                Manage platform-wide operations and organizations
+              </p>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600">
-                Welcome, <span className="font-semibold text-gray-900">{user?.name}</span>
-              </div>
-              <motion.button
-                onClick={() => {
-                  document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                  router.push('/login');
-                }}
-                className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:from-red-700 hover:to-red-800"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            {/* Notifications */}
+            <div className="relative">
+              <button
+                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative"
               >
-                Logout
-              </motion.button>
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM4.5 19.5L9 15l4.5 4.5" />
+                </svg>
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+              
+              {/* Notification Dropdown */}
+              <AnimatePresence>
+                {isNotificationOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                    ref={notificationRef}
+                  >
+                    <div className="p-4 border-b border-gray-200">
+                      <h3 className="font-semibold text-gray-900">Notifications</h3>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map((notification, index) => (
+                          <div key={index} className="p-3 border-b border-gray-100 hover:bg-gray-50">
+                            <p className="text-sm text-gray-900">{notification.message}</p>
+                            <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-4 text-center text-gray-500">
+                          <p className="text-sm">No notifications</p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* User Profile */}
+            <div className="relative">
+              <button
+                onClick={() => setIsAvatarSelectorOpen(!isAvatarSelectorOpen)}
+                className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <Image
+                  src={userAvatar}
+                  alt="User Avatar"
+                  width={32}
+                  height={32}
+                  className="rounded-full"
+                />
+                <span className="hidden sm:block text-sm font-medium text-gray-700">
+                  {user?.name || 'Super Admin'}
+                </span>
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {/* Avatar Selector Dropdown */}
+              <AnimatePresence>
+                {isAvatarSelectorOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                  >
+                    <div className="p-2">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
-      </motion.div>
-
-      <div className="flex">
-        {/* Enhanced Sidebar */}
-        <Sidebar
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          isOpen={isSidebarOpen}
-          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-          navItems={navItems}
-          role="admin"
-        />
 
         {/* Main Content */}
-        <div className="flex-1 p-6">
+        <div className="relative z-10 p-4 sm:p-6">
           {activeTab === 'overview' && (
             <StaggerContainer className="space-y-6">
               <StaggerItem>
