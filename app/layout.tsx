@@ -28,11 +28,22 @@ export const metadata: Metadata = {
     description: "Transform learning with AI-powered personalized education",
     type: "website",
     locale: "en_US",
+    url: "https://taru.live",
+    siteName: "Taru",
+    images: [
+      {
+        url: "/icons/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Taru - AI-Powered Educational Platform",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Taru - AI-Powered Educational Platform",
     description: "Transform learning with AI-powered personalized education",
+    images: ["/icons/og-image.png"],
   },
   icons: {
     icon: "/icons/logo.svg",
