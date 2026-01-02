@@ -35,8 +35,8 @@ export const metadata: Metadata = {
     description: "Transform learning with AI-powered personalized education",
   },
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
+    icon: "/icons/logo.svg",
+    shortcut: "/icons/logo.svg",
     apple: "/icons/logo.svg",
   },
   manifest: "/manifest.json",
